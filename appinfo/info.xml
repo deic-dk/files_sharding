@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<info>
+    <id>sharder</id>
+    <name>Sharder</name>
+		<version>0.1</version>
+    <description>Distribution of files and load to other ownCloud servers.</description>
+    <licence>AGPL</licence>
+    <author>Frederik Orellana</author>
+    <require>4.93</require>
+    <!--<types>
+        <type>filesystem</type>
+        <type>authentication</type>
+    </types>-->
+    <standalone />
+    <remote>
+      <davs>appinfo/remote.php</davs>
+    </remote>
+		<!-- seems not to work -->
+		<!-- <public>
+		<davs>appinfo/remote.php</davs>
+		</public> -->
+		<default_enable/>
+</info>

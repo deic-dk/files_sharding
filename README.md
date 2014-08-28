@@ -11,5 +11,5 @@ The group of servers should be loadbalanced and the server recieving the initial
 then redirect to the server holding the requested file, unless this server happens to be
 itself.
 
-The sharding algorithm will use the user name as key and therefore cannot be implemented
+The sharding algorithm will use the username as key and therefore cannot be implemented
 directly on the load balancer.
