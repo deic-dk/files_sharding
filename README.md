@@ -1,6 +1,6 @@
 sharder
 =======
-#### ownCloud app implementing scale-out on a group of owncloud servers
+#### ownCloud app implementing scale-out on a group of ownCloud servers
 
 The purpose of the app is to allow horizontal scaling of storage capacity and performance
 without resorting to distributed file systems, SAN or NAS technology, but by letting each
