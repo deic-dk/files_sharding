@@ -33,7 +33,7 @@ To use more space than their personal quota, users have three options:
 2) Create a (path-sharded) folder under /Data and buy space for this. Propfind'ing this
    folder will return a remote URL pointing to a folder-slave-node.
    A map of the form folder->{slave1, slave2, slave3, ...}, will be kept in a MySQL table on the
-   head-node. We call such folders path-sharded folders.
+   head-node.
    
    When slave1 runs out of space, put, copy, move and mkcol trigger creation of a file
    or folder inside a '.sharder' subfolder and a redirect to slave2 (a header
