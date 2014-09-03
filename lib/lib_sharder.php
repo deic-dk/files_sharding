@@ -18,19 +18,8 @@ class OC_Sharder {
 		\OCP\Util::writeLog('sharing', 'ERROR: share not found: '.$token, \OC_Log::ERROR);
 		return null;
 	}
-
-	/*
-	 * Get the unique path like /files/john.doe@inst.dk/some/dir/somefile.txt
-	 * from URI like:
-	 *                    /files/some/dir/somefile.txt
-	 *                    /remote.php/webdav/some/dir/somefile.txt
-	 *                    /public/token/sub/dir/somefile.txt 
-	 */
-	public static function getOcPath($user, $uri){
-		
-	}
 	
-	public static function getServerForPath(){
+	public static function getServerForFolder(){
 	}
 
 	public static function getServerForUser() {

@@ -32,21 +32,32 @@ To use more space than their personal quota, users have three options:
 
 2) Create a (path-sharded) folder under /Data and buy space for this. Propfind'ing this
    folder will return a remote URL pointing to a folder-slave-node.
-   The head node runs a service, getFolderNodes() accepting a folder path as input and
-   returning a list of folder-slave-node like {slave1, slave2, slave3, ...}. Another
-   service, getCurrentFolderNode(), accepting a folder path as input, returns the name
-   of the last folder-slave-node. It is updated via another service,
-   setCurrentFolderNode(), which is called by a folder-slave-node when running out of
-   space and redirecting.
+   On the head node, a list of nodes {slave1, slave2, slave3, ...}, is kept for each
+   such folder. The function
    
+         getNextNodeForFolder()
+         
+   takes a folder and a host name as arguments and returns the next element from the list -
+   i.e. on which node to start looking for the given path. 
+   
+   The function
+   
+         getCurrentNodeForFolder()
+         
+   takes a folder and a host name as arguments and returns the name of the node that should
+   currently be used for writing files.
+
+   The function for setting this name,
+   
+         setCurrentNodeForFolder(),
+   
+   is called by a folder-slave-node when running out of space and redirecting.
+
    Physically, the above services will be keep their state in MySQL tables on the
    head-node:
    
-   files_sharding_folders: `item` (int), `node` (int), `current` (int)
-   files_sharding_nodes: `node_number`, `node_name`
-   
-   Note that item maps to a unique path and vice versa (via).
-   
+   files_sharding_folders: `path` (int), `node` (string), `current` (string)
+      
    When slave1 runs out of space, put, copy, move and mkcol trigger creation of a file
    or folder in the system folder 'files_sharding' folder (on the same level as
    'files_versions' etc.) and a redirect to slave2 (a header 'location: https://slave2/...').
@@ -66,6 +77,7 @@ To use more space than their personal quota, users have three options:
    getting (local) free space is modified to take into account files in the process of
    being written. The quota-related functions of ownCloud are modified to sum up space used
    on slave1, slave2, ...
+ 
    
 3) Assuming the user is member of a group, say DTU and assuming the owner of the group
    DTU has bought, say 300 TB of space for a folder /Data/DTU, shared it with the group,

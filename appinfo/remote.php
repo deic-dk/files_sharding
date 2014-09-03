@@ -49,22 +49,30 @@ RewriteRule ^remote.php/webdav/*$ https://data.deic.dk/remote.php/mydav/ [QSA,L]
 */
 
 require_once 'sharder/lib/lib_sharder.php';
+require_once 'sharder/lib/Normalizer.php';
 
 OC_Log::write('sharder','Remote access',OC_Log::INFO);
 OCP\App::checkAppEnabled('sharder');
 
+$FILES_BASE = "/files";
+$PUBLIC_BASE = "/public";
+$DATA_BASE = "/Data";
+
+$requestFix = new Normalizer($_SERVER['REQUEST_URI']);
+$requestUri = $requestFix->normalize();
+
 $baseUri = "/remote.php/dav";
 // Known aliases
-if(strpos($_SERVER['REQUEST_URI'], "/files/")===0){
-	$baseuri = "/files";
+if(strpos($requestUri, $FILES_BASE."/")===0){
+	$baseuri = $FILES_BASE;
 }
-elseif(strpos($_SERVER['REQUEST_URI'], "/public/")===0){
-	$baseuri = "/public";
+elseif(strpos($requestUri, $PUBLIC_BASE."/")===0){
+	$baseuri = $PUBLIC_BASE;
 }
 
-$reqPath = substr($_SERVER['REQUEST_URI'], strlen($baseUri));
+$reqPath = substr($requestUri, strlen($baseUri));
 
-if(strpos($_SERVER['REQUEST_URI'], "/public/")===0){
+if(strpos($requestUri, $PUBLIC_BASE."/")===0){
 	$token = preg_replace("/^\/([^\/]+)\/*/", "$1", $reqPath);
 	$user = OC_Sharder::getShareOwner($token);
 }
@@ -73,8 +81,12 @@ else{
 }
 
 // Sharded paths take first priority
-$ocPath = OC_Sharder::getOcPath($user, $_SERVER['REQUEST_URI']);
-$server = OC_Sharder::getServerForPath($ocPath);
+if(strpos($reqPath, $DATA_BASE."/")===0 && strlen($reqPath)>strlen($DATA_BASE)+2){
+	$dataPath = substr($reqPath, strlen($DATA_BASE)+1);
+	$dataFolder = preg_replace("/\/.*$", "", $dataPath);
+}
+
+$server = OC_Sharder::getServerForFolder($dataFolder);
 
 // Default to sharding on user
 if($server===null || trim($server)===''){
@@ -86,7 +98,7 @@ if($server===$_SERVER['SERVER_NAME']){
 	include('chooser/appinfo/remote.php');
 }
 else{
-	$redirectUri = preg_replace("/^\/remote.php\/dav\/", "/remote.php/webdav/", $_SERVER['REQUEST_URI']);
+	$redirectUri = preg_replace("/^\/remote.php\/dav\/", "/remote.php/webdav/", $requestUri);
 	OC_Log::write('sharder','User: '.$user.', server: '.$server.$redirectUri, OC_Log::WARN);
 	header('Location: https://' . $server . $reqPath);
 }
