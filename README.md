@@ -1,4 +1,4 @@
-sharder
+files_sharding
 =======
 #### ownCloud app implementing scale-out on a group of ownCloud servers
 
@@ -32,19 +32,32 @@ To use more space than their personal quota, users have three options:
 
 2) Create a (path-sharded) folder under /Data and buy space for this. Propfind'ing this
    folder will return a remote URL pointing to a folder-slave-node.
-   A map of the form folder->{slave1, slave2, slave3, ...}, will be kept in a MySQL table on the
-   head-node.
+   The head node runs a service, getFolderNodes() accepting a folder path as input and
+   returning a list of folder-slave-node like {slave1, slave2, slave3, ...}. Another
+   service, getCurrentFolderNode(), accepting a folder path as input, returns the name
+   of the last folder-slave-node. It is updated via another service,
+   setCurrentFolderNode(), which is called by a folder-slave-node when running out of
+   space and redirecting.
+   
+   Physically, the above services will be keep their state in MySQL tables on the
+   head-node:
+   
+   files_sharding_folders: `item` (int), `node` (int), `current` (int)
+   files_sharding_nodes: `node_number`, `node_name`
+   
+   Note that item maps to a unique path and vice versa (via).
    
    When slave1 runs out of space, put, copy, move and mkcol trigger creation of a file
-   or folder inside a '.sharder' subfolder and a redirect to slave2 (a header
-   'location: https://slave2/...'). Future propfinds on the file or folder on slave1 will
-   receive a URI pointing to slave2. Future put, get etc. on the file or folder on slave1
-   will simply receive a redirect to slave2.
+   or folder in the system folder 'files_sharding' folder (on the same level as
+   'files_versions' etc.) and a redirect to slave2 (a header 'location: https://slave2/...').
+   Future propfinds on the file or folder on slave1 will receive a URI pointing to slave2.
+   Future put, get etc. on the file or folder on slave1 will simply receive a redirect to
+   slave2.
    
    When slave2 runs out of space, the same happens, now with redirects to slave3. For
    subsequent requests to the created file/folder, slave1, which has no clue what has
    happened with this file/folder, when it doesn't find the file/folder and also not a
-   '.sharder'-match, redirects directly to slave3.
+   'files_sharding'-match, redirects directly to slave3.
    
    When slave3 runs out of space, the same happens, now with redirects to slave4. slave1
    redirects subsequent requests to slave3, which redirects to slave4.
@@ -66,7 +79,7 @@ To use more space than their personal quota, users have three options:
    
 ## Performance
    
-Sharder can cause performance degradation in at least two ways:
+files_sharding can cause performance degradation in at least two ways:
 
 1) Redirects
 
@@ -95,7 +108,7 @@ Sharder can cause performance degradation in at least two ways:
 
    These are issued:
    - on redirects
-    when checking quotas, i.e. on all put and copy requests
+   - when checking quotas, i.e. on all put and copy requests
     
  To lessen this extra load, quota and folder-slave-map query results are cached on the
  slave-nodes.
