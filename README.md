@@ -145,6 +145,12 @@ RewriteRule ^remote.php/webdav/*$ /remote.php/dav/ [QSA,L]
 ### Web interface
 
 Redirects are implemented by patching the files app via our theme.
+The same goes for the following features:
+
+- When a user creates a folder in /Data, he is greeted with a popup, asking him about the
+  max size and the price. The price will be lower for smaller max sizes.
+- The first time, say, a DTU user visits, /Data/DTU or /Shared/DTU from the web interface,
+  he is informed about the characteristics of the respective folder (ownership, quota).
 
 ## Performance
    
