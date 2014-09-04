@@ -116,7 +116,7 @@ to /remote.php/dav, i.e. remote.php from files_sharding. Then, 3 things can happ
    from where it is redirected back, but only after a possible 'files_sharding'
    link has been deleted.
 
-```
+``` bash
 #
 # Shard /files, /shared and /public
 #
@@ -141,7 +141,8 @@ RewriteRule ^remote.php/webdav/*$ /remote.php/mydav/ [QSA,L]
 RewriteCond %{HTTP_USER_AGENT} ^.*(csyncoC|mirall)\/.*$
 RewriteRule ^remote.php/webdav/*$ /remote.php/dav/ [QSA,L]
 ```
--> mod_rewrite rules <-
+| mod_rewrite rules |
+|:-----------------:|
 
 ### Web interface
 
