@@ -175,7 +175,7 @@ A method for searching across all nodes will be implemented and attempted used v
    
 files_sharding can cause performance degradation in at least two ways:
 
-1) Redirects
+### Redirects
 
    For user sharding, there should be max one of these per file/folder request and typically,
    when browsing directories with the web interface or a WebDAV client, only one in total:
@@ -199,7 +199,7 @@ files_sharding can cause performance degradation in at least two ways:
    between and concern relatively large files. Redirects should not matter, as they only
    affect latency and not throughput.
    
-2) Slave-nodes querying the head-node DB
+### Slave-nodes querying the head-node DB
 
    These are issued:
    - on redirects
