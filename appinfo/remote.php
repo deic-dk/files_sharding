@@ -1,7 +1,7 @@
 <?php
 
 /**
-* ownCloud
+* files_sharding - ownCloud plugin for horisontal scaling
 *
 * @author  Frederik Orellana
 * @copyright 2014 Frederik Orellana frederik@orellana.dk
@@ -19,33 +19,6 @@
 * You should have received a copy of the GNU Affero General Public
 * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 *
-*/
-
-/**
- * /files, /public and /remote.php/webdav should be mod_rewritten to
- * /remote.php/dav, i.e. this script, which fires up remote.php from
- * chooser, if running on the node hosting the item in question.
- */
- 
-/*
-
-#
-# Pretty and persistent URLs  
-#
-# Web interface - shares
-RewriteRule ^shared/(.*)$ public.php?service=files&t=$1 [QSA,L]
-# WebDAV - personal
-RewriteRule ^files/(.*) remote.php/dav/$1 [QSA,L]
-# WebDAV - shares
-RewriteRule ^public/(.*) remote.php/dav/$1 [QSA,L]
-#
-# Hide /Data
-#
-RewriteCond %{HTTP_USER_AGENT} ^.*(csyncoC|mirall)\/.*$
-#RewriteCond %{HTTP_USER_AGENT} ^.*(curl|cadaver)\/.*$
-RewriteCond %{REQUEST_METHOD} PROPFIND
-RewriteRule ^remote.php/webdav/*$ https://data.deic.dk/remote.php/mydav/ [QSA,L]
-
 */
 
 require_once 'sharder/lib/lib_sharder.php';

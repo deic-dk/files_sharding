@@ -93,7 +93,7 @@ To use more space than their personal quota, users have three options:
 
 ### WebDAV
 
-Requests will be intercepted vi mod_rewrite rules like below.
+Requests will be intercepted via mod_rewrite rules like below.
 
 /files, /public and /remote.php/webdav are mod_rewritten to /remote.php/dav,
 i.e. remote.php from files_sharding. Then, 3 things can happen:
@@ -116,11 +116,9 @@ i.e. remote.php from files_sharding. Then, 3 things can happen:
    from where it is redirected back, but only after a possible 'files_sharding'
    link has been deleted.
 
-### Web interface
-
 ```
 #
-# Pretty and persistent URLs  
+# Shard /files, /shared and /public
 #
 # Web interface - shares
 RewriteRule ^shared/(.*)$ public.php?service=files&t=$1 [QSA,L]
@@ -129,13 +127,24 @@ RewriteRule ^files/(.*) remote.php/dav/$1 [QSA,L]
 # WebDAV - shares
 RewriteRule ^public/(.*) remote.php/dav/$1 [QSA,L]
 #
-# Hide /Data
+# Hide /files/Data when redirected from head-node
 #
+RewriteCond %{HTTP_REFERER} .
+RewriteCond %{HTTP_REFERER} ^https://data\.deic\.dk [NC]
 RewriteCond %{HTTP_USER_AGENT} ^.*(csyncoC|mirall)\/.*$
-#RewriteCond %{HTTP_USER_AGENT} ^.*(curl|cadaver)\/.*$
 RewriteCond %{REQUEST_METHOD} PROPFIND
 RewriteRule ^remote.php/webdav/*$ /remote.php/mydav/ [QSA,L]
+#
+# Otherwise we're on the head-node and redirect sync clients
+# to /remote.php/dav
+#
+RewriteCond %{HTTP_USER_AGENT} ^.*(csyncoC|mirall)\/.*$
+RewriteRule ^remote.php/webdav/*$ /remote.php/dav/ [QSA,L]
 ```
+
+### Web interface
+
+Redirects are implemented by patching the files app via our theme.
 
 ## Performance
    
