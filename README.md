@@ -33,23 +33,23 @@ To use more space than their personal quota, users have three options:
 2) Create a (path-sharded) folder under /Data and buy space for this. Propfind'ing this
    folder will return a remote URL pointing to a folder-slave-node.
    On the head node, a list of nodes {slave1, slave2, slave3, ...}, is kept for each
-   such folder. The function
+   such folder. The method
    
-         getNextNodeForFolder()
+         `getNextNodeForFolder()`
          
    takes a folder and a host name as arguments and returns the next element from the list -
    i.e. on which node to start looking for the given path. 
    
-   The function
+   The method
    
          getCurrentNodeForFolder()
          
    takes a folder and a host name as arguments and returns the name of the node that should
    currently be used for writing files.
 
-   The function for setting this name,
+   The method for setting this name,
    
-         setCurrentNodeForFolder(),
+         `setCurrentNodeForFolder()`,
    
    is called by a folder-slave-node when running out of space and redirecting.
 
@@ -89,6 +89,54 @@ To use more space than their personal quota, users have three options:
    a folder /Data/DTU to be created for all current and future group members. These folders
    are simply path-sharded folders with a quota determined the the DTU group owner.
    
+## Implementation
+
+### WebDAV
+
+Requests will be intercepted vi mod_rewrite rules like below.
+
+/files, /public and /remote.php/webdav are mod_rewritten to /remote.php/dav,
+i.e. remote.php from files_sharding. Then, 3 things can happen:
+
+1) If the item is not found in the file system, but a match is found in
+   'files_sharding', the client is redirected to the relevant folder-slave-node.
+
+2) If the item is not found in the file system, and a match is not found in
+   'files_sharding', the client is redirected to the next folder-slave-node, found
+   via `getNextNodeForFolder()`.
+
+3) If on the node hosting the item in question - i.e. if the item is found in
+   the file system remote.php from chooser is fired up.
+   Special care is taken in the case of a delete request on folder-sharded items:
+   If not the result of a redirect, it is redirected to the previous node of the
+   sharded folder, found via the method
+   
+         `getPreviousNodeForFolder()`,
+
+   from where it is redirected back, but only after a possible 'files_sharding'
+   link has been deleted.
+
+### Web interface
+
+```
+#
+# Pretty and persistent URLs  
+#
+# Web interface - shares
+RewriteRule ^shared/(.*)$ public.php?service=files&t=$1 [QSA,L]
+# WebDAV - personal
+RewriteRule ^files/(.*) remote.php/dav/$1 [QSA,L]
+# WebDAV - shares
+RewriteRule ^public/(.*) remote.php/dav/$1 [QSA,L]
+#
+# Hide /Data
+#
+RewriteCond %{HTTP_USER_AGENT} ^.*(csyncoC|mirall)\/.*$
+#RewriteCond %{HTTP_USER_AGENT} ^.*(curl|cadaver)\/.*$
+RewriteCond %{REQUEST_METHOD} PROPFIND
+RewriteRule ^remote.php/webdav/*$ /remote.php/mydav/ [QSA,L]
+```
+
 ## Performance
    
 files_sharding can cause performance degradation in at least two ways:
@@ -97,14 +145,17 @@ files_sharding can cause performance degradation in at least two ways:
 
    For user sharding, there should be max one of these per file/folder request and typically,
    when browsing directories with the web interface or a WebDAV client, only one in total:
-   The initial propfind on the head-node will be redirected to, say, slave1, and all subsequent
+   An initial propfind on / on the head-node will return URLs to, say, slave1, and all
+   subsequent requests will go directly to slave1.
+   Direct propfinds on, /some/dir, will be redirected to, say, slave1, and all subsequent
    requests will go directly to slave1.
    
-   It remains to be seen if this is also so for the sync clients - in particular for put and
-   mkcol. If it is not so, an easy work-around is to display a user's slave-node in his
-   preferences and instruct him to use this as sync URL.
+   It remains to be seen if this is also so for the sync clients, or if they will insist on
+   using connecting to the head-node - in particular for put and mkcol. If it is not so, an
+   easy work-around is to display a user's slave-node in his preferences and instruct him to
+   use this as sync URL.
    
-   In path-sharded folders, there may be multiple redirects per file/folder request, but again,
+   For path-sharded folders, there may be multiple redirects per file/folder request, but again,
    with WebDAV clients, we expect there to be only one up front - and then perhaps a few more -
    depending on how many slave-nodes the folder is spread over.
    
@@ -113,8 +164,6 @@ files_sharding can cause performance degradation in at least two ways:
    important. But since such staging requests are expected to be with reasonable time in
    between and concern relatively large files. Redirects should not matter, as they only
    affect latency and not throughput.
-   
-   
    
 2) Slave-nodes querying the head-node DB
 

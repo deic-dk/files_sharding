@@ -22,9 +22,9 @@
 */
 
 /**
- * On the server, /files, /public and /remote.php/webdav should be
- * mod_rewritten to /remote.php/dav, on slaves, to /remote.php/mydav
- * - like below.
+ * /files, /public and /remote.php/webdav should be mod_rewritten to
+ * /remote.php/dav, i.e. this script, which fires up remote.php from
+ * chooser, if running on the node hosting the item in question.
  */
  
 /*
@@ -35,9 +35,9 @@
 # Web interface - shares
 RewriteRule ^shared/(.*)$ public.php?service=files&t=$1 [QSA,L]
 # WebDAV - personal
-RewriteRule ^files/(.*) remote.php/mydav/$1 [QSA,L]
+RewriteRule ^files/(.*) remote.php/dav/$1 [QSA,L]
 # WebDAV - shares
-RewriteRule ^public/(.*) remote.php/mydav/$1 [QSA,L]
+RewriteRule ^public/(.*) remote.php/dav/$1 [QSA,L]
 #
 # Hide /Data
 #
