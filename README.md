@@ -141,8 +141,7 @@ RewriteRule ^remote.php/webdav/*$ /remote.php/mydav/ [QSA,L]
 RewriteCond %{HTTP_USER_AGENT} ^.*(csyncoC|mirall)\/.*$
 RewriteRule ^remote.php/webdav/*$ /remote.php/dav/ [QSA,L]
 ```
-        | mod_rewrite rules |
-        |:-----------------:|
+| mod_rewrite rules |
 
 ### Web interface
 
