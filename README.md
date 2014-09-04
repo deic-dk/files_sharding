@@ -35,7 +35,7 @@ To use more space than their personal quota, users have three options:
    On the head node, a list of nodes {slave1, slave2, slave3, ...}, is kept for each
    such folder. The method
    
-         `getNextNodeForFolder()`
+         getNextNodeForFolder()
          
    takes a folder and a host name as arguments and returns the next element from the list -
    i.e. on which node to start looking for the given path. 
@@ -49,7 +49,7 @@ To use more space than their personal quota, users have three options:
 
    The method for setting this name,
    
-         `setCurrentNodeForFolder()`,
+         setCurrentNodeForFolder(),
    
    is called by a folder-slave-node when running out of space and redirecting.
 
@@ -111,7 +111,7 @@ to /remote.php/dav, i.e. remote.php from files_sharding. Then, 3 things can happ
    If not the result of a redirect, it is redirected to the previous node of the
    sharded folder, found via the method
    
-         `getPreviousNodeForFolder()`,
+         getPreviousNodeForFolder(),
 
    from where it is redirected back, but only after a possible 'files_sharding'
    link has been deleted.
@@ -151,6 +151,24 @@ The same goes for the following features:
   max size and the price. The price will be lower for smaller max sizes.
 - The first time, say, a DTU user visits, /Data/DTU or /Shared/DTU from the web interface,
   he is informed about the characteristics of the respective folder (ownership, quota).
+
+## Integration of other apps
+
+The affected apps will be those that require access to files and directories not on the
+server a user happens to land on by redirection.
+
+Obviously this is true for the files app - which will be dealt with as described above.
+In particular, a method,
+
+      exists(),
+
+will be implemented that can be used for put, copy and move requests.
+
+Apart from files, one can think of apps that allow searching across files owned by others or
+files in /Data. These include the Pictures and Documents apps - and the Tags/metadata app
+currently under development.
+
+A method for searching across all nodes will be implemented and attempted used via our theme.
 
 ## Performance
    
