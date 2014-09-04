@@ -53,10 +53,10 @@ To use more space than their personal quota, users have three options:
    
    is called by a folder-slave-node when running out of space and redirecting.
 
-   Physically, the above services will be keep their state in MySQL tables on the
+   Physically, the above services will be keep their state in a MySQL table on the
    head-node:
    
-   files_sharding_folders: `path` (int), `node` (string), `current` (string)
+   `files_sharding_folders`: `path` (string), `node` (string), `current` (bool)
       
    When slave1 runs out of space, put, copy, move and mkcol trigger creation of a file
    or folder in the system folder 'files_sharding' folder (on the same level as
