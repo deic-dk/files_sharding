@@ -95,8 +95,8 @@ To use more space than their personal quota, users have three options:
 
 Requests will be intercepted via mod_rewrite rules like below.
 
-/files, /public and /remote.php/webdav are mod_rewritten to /remote.php/dav,
-i.e. remote.php from files_sharding. Then, 3 things can happen:
+/files, /public, /shared and /remote.php/webdav (for sync clients) are mod_rewritten
+to /remote.php/dav, i.e. remote.php from files_sharding. Then, 3 things can happen:
 
 1) If the item is not found in the file system, but a match is found in
    'files_sharding', the client is redirected to the relevant folder-slave-node.
@@ -179,9 +179,9 @@ files_sharding can cause performance degradation in at least two ways:
    These are issued:
    - on redirects
    - when checking quotas, i.e. on all put and copy requests
-    
- To lessen this extra load, quota and folder-slave-map query results are cached on the
- slave-nodes.
+ 
+ To lessen this extra load, quota and folder-slave-map query results are cached on the slave-
+ nodes.
    
    
    
