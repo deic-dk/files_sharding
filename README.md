@@ -180,8 +180,8 @@ files_sharding can cause performance degradation in at least two ways:
    - on redirects
    - when checking quotas, i.e. on all put and copy requests
  
- To lessen this extra load, quota and folder-slave-map query results are cached on the slave-
- nodes.
+To lessen this extra load, quota and folder-slave-map query results are cached on the slave-
+nodes.
    
    
    
