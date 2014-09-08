@@ -63,16 +63,23 @@ $server = OC_Sharder::getServerForFolder($dataFolder);
 
 // Default to sharding on user
 if($server===null || trim($server)===''){
-	$server = OC_Sharder::getServerForUser($user);
+	// If I'm the head-node, look up in DB
+	if($_SERVER['REMOTE_ADDR']===$_SERVER['SERVER_ADDR']){
+		$server = OC_Sharder::dbLookupServerForUser($user);
+	}
+	// Otherwise, ask head-node
+	else{
+		$server = OC_Sharder::wsLookupServerForUser($user);
+	}
 }
 
-// Redirect
+// Serve
 if($server===$_SERVER['SERVER_NAME']){
 	include('chooser/appinfo/remote.php');
 }
+// Redirect
 else{
-	$redirectUri = preg_replace("/^\/remote.php\/dav\/", "/remote.php/webdav/", $requestUri);
-	OC_Log::write('sharder','User: '.$user.', server: '.$server.$redirectUri, OC_Log::WARN);
+	OC_Log::write('sharder','Redirecting to: https://' . $server . $reqPath, OC_Log::WARN);
 	header('Location: https://' . $server . $reqPath);
 }
 

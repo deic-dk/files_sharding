@@ -9,14 +9,14 @@ redirect accordingly.
 
 ## User sharding
 
-The default is to shard on username, keep each user on one node and limit users to e.g.
+The default is to shard on username, keep each user on one server and limit users to e.g.
 0.5 TB each for personal files. Each server with, say 70 TB, could then host, say 100
 users and keep 20 TB for those users who want to buy more personal space.
 
 ## Path sharding
 
 Path-sharded folders, i.e. data folders (under /Data) are to be used for scientific data.
-They can span multiple nodes and have no upper limit on their size beyond the limit given
+They can span multiple servers and have no upper limit on their size beyond the limit given
 by the size of the customer's wallet.
 They are not synced and are expected to be accessed either via WebDAV clients for large-
 scale data management, via the web interface for casual data management, via direct curl
@@ -26,38 +26,51 @@ from compute servers or scripted curl from large-scale off-site data providers o
 
 To use more space than their personal quota, users have three options:
 
-1) Buy more personal space - up to what's free on the node they're on and some limit -
+1) Buy more personal space - up to what's free on the server they're on and some limit -
    say 5 TB. We'll have to wait and see and then tune the quotas, limits and number of
    users to avoid manually migrating users as far as possible.
+   
+   The mapping of users to servers is kept in a database table:
+
+   `files_sharding_user_servers`: `user` (String), `server_id` (int), `current` (bool)
+   
+   queried via the method
+
+         getNextServerForUser()
 
 2) Create a (path-sharded) folder under /Data and buy space for this. Propfind'ing this
-   folder will return a remote URL pointing to a folder-slave-node.
-   On the head node, a list of nodes {slave1, slave2, slave3, ...}, is kept for each
+   folder will return a remote URL pointing to a folder-slave-server.
+   On the head server, a list of servers {slave1, slave2, slave3, ...}, is kept for each
    such folder. The method
    
-         getNextNodeForFolder()
+         getNextServerForFolder()
          
    takes a folder and a host name as arguments and returns the next element from the list -
-   i.e. on which node to start looking for the given path. 
+   i.e. on which server to start looking for the given path. 
    
    The method
    
-         getCurrentNodeForFolder()
+         getCurrentServerForFolder()
          
-   takes a folder and a host name as arguments and returns the name of the node that should
+   takes a folder and a host name as arguments and returns the name of the server that should
    currently be used for writing files.
 
    The method for setting this name,
    
-         setCurrentNodeForFolder(),
+         setCurrentServerForFolder(),
    
-   is called by a folder-slave-node when running out of space and redirecting.
+   is called by a folder-slave-server when running out of space and redirecting.
 
    Physically, the above services will be keep their state in a MySQL table on the
-   head-node:
+   head-server:
    
-   `files_sharding_folders`: `path` (string), `node` (string), `current` (bool)
+   `files_sharding_folder_servers`: `folder_id` (int), `server_id` (int), `current` (bool)
       
+   The path of a folder is looked up in `oc_files_cache` via `\OCP\Files\Folder::getId()`.
+   The name of the server is looked up in another table:
+   
+   `files_sharding_servers`: `id` (int), `name` (string)
+   
    When slave1 runs out of space, put, copy, move and mkcol trigger creation of a file
    or folder in the system folder 'files_sharding' folder (on the same level as
    'files_versions' etc.) and a redirect to slave2 (a header 'location: https://slave2/...').
@@ -99,19 +112,19 @@ Requests will be intercepted via mod_rewrite rules like below.
 to /remote.php/dav, i.e. remote.php from files_sharding. Then, 3 things can happen:
 
 1) If the item is not found in the file system, but a match is found in
-   'files_sharding', the client is redirected to the relevant folder-slave-node.
+   'files_sharding', the client is redirected to the relevant folder-slave-server.
 
 2) If the item is not found in the file system, and a match is not found in
-   'files_sharding', the client is redirected to the next folder-slave-node, found
-   via `getNextNodeForFolder()`.
+   'files_sharding', the client is redirected to the next folder-slave-server, found
+   via `getNextServerForFolder()`.
 
-3) If on the node hosting the item in question - i.e. if the item is found in
+3) If on the server hosting the item in question - i.e. if the item is found in
    the file system remote.php from chooser is fired up.
    Special care is taken in the case of a delete request on folder-sharded items:
-   If not the result of a redirect, it is redirected to the previous node of the
+   If not the result of a redirect, it is redirected to the previous server of the
    sharded folder, found via the method
    
-         getPreviousNodeForFolder(),
+         getPreviousServerForFolder(),
 
    from where it is redirected back, but only after a possible 'files_sharding'
    link has been deleted.
@@ -127,7 +140,7 @@ RewriteRule ^files/(.*) remote.php/dav/$1 [QSA,L]
 # WebDAV - shares
 RewriteRule ^public/(.*) remote.php/dav/$1 [QSA,L]
 #
-# Hide /files/Data when redirected from head-node
+# Hide /files/Data when redirected from head-server
 #
 RewriteCond %{HTTP_REFERER} .
 RewriteCond %{HTTP_REFERER} ^https://data\.deic\.dk [NC]
@@ -135,7 +148,7 @@ RewriteCond %{HTTP_USER_AGENT} ^.*(csyncoC|mirall)\/.*$
 RewriteCond %{REQUEST_METHOD} PROPFIND
 RewriteRule ^remote.php/webdav/*$ /remote.php/mydav/ [QSA,L]
 #
-# Otherwise we're on the head-node and redirect sync clients
+# Otherwise we're on the head-server and redirect sync clients
 # to /remote.php/dav
 #
 RewriteCond %{HTTP_USER_AGENT} ^.*(csyncoC|mirall)\/.*$
@@ -169,7 +182,7 @@ Apart from files, one can think of apps that allow searching across files owned 
 files in /Data. These include the Pictures and Documents apps - and the Tags/metadata app
 currently under development.
 
-A method for searching across all nodes will be implemented and attempted used via our theme.
+A method for searching across all servers will be implemented and attempted used via our theme.
 
 ## Performance
    
@@ -179,19 +192,19 @@ files_sharding can cause performance degradation in at least two ways:
 
    For user sharding, there should be max one of these per file/folder request and typically,
    when browsing directories with the web interface or a WebDAV client, only one in total:
-   An initial propfind on / on the head-node will return URLs to, say, slave1, and all
+   An initial propfind on / on the head-server will return URLs to, say, slave1, and all
    subsequent requests will go directly to slave1.
    Direct propfinds on, /some/dir, will be redirected to, say, slave1, and all subsequent
    requests will go directly to slave1.
    
    It remains to be seen if this is also so for the sync clients, or if they will insist on
-   using connecting to the head-node - in particular for put and mkcol. If it is not so, an
-   easy work-around is to display a user's slave-node in his preferences and instruct him to
+   using connecting to the head-server - in particular for put and mkcol. If it is not so, an
+   easy work-around is to display a user's slave-server in his preferences and instruct him to
    use this as sync URL.
    
    For path-sharded folders, there may be multiple redirects per file/folder request, but again,
    with WebDAV clients, we expect there to be only one up front - and then perhaps a few more -
-   depending on how many slave-nodes the folder is spread over.
+   depending on how many slave-servers the folder is spread over.
    
    Since path-sharded folders are not synced, the only other worry is direct curl requests.
    This is how data is expected to be staged in and out from compute servers, so it is
@@ -199,14 +212,14 @@ files_sharding can cause performance degradation in at least two ways:
    between and concern relatively large files. Redirects should not matter, as they only
    affect latency and not throughput.
    
-### Slave-nodes querying the head-node DB
+### Slave-servers querying the head-server DB
 
    These are issued:
    - on redirects
    - when checking quotas, i.e. on all put and copy requests
  
 To lessen this extra load, quota and folder-slave-map query results are cached on the slave-
-nodes.
+servers.
    
    
    
