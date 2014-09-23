@@ -14,3 +14,7 @@ OCP\App::registerPersonal('sharder', 'settings');
 #   \OC_Util::setupFS();
 #}
 
+#if($_SERVER['HTTP_REFERER']===$_SERVER['SERVER_NAME']){
+#	setcookie('saml_auth_fail', 'notallowed', 0, '/', 'data.deic.dk', false, false);
+#}
+

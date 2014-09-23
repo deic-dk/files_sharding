@@ -59,18 +59,11 @@ if(strpos($reqPath, $DATA_BASE."/")===0 && strlen($reqPath)>strlen($DATA_BASE)+2
 	$dataFolder = preg_replace("/\/.*$", "", $dataPath);
 }
 
-$server = OC_Sharder::getServerForFolder($dataFolder);
+$server = OC_Sharder::getNextServerForFolder($dataFolder);
 
 // Default to sharding on user
 if($server===null || trim($server)===''){
-	// If I'm the head-node, look up in DB
-	if($_SERVER['REMOTE_ADDR']===$_SERVER['SERVER_ADDR']){
-		$server = OC_Sharder::dbLookupServerForUser($user);
-	}
-	// Otherwise, ask head-node
-	else{
-		$server = OC_Sharder::wsLookupServerForUser($user);
-	}
+	$server = OC_Sharder::getNextServerForUser($user);
 }
 
 // Serve
@@ -84,7 +77,4 @@ else{
 }
 
 exit();
-
-
-
 

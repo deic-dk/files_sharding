@@ -32,7 +32,7 @@ To use more space than their personal quota, users have three options:
    
    The mapping of users to servers is kept in a database table:
 
-   `files_sharding_user_servers`: `user` (String), `server_id` (int), `current` (bool)
+   `files_sharding_user_servers`: `id` (int), `user` (String), `server_id` (int), `current` (bool)
    
    queried via the method
 
@@ -61,10 +61,10 @@ To use more space than their personal quota, users have three options:
    
    is called by a folder-slave-server when running out of space and redirecting.
 
-   Physically, the above services will be keep their state in a MySQL table on the
-   head-server:
+   Physically, the above services will keep their state in a MySQL table on the head-
+   server:
    
-   `files_sharding_folder_servers`: `folder_id` (int), `server_id` (int), `current` (bool)
+   `files_sharding_folder_servers`: `id` (int), `folder_id` (int), `server_id` (int), `current` (bool)
       
    The path of a folder is looked up in `oc_files_cache` via `\OCP\Files\Folder::getId()`.
    The name of the server is looked up in another table:
