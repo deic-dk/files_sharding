@@ -1,16 +1,18 @@
 <?xml version="1.0"?>
 <info>
-    <id>sharder</id>
-    <name>Sharder</name>
+    <id>files_sharding</id>
+    <name>Files sharding</name>
 		<version>0.1</version>
-    <description>Distribution of files and load to other ownCloud servers.</description>
+    <description>Distribution of files and load over a cluster of ownCloud servers.</description>
     <licence>AGPL</licence>
     <author>Frederik Orellana</author>
     <require>4.93</require>
-    <!--<types>
-        <type>filesystem</type>
-        <type>authentication</type>
-    </types>-->
+    <types>
+        <filesystem/>
+        <authentication/>
+        <prelogin/>
+        <session/>
+    </types>
     <standalone />
     <remote>
       <davs>appinfo/remote.php</davs>

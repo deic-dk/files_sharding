@@ -1,20 +1,27 @@
 <?php
 
-//require_once('apps/sharder/lib/lib_sharder.php');
+//require_once('apps/files_sharding/lib/lib_sharder.php');
 
-OCP\App::registerPersonal('sharder', 'settings');
+OCP\App::registerPersonal('files_sharding', 'settings');
 
-#$user_id = OC_Chooser::checkIP();
-#$user_id = "fror@dtu.dk";
+OC::$CLASSPATH['OCA\FilesSharding\PracticalSession'] = 'files_sharding/lib/practicalsession.php';
+OC::$CLASSPATH['OCA\FilesSharding\Hooks'] = 'files_sharding/lib/hooks.php';
+OC::$CLASSPATH['OCA\FilesSharding\FileSessionHandler'] = 'files_sharding/lib/filesessionhandler.php';
 
-#OC_Log::write('sharder','user_id '.$user_id,OC_Log::INFO);
+OCP\Util::connectHook('OC', 'initSession', 'OCA\FilesSharding\Hooks', 'initSession');
+OCP\Util::connectHook('OC_User', 'logout', 'OCA\FilesSharding\Hooks', 'logout');
 
-#if($user_id != '' && OC_User::userExists($user_id)){
-#   $_SESSION['user_id'] = $user_id;
-#   \OC_Util::setupFS();
-#}
+/*$user_id = OC_Chooser::checkIP();
+$user_id = "fror@dtu.dk";
 
-#if($_SERVER['HTTP_REFERER']===$_SERVER['SERVER_NAME']){
-#	setcookie('saml_auth_fail', 'notallowed', 0, '/', 'data.deic.dk', false, false);
-#}
+OC_Log::write('sharder','user_id '.$user_id,OC_Log::INFO);
+
+if($user_id != '' && OC_User::userExists($user_id)){
+   $_SESSION['user_id'] = $user_id;
+   \OC_Util::setupFS();
+}
+
+if($_SERVER['HTTP_REFERER']===$_SERVER['SERVER_NAME']){
+	setcookie('saml_auth_fail', 'notallowed', 0, '/', 'data.deic.dk', false, false);
+}*/
 

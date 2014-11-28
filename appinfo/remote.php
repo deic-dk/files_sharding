@@ -21,11 +21,11 @@
 *
 */
 
-require_once 'sharder/lib/lib_sharder.php';
-require_once 'sharder/lib/Normalizer.php';
+require_once 'files_sharding/lib/lib_files_sharding.php';
+require_once 'files_sharding/lib/Normalizer.php';
 
-OC_Log::write('sharder','Remote access',OC_Log::INFO);
-OCP\App::checkAppEnabled('sharder');
+OC_Log::write('files_sharding','Remote access',OC_Log::INFO);
+OCP\App::checkAppEnabled('files_sharding');
 
 $FILES_BASE = "/files";
 $PUBLIC_BASE = "/public";
@@ -47,7 +47,7 @@ $reqPath = substr($requestUri, strlen($baseUri));
 
 if(strpos($requestUri, $PUBLIC_BASE."/")===0){
 	$token = preg_replace("/^\/([^\/]+)\/*/", "$1", $reqPath);
-	$user = OC_Sharder::getShareOwner($token);
+	$user = OC_Files_sharding::getShareOwner($token);
 }
 else{
 	$user = $_SERVER['PHP_AUTH_USER'];
@@ -59,11 +59,11 @@ if(strpos($reqPath, $DATA_BASE."/")===0 && strlen($reqPath)>strlen($DATA_BASE)+2
 	$dataFolder = preg_replace("/\/.*$", "", $dataPath);
 }
 
-$server = OC_Sharder::getNextServerForFolder($dataFolder);
+$server = OC_Files_sharding::getNextServerForFolder($dataFolder);
 
 // Default to sharding on user
 if($server===null || trim($server)===''){
-	$server = OC_Sharder::getNextServerForUser($user);
+	$server = OC_Files_sharding::getNextServerForUser($user);
 }
 
 // Serve
