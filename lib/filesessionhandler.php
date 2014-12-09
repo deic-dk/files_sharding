@@ -4,6 +4,7 @@
 namespace OCA\FilesSharding;
 
 require_once 'files_sharding/lib/session.php';
+require_once 'files_sharding/lib/lib_files_sharding.php';
 
 // Register a custom session handler.
 
@@ -11,9 +12,9 @@ class FileSessionHandler {
 	private $savePath;
 	private $ocUserDatabase;
 	
-	private static $LOGOUT_URL = "https://data.deic.dk/index.php?logout=true";
-	private static $MASTER = "data.deic.dk";
-	private static $MASTER_URL = "https://"."data.deic.dk"."/";
+	// The sharding master, MASTER_FQ, should currently be set manually or by an installer.
+	// TODO: Make this a configurable setting.
+	private static $LOGOUT_URL = "https://MASTER_FQ/index.php?logout=true";
 	private static $MASTER_LOGIN_OK_COOKIE = "oc_ok";
 
 	function __construct($savePath) {
@@ -79,8 +80,7 @@ class FileSessionHandler {
 	
 	function getSession($id){
 		$ch = curl_init();
-		// TODO change chooser to files_sharding as soon as we change to test.data.deic.dk
-		curl_setopt($ch, CURLOPT_URL, self::$MASTER_URL."apps/chooser/get_session.php");
+		curl_setopt($ch, CURLOPT_URL, OC_Sharder::MASTER_INTERNAL_URL."apps/files_sharding/ws/get_session.php");
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id));
@@ -147,8 +147,7 @@ class FileSessionHandler {
 	
 	static function getPassword($id){
 		$ch = curl_init();
-		// TODO change chooser to files_sharding as soon as we change to test.data.deic.dk
-		curl_setopt($ch, CURLOPT_URL, self::$MASTER_URL."apps/chooser/get_pw_hash.php");
+		curl_setopt($ch, CURLOPT_URL, OC_Sharder::MASTER_INTERNAL_URL."apps/files_sharding/ws/get_pw_hash.php");
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id));
@@ -217,8 +216,7 @@ class FileSessionHandler {
 		}
 		
 		$ch = curl_init();
-		// TODO change chooser to files_sharding as soon as we change to test.data.deic.dk
-		curl_setopt($ch, CURLOPT_URL, self::$MASTER_URL."apps/chooser/put_session.php");
+		curl_setopt($ch, CURLOPT_URL, OC_Sharder::MASTER_INTERNAL_URL."apps/files_sharding/ws/put_session.php");
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id, 'session'=>$data));

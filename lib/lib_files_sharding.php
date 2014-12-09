@@ -2,8 +2,13 @@
 
 class OC_Sharder {
 	
-	public static $HEAD_SERVER_URL = "https://data.deic.dk/";
-
+	/* Trusted network. It is presumed that firewall rules have been set up such that
+	   these addresses are blocked on non-secure interfaces. */
+	// TODO: make these configurable settings
+	const TRUSTED_NET = 'TRUSTED_NET';
+	/* The master server in the trusted network */
+	const MASTER_INTERNAL_URL = "https://MASTER_INTERNAL_IP/";
+	
 	public static function getShareOwner($token) {
 		$query = \OC_DB::prepare('SELECT `uid_owner` FROM `*PREFIX*share` WHERE `token` = ?');
 		$result = $query->execute(Array($token));
@@ -132,7 +137,7 @@ class OC_Sharder {
 	 * @param unknown $user
 	 */
 	private static function wsLookupNextServerForUser($user){
-		$url = $HEAD_SERVER_URL."apps/files_sharding/ajax/userServer.php";
+		$url = OC_Sharder::MASTER_INTERNAL_URL."apps/files_sharding/ws/get_user_server.php";
 		$data = array(
 			'json' => '{"user":"'.$user.'"}',
 		);
@@ -203,7 +208,7 @@ class OC_Sharder {
 	 * @param int $folderId
 	 */
 	private static function wsLookupNextServerForFolder($folderId){
-		$url = $HEAD_SERVER_URL."apps/files_sharding/ajax/folderServer.php";
+		$url = OC_Sharder::MASTER_INTERNAL_URL."apps/files_sharding/ws/get_folder_server.php";
 		$data = array(
 			'json' => '{"folder_id":"'.$folderId.'"}',
 		);
@@ -243,6 +248,18 @@ class OC_Sharder {
 		else{
 			$server = self::wsLookupNextServerForFolder($folderId);
 		}
+	}
+	
+	/**
+	 * Check that the requesting IP address is allowed to get confidential
+	 * information.
+	 */
+	public static function checkIP(){
+		OC_Log::write('files_sharding', 'Client IP '.$_SERVER['REMOTE_ADDR'], OC_Log::INFO);
+		if(strpos($_SERVER['REMOTE_ADDR'], OC_Sharder::TRUSTED_NET)===0){
+			return true;
+		}
+		return false;
 	}
 	
 }

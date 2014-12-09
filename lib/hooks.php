@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../../lib/base.php';
 class Hooks {
 
 	private static $handler;
-	private static $LOGOUT_URL = "https://data.deic.dk/index.php?logout=true";
+	private static $LOGOUT_URL = "https://MASTER_FQ/index.php?logout=true";
 	
  public static function initSession($params){
  

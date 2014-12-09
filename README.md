@@ -7,6 +7,10 @@ without resorting to distributed file systems, SAN or NAS technology, but by let
 server in a group of ownCloud servers be responsible for a segment of the namespace and
 redirect accordingly.
 
+The app requires redirection to be done on a master server. Such functionality is provided
+by an accompanying app: "user_saml"- which is a fork of the original user_saml by Sixto
+Martin.
+
 ## User sharding
 
 The default is to shard on username, keep each user on one server and limit users to e.g.
@@ -119,7 +123,8 @@ to /remote.php/dav, i.e. remote.php from files_sharding. Then, 3 things can happ
    via `getNextServerForFolder()`.
 
 3) If on the server hosting the item in question - i.e. if the item is found in
-   the file system remote.php from chooser is fired up.
+   the file system chooser/appinfo/remote.php is fired up (files/appinfo/remote.php
+   if chooser is not installed).
    Special care is taken in the case of a delete request on folder-sharded items:
    If not the result of a redirect, it is redirected to the previous server of the
    sharded folder, found via the method
