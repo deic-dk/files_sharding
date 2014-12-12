@@ -96,7 +96,7 @@ To use more space than their personal quota, users have three options:
    on slave1, slave2, ...
  
    
-3) Assuming the user is member of a group, say DTU and assuming the owner of the group
+3) Assuming the user is member of a group, say DTU, and assuming the owner of the group
    DTU has bought, say 300 TB of space for a folder /Data/DTU, shared it with the group,
    and ticked off 'individual data folders', the user can simply place his data in the folder
    /Data/DTU. Or - if he want to share data - put it in /Shared/DTU.
@@ -104,7 +104,7 @@ To use more space than their personal quota, users have three options:
    Ticking off 'individual data folders', first checks if any group member already has a
    folder by the name /data/DTU and returns an error in such a case. Otherwise, it causes
    a folder /Data/DTU to be created for all current and future group members. These folders
-   are simply path-sharded folders with a quota determined the the DTU group owner.
+   are simply path-sharded folders with a quota determined by the DTU group owner.
    
 ## Implementation
 
