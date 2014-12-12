@@ -4,12 +4,8 @@ files_sharding
 
 The purpose of the app is to allow horizontal scaling of storage capacity and performance
 without resorting to distributed file systems, SAN or NAS technology, but by letting each
-server in a group of ownCloud servers be responsible for a segment of the namespace and
-redirect accordingly.
-
-The app requires redirection to be done on a master server. Such functionality is provided
-by an accompanying app: "user_saml"- which is a fork of the original user_saml by Sixto
-Martin.
+server in a group of ownCloud servers be responsible for a segment of the user and/or
+folders and redirect accordingly.
 
 ## User sharding
 
@@ -163,13 +159,15 @@ RewriteRule ^remote.php/webdav/*$ /remote.php/dav/ [QSA,L]
 
 ### Web interface
 
-Redirects are implemented by patching the files app via our theme.
-The same goes for the following features:
+Redirects are implemented via a `post_login` hook.
 
-- When a user creates a folder in /Data, he is greeted with a popup, asking him about the
-  max size and the price. The price will be lower for smaller max sizes.
-- The first time, say, a DTU user visits, /Data/DTU or /Shared/DTU from the web interface,
-  he is informed about the characteristics of the respective folder (ownership, quota).
+When a user creates a folder in /Data, he is greeted with a popup, asking him about the
+max size and the price. The price will be lower for smaller max sizes. This is implemented
+via a `post_write` hook.
+
+The first time, say, a DTU user visits, /Data/DTU or /Shared/DTU from the web interface,
+he is informed about the characteristics of the respective folder (ownership, quota).
+This is implemented via javascript.
 
 ## Integration of other apps
 
