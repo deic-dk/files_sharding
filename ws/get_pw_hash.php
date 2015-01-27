@@ -8,7 +8,7 @@ include("lib/lib_files_sharding.php");
 
 $ret = array();
 
-if(!OC_Sharder::checkIP()){
+if(!OC_Files_Sharding::checkIP()){
 	$ret['error'] = "Network not secure";
 }
 else{

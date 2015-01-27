@@ -1,13 +1,16 @@
 <?php
 
-class OC_Sharder {
+namespace OCA\FilesSharding;
+
+class Lib {
 	
 	/* Trusted network. It is presumed that firewall rules have been set up such that
 	   these addresses are blocked on non-secure interfaces. */
-	// TODO: make these configurable settings
-	const TRUSTED_NET = 'TRUSTED_NET';
-	/* The master server in the trusted network */
-	const MASTER_INTERNAL_URL = "https://MASTER_INTERNAL_IP/";
+	const trustednet = 'TRUSTED_NET';
+	const masterinternalip = "MASTER_INTERNAL_IP";
+	const masterfq = "MASTER_FQ";
+	// The sharding master IPs, MASTER_INTERNAL_IP, MASTER_FQ, and TRUSTED_NET should currently be set manually or by an installer.
+	// TODO: Make these configurable settings.
 	
 	public static function getShareOwner($token) {
 		$query = \OC_DB::prepare('SELECT `uid_owner` FROM `*PREFIX*share` WHERE `token` = ?');
@@ -137,7 +140,7 @@ class OC_Sharder {
 	 * @param unknown $user
 	 */
 	private static function wsLookupNextServerForUser($user){
-		$url = OC_Sharder::MASTER_INTERNAL_URL."apps/files_sharding/ws/get_user_server.php";
+		$url = "https://".Lib::masterinternalip."/apps/files_sharding/ws/get_user_server.php";
 		$data = array(
 			'json' => '{"user":"'.$user.'"}',
 		);
@@ -208,7 +211,7 @@ class OC_Sharder {
 	 * @param int $folderId
 	 */
 	private static function wsLookupNextServerForFolder($folderId){
-		$url = OC_Sharder::MASTER_INTERNAL_URL."apps/files_sharding/ws/get_folder_server.php";
+		$url = "https://".Lib::masterinternalip."/apps/files_sharding/ws/get_folder_server.php";
 		$data = array(
 			'json' => '{"folder_id":"'.$folderId.'"}',
 		);
@@ -256,7 +259,7 @@ class OC_Sharder {
 	 */
 	public static function checkIP(){
 		OC_Log::write('files_sharding', 'Client IP '.$_SERVER['REMOTE_ADDR'], OC_Log::INFO);
-		if(strpos($_SERVER['REMOTE_ADDR'], OC_Sharder::TRUSTED_NET)===0){
+		if(strpos($_SERVER['REMOTE_ADDR'], Lib::trustednet)===0){
 			return true;
 		}
 		return false;

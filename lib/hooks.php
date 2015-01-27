@@ -7,9 +7,8 @@ require_once __DIR__ . '/../../../lib/base.php';
 class Hooks {
 
 	private static $handler;
-	private static $LOGOUT_URL = "https://MASTER_FQ/index.php?logout=true";
 	
- public static function initSession($params){
+	public static function initSession($params){
  
 		self::initHandler();
 		
@@ -52,11 +51,11 @@ class Hooks {
 		$session->setLoginName(null);
 		$instanceId = \OC_Config::getValue('instanceid', null);
 		if(!empty($_COOKIE[$instanceId])){
-			// This actually precents a proper saml log out
+			// This actually prevents a proper saml logout
 			//self::$handler->putSession($_COOKIE[$instanceId], "");
 			//self::$handler->destroy($_COOKIE[$instanceId]);
-			// Redirect back to master to saml log out
-			header('Location: ' . self::$LOGOUT_URL);
+			// Redirect back to master to saml logout
+			header('Location: ' . "https://".Lib::masterfq."/index.php?logout=true");
 			exit();
 		}
 	}

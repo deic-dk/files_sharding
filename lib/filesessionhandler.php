@@ -11,11 +11,8 @@ require_once 'files_sharding/lib/lib_files_sharding.php';
 class FileSessionHandler {
 	private $savePath;
 	private $ocUserDatabase;
-	
-	// The sharding master, MASTER_FQ, should currently be set manually or by an installer.
-	// TODO: Make this a configurable setting.
-	private static $LOGOUT_URL = "https://MASTER_FQ/index.php?logout=true";
-	private static $MASTER_LOGIN_OK_COOKIE = "oc_ok";
+
+	private static $LOGIN_OK_COOKIE = "oc_ok";
 
 	function __construct($savePath) {
 		\OC_Log::write('files_sharding',"Constructing session", \OC_Log::WARN);
@@ -42,7 +39,7 @@ class FileSessionHandler {
 			$parsed_data = \Session::unserialize($data);
 		}
 		// If no valid session found locally, try to get one from the master
-		if(empty($parsed_data['user_id']) && isset($_COOKIE[self::$MASTER_LOGIN_OK_COOKIE])){
+		if(empty($parsed_data['user_id']) && isset($_COOKIE[self::$LOGIN_OK_COOKIE])){
 			\OC_Log::write('files_sharding',"Getting session ".$parsed_data['user_id'], \OC_Log::WARN);
 			$data = $this->getSession($id);
 		}
@@ -50,7 +47,7 @@ class FileSessionHandler {
 			\OC_Log::write('files_sharding',"Session data: ".$data, \OC_Log::DEBUG);
 			return $data;
 		}
-		//header('Location: ' . self::$LOGOUT_URL);
+		//header('Location: ' . "https://".Lib::masterfq."/index.php?logout=true");
 		//exit;
 	}
 
@@ -80,7 +77,7 @@ class FileSessionHandler {
 	
 	function getSession($id){
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, OC_Sharder::MASTER_INTERNAL_URL."apps/files_sharding/ws/get_session.php");
+		curl_setopt($ch, CURLOPT_URL, "https://".Lib::masterinternalip."/apps/files_sharding/ws/get_session.php");
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id));
@@ -96,7 +93,8 @@ class FileSessionHandler {
 		if(empty($session['user_id'])){
 			\OC_Log::write('files_sharding',"NO user_id, cannot proceed", \OC_Log::WARN);
 			//return null;
-			header('Location: ' . self::$LOGOUT_URL);
+			$LOGOUT_URL = "https://".Lib::masterinternalip."/index.php?logout=true";
+			header('Location: ' . $LOGOUT_URL);
 			exit;
 		}
 		if(isset($session['user_id']) && !$this->ocUserDatabase->userExists($session['user_id'])) {
@@ -147,7 +145,7 @@ class FileSessionHandler {
 	
 	static function getPassword($id){
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, OC_Sharder::MASTER_INTERNAL_URL."apps/files_sharding/ws/get_pw_hash.php");
+		curl_setopt($ch, CURLOPT_URL, "https://".Lib::masterinternalip."/apps/files_sharding/ws/get_pw_hash.php");
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id));
@@ -216,7 +214,7 @@ class FileSessionHandler {
 		}
 		
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, OC_Sharder::MASTER_INTERNAL_URL."apps/files_sharding/ws/put_session.php");
+		curl_setopt($ch, CURLOPT_URL, "https://".Lib::masterinternalip."/apps/files_sharding/ws/put_session.php");
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id, 'session'=>$data));

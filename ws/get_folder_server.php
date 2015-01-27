@@ -25,7 +25,7 @@ OCP\JSON::checkAppEnabled('files_sharding');
 OCP\JSON::checkLoggedIn();
 
 $folderId = $_GET['folder_id'];
-$server = OC_Sharder::dbLookupNextServerForFolder($folderId);
+$server = OC_Files_Sharding::dbLookupNextServerForFolder($folderId);
 $ret = Array('host' => $server);
 
 OCP\JSON::encodedPrint($ret);
