@@ -258,7 +258,7 @@ class Lib {
 	 * information.
 	 */
 	public static function checkIP(){
-		OC_Log::write('files_sharding', 'Client IP '.$_SERVER['REMOTE_ADDR'], OC_Log::INFO);
+		\OC_Log::write('files_sharding', 'Client IP '.$_SERVER['REMOTE_ADDR'], \OC_Log::INFO);
 		if(strpos($_SERVER['REMOTE_ADDR'], Lib::trustednet)===0){
 			return true;
 		}
