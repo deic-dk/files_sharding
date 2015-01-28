@@ -40,7 +40,7 @@ class FileSessionHandler {
 		}
 		// If no valid session found locally, try to get one from the master
 		if(empty($parsed_data['user_id']) && isset($_COOKIE[self::$LOGIN_OK_COOKIE])){
-			\OC_Log::write('files_sharding',"Getting session ".$parsed_data['user_id'], \OC_Log::WARN);
+			\OC_Log::write('files_sharding',"Getting session ".$id, \OC_Log::WARN);
 			$data = $this->getSession($id);
 		}
 		if(!empty($data)){
