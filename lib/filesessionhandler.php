@@ -77,15 +77,21 @@ class FileSessionHandler {
 	
 	function getSession($id){
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, "https://".Lib::masterinternalip."/apps/files_sharding/ws/get_session.php");
+		$url = "https://".Lib::masterinternalip."/apps/files_sharding/ws/get_session.php";
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+		curl_setopt($ch, CURLOPT_DNS_USE_GLOBAL_CACHE, false);
+		curl_setopt($ch, CURLOPT_DNS_CACHE_TIMEOUT, 2);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id));
 		$ret = curl_exec($ch);
-		curl_close ($ch);
+		curl_close($ch);
 		$res = json_decode($ret);
 		if(empty($res->{'session'}) || !empty($res->{'error'})){
-			\OC_Log::write('files_sharding',"NO session.", \OC_Log::WARN);
+			\OC_Log::write('files_sharding',"NO session from ".$url.":".serialize($ret), \OC_Log::WARN);
 			return null;
 		}
 		$session = \Session::unserialize($res->{'session'});
@@ -93,8 +99,8 @@ class FileSessionHandler {
 		if(empty($session['user_id'])){
 			\OC_Log::write('files_sharding',"NO user_id, cannot proceed", \OC_Log::WARN);
 			//return null;
-			$LOGOUT_URL = "https://".Lib::masterinternalip."/index.php?logout=true";
-			header('Location: ' . $LOGOUT_URL);
+			$logout_url = "https://".Lib::masterinternalip."/index.php?logout=true";
+			header('Location: ' . $logout_url);
 			exit;
 		}
 		if(isset($session['user_id']) && !$this->ocUserDatabase->userExists($session['user_id'])) {
@@ -146,17 +152,24 @@ class FileSessionHandler {
 	static function getPassword($id){
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, "https://".Lib::masterinternalip."/apps/files_sharding/ws/get_pw_hash.php");
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+		curl_setopt($ch, CURLOPT_DNS_USE_GLOBAL_CACHE, false);
+		curl_setopt($ch, CURLOPT_DNS_CACHE_TIMEOUT, 2);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id));
 		$ret = curl_exec($ch);
 		curl_close ($ch);
 		$res = json_decode($ret);
-		if(empty($res->{'password'}) || !empty($res->{'error'})){
+		if(empty($res->{'password'})){
 			\OC_Log::write('files_sharding',"No password returned. ".$res->{'error'}, \OC_Log::WARN);
 			return null;
 		}
-		return $res->{'password'};
+		if( !empty($res->{'error'})){
+			\OC_Log::write('files_sharding',"Password error. ".$res->{'error'}, \OC_Log::WARN);
+		}		return $res->{'password'};
 	}
 		
 	// From user_saml
@@ -215,6 +228,11 @@ class FileSessionHandler {
 		
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, "https://".Lib::masterinternalip."/apps/files_sharding/ws/put_session.php");
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+		curl_setopt($ch, CURLOPT_DNS_USE_GLOBAL_CACHE, false);
+		curl_setopt($ch, CURLOPT_DNS_CACHE_TIMEOUT, 2);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id, 'session'=>$data));
