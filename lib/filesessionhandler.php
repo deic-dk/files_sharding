@@ -42,13 +42,16 @@ class FileSessionHandler {
 		if(empty($parsed_data['user_id']) && isset($_COOKIE[self::$LOGIN_OK_COOKIE])){
 			\OC_Log::write('files_sharding',"Getting session ".$id, \OC_Log::WARN);
 			$data = $this->getSession($id);
+			$parsed_data = \Session::unserialize($data);
 		}
-		if(!empty($data)){
+		if(!empty($parsed_data['user_id']) && !empty($data)){
 			\OC_Log::write('files_sharding',"Session data: ".$data, \OC_Log::DEBUG);
 			return $data;
 		}
-		//header('Location: ' . "https://".Lib::masterfq."/index.php?logout=true");
-		//exit;
+		if(!Lib::getAllowLocalLogin($_SERVER['HTTP_HOST'])){
+			header('Location: ' . Lib::getMasterURL()."index.php?logout=true&requesttoken=".\OC_Util::callRegister());
+			exit;
+		}
 	}
 
 	function write($id, $data){
@@ -77,7 +80,8 @@ class FileSessionHandler {
 	
 	function getSession($id){
 		$ch = curl_init();
-		$url = "https://".Lib::masterinternalip."/apps/files_sharding/ws/get_session.php";
+		$masterinturl = Lib::getMasterInternalURL();
+		$url = $masterinturl . "apps/files_sharding/ws/get_session.php";
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 		curl_setopt($ch, CURLOPT_DNS_USE_GLOBAL_CACHE, false);
@@ -99,7 +103,7 @@ class FileSessionHandler {
 		if(empty($session['user_id'])){
 			\OC_Log::write('files_sharding',"NO user_id, cannot proceed", \OC_Log::WARN);
 			//return null;
-			$logout_url = "https://".Lib::masterinternalip."/index.php?logout=true";
+			$logout_url = $masterinturl."index.php?logout=true";
 			header('Location: ' . $logout_url);
 			exit;
 		}
@@ -151,7 +155,8 @@ class FileSessionHandler {
 	
 	static function getPassword($id){
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, "https://".Lib::masterinternalip."/apps/files_sharding/ws/get_pw_hash.php");
+		$masterinturl = Lib::getMasterInternalURL();
+		curl_setopt($ch, CURLOPT_URL, $masterinturl."apps/files_sharding/ws/get_pw_hash.php");
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 		curl_setopt($ch, CURLOPT_DNS_USE_GLOBAL_CACHE, false);
 		curl_setopt($ch, CURLOPT_DNS_CACHE_TIMEOUT, 2);
@@ -225,9 +230,9 @@ class FileSessionHandler {
 		if(empty($id)){
 			return;
 		}
-		
+		$masterinturl = Lib::getMasterInternalURL();
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, "https://".Lib::masterinternalip."/apps/files_sharding/ws/put_session.php");
+		curl_setopt($ch, CURLOPT_URL, $masterinturl."apps/files_sharding/ws/put_session.php");
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 		curl_setopt($ch, CURLOPT_DNS_USE_GLOBAL_CACHE, false);
 		curl_setopt($ch, CURLOPT_DNS_CACHE_TIMEOUT, 2);

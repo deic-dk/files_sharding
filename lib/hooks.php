@@ -54,8 +54,13 @@ class Hooks {
 			// This actually prevents a proper saml logout
 			//self::$handler->putSession($_COOKIE[$instanceId], "");
 			//self::$handler->destroy($_COOKIE[$instanceId]);
-			// Redirect back to master to saml logout
-			header('Location: ' . "https://".Lib::masterfq."/index.php?logout=true");
+			// Do a saml logout
+			if(\OCP\App::isEnabled('user_saml') && Lib::isMaster()){
+				\OC_USER_SAML_Hooks::logout();
+			}
+			header('Location: ' . Lib::getMasterURL()."index.php?logout=true&requesttoken=".
+			//$_SESSION["requesttoken"]);
+			\OC_Util::callRegister());
 			exit();
 		}
 	}

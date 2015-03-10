@@ -31,9 +31,9 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 
 include_once("files_sharding/lib/lib_files_sharding.php");
 
-$folderId = $_POST['folder_id'];
-$url = OCA\FilesSharding\Lib::dbLookupNextServerForFolder($folderId);
+$node = $_POST['node'];
+$url = OCA\FilesSharding\Lib::dbGetAllowLocalLogin($node);
 $status = empty($url)?'error: server '.$url.' not found':'success';
-$ret = Array('url' => $url, 'status' => $status);
+$ret = Array('allow_local_login' => $url, 'status' => $status);
 
 OCP\JSON::encodedPrint($ret);

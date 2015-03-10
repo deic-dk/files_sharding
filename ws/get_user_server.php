@@ -22,12 +22,18 @@
 */
 
 OCP\JSON::checkAppEnabled('files_sharding');
-OCP\JSON::checkLoggedIn();
+//OCP\JSON::checkLoggedIn();
+if(!OCA\FilesSharding\Lib::checkIP()){
+	$ret['error'] = "Network not secure";
+	http_response_code(401);
+	exit;
+}
 
-include("lib/lib_files_sharding.php");
+include_once("files_sharding/lib/lib_files_sharding.php");
 
-$user = $_GET['user'];
-$server = OCA\FilesSharding\Lib::dbLookupNextServerForUser($user);
-$ret = Array('host' => $server);
+$user = $_POST['user'];
+$url = OCA\FilesSharding\Lib::dbLookupServerUrlForUser($user);
+$status = empty($url)?'error: server '.$url.' not found':'success';
+$ret = Array('url' => $url, 'status' => $status);
 
 OCP\JSON::encodedPrint($ret);

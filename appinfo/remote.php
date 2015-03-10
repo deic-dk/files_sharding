@@ -31,10 +31,10 @@ $FILES_BASE = "/files";
 $PUBLIC_BASE = "/public";
 $DATA_BASE = "/Data";
 
-$requestFix = new Normalizer($_SERVER['REQUEST_URI']);
+$requestFix = new URL\Normalizer($_SERVER['REQUEST_URI']);
 $requestUri = $requestFix->normalize();
 
-$baseUri = "/remote.php/dav";
+$baseUri = "/remote.php/davs";
 // Known aliases
 if(strpos($requestUri, $FILES_BASE."/")===0){
 	$baseuri = $FILES_BASE;
@@ -47,7 +47,7 @@ $reqPath = substr($requestUri, strlen($baseUri));
 
 if(strpos($requestUri, $PUBLIC_BASE."/")===0){
 	$token = preg_replace("/^\/([^\/]+)\/*/", "$1", $reqPath);
-	$user = OC_Files_sharding::getShareOwner($token);
+	$user = OCA\FilesSharding\Lib::getShareOwner($token);
 }
 else{
 	$user = $_SERVER['PHP_AUTH_USER'];
@@ -57,23 +57,48 @@ else{
 if(strpos($reqPath, $DATA_BASE."/")===0 && strlen($reqPath)>strlen($DATA_BASE)+2){
 	$dataPath = substr($reqPath, strlen($DATA_BASE)+1);
 	$dataFolder = preg_replace("/\/.*$", "", $dataPath);
+	$serverUrl = OCA\FilesSharding\Lib::getNextServerForFolder($dataFolder);
 }
 
-$server = OC_Files_sharding::getNextServerForFolder($dataFolder);
-
-// Default to sharding on user
-if($server===null || trim($server)===''){
-	$server = OC_Files_sharding::getNextServerForUser($user);
+// Trusting HTTP_REFERER. Not really sasfe, but worst case: a malicious user cannot find his files or fills up a machine.
+// Best case: we save a rest lookup.
+$redirected_from = null;
+if(isset($_SERVER['HTTP_REFERER'])){
+	$parsedReferer = parse_url($_SERVER['HTTP_REFERER']);
+	$redirected_from = isset($parsedReferer['host']) ? $parsedReferer['host'] : null;
 }
+$masterUrl = OCA\FilesSharding\Lib::getMasterURL();
+$parsedMaster = parse_url($masterUrl);
+$master = isset($parsedMaster['host']) ? $parsedMaster['host'] : null;
 
 // Serve
-if($server===$_SERVER['SERVER_NAME']){
+if($redirected_from===$master){
+	\OCP\Util::writeLog('files_sharding', 'Serving, '.$server, \OC_Log::WARN);
 	include('chooser/appinfo/remote.php');
 }
-// Redirect
 else{
-	OC_Log::write('sharder','Redirecting to: https://' . $server . $reqPath, OC_Log::WARN);
-	header('Location: https://' . $server . $reqPath);
+	// Default to sharding on user
+	if(!isset($serverUrl) || trim($serverUrl)===''){
+		$serverUrl = OCA\FilesSharding\Lib::getServerForUser($user);
+	}
+	$parsedUrl = parse_url($serverUrl);
+	$server = isset($parsedUrl['host']) ? $parsedUrl['host'] : null;
+	if(isset($_SERVER['HTTP_HOST']) && $server===$_SERVER['HTTP_HOST'] ||
+			isset($_SERVER['SERVER_NAME']) && $server===$_SERVER['SERVER_NAME']){
+		\OCP\Util::writeLog('files_sharding', 'Serving, '.$server, \OC_Log::WARN);
+		include('chooser/appinfo/remote.php');
+	}
+	// Redirect
+	elseif(isset($server)){
+		OC_Log::write('files_sharding','Redirecting to: ' . $server .' :: '. $_SERVER['REQUEST_URI'], OC_Log::WARN);
+		header("HTTP/1.1 301 Moved Permanently");
+		header('Location: ' . $serverUrl . $_SERVER['REQUEST_URI']);
+	}
+	else{
+		// Don't give a not found - sync clients will start deleting local files.
+		//http_response_code(404);
+		throw new \Exception('Invalid Host '.$server);
+	}	
 }
 
 exit();

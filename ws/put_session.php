@@ -2,8 +2,8 @@
 
 OCP\App::checkAppEnabled('files_sharding');
 
-include("lib/session.php");
-include("lib/lib_files_sharding.php");
+include_once("files_sharding/lib/session.php");
+include_once("files_sharding/lib/lib_files_sharding.php");
 
 $ret = array();
 if(!OCA\FilesSharding\Lib::checkIP()){

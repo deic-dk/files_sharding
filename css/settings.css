@@ -1,0 +1,19 @@
+input.id {
+  padding: 0.6em 0.5em 0.4em;
+  width: 17em;
+}
+
+input.url {
+  padding: 0.6em 0.5em 0.4em;
+  width: 12em;
+}
+
+input.site {
+  padding: 0.6em 0.5em 0.4em;
+  width: 8em;
+}
+
+div.server {
+  white-space: nowrap;
+}
+
