@@ -20,6 +20,11 @@
 				<length>64</length>
 			</field>
 			<field>
+				<name>internal_url</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>64</length>
+			</field>			<field>
 				<name>site</name>
 				<type>text</type>
 				<notnull>true</notnull>
@@ -37,10 +42,10 @@
 		<name>*dbprefix*files_sharding_folder_servers`</name>
 		<declaration>
 			<field>
-				<name>folder_id</name>
+				<name>folder</name>
 				<type>text</type>
 				<notnull>true</notnull>
-				<length>64</length>
+				<length>512</length>
 			</field>
 			<field>
 				<name>server_id</name>
@@ -49,7 +54,30 @@
 				<length>64</length>
 			</field>
 			<field>
-				<name>user</name>
+				<name>user_id</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>64</length>
+			</field>
+			<field>
+				<name>priority</name>
+				<type>integer</type>
+				<notnull>true</notnull>
+				<length>4</length>
+			</field>
+		</declaration>
+	</table>
+	<table>
+		<name>*dbprefix*files_sharding_user_servers`</name>
+		<declaration>
+			<field>
+				<name>server_id</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>64</length>
+			</field>
+			<field>
+				<name>user_id</name>
 				<type>text</type>
 				<notnull>true</notnull>
 				<length>64</length>

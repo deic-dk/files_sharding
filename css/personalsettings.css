@@ -1,0 +1,11 @@
+.nowrap {
+	white-space: nowrap;
+}
+
+.remove_data_folder{
+	margin: 2px;
+}
+
+.add_data_folder.btn, .data_folder.btn{
+	padding: 7px 12px 4px 12px;
+}
