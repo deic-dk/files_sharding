@@ -29,7 +29,6 @@ OCP\App::checkAppEnabled('files_sharding');
 
 $FILES_BASE = "/files";
 $PUBLIC_BASE = "/public";
-$DATA_BASE = "/Data";
 
 $requestFix = new URL\Normalizer($_SERVER['REQUEST_URI']);
 $requestUri = $requestFix->normalize();
@@ -54,10 +53,8 @@ else{
 }
 
 // Sharded paths take first priority
-if(strpos($reqPath, $DATA_BASE."/")===0 && strlen($reqPath)>strlen($DATA_BASE)+2){
-	$dataPath = substr($reqPath, strlen($DATA_BASE)+1);
-	$dataFolder = preg_replace("/\/.*$", "", $dataPath);
-	$serverUrl = OCA\FilesSharding\Lib::getNextServerForFolder($dataFolder);
+if(OCA\FilesSharding\Lib::inDataFolder($reqPath)){
+	$serverUrl = OCA\FilesSharding\Lib::getNextServerForFolder($reqPath, $user);
 }
 
 // Trusting HTTP_REFERER. Not really sasfe, but worst case: a malicious user cannot find his files or fills up a machine.
