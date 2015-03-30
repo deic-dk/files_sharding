@@ -4,9 +4,10 @@ require_once('apps/files_sharding/lib/lib_files_sharding.php');
 
 if(OCA\FilesSharding\Lib::isMaster()){
 	OCP\App::registerAdmin('files_sharding', 'settings');
-	OCP\App::registerPersonal('files_sharding', 'personalsettings');
 	return;
 }
+
+OCP\App::registerPersonal('files_sharding', 'personalsettings');
 
 OC::$CLASSPATH['OCA\FilesSharding\PracticalSession'] = 'files_sharding/lib/practicalsession.php';
 OC::$CLASSPATH['OCA\FilesSharding\Hooks'] = 'files_sharding/lib/hooks.php';

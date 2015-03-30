@@ -1,36 +1,26 @@
-<fieldset id="filesShardingPersonalSettings" class="section">
-	<h2>Data location</h2>
-	<div>
-		<label class="nowrap">Home site: </label>
-		<select class="home_site">
-			<?php
-			foreach ($_['sites_list'] as $site){
-				print '<option value="'.$site['site'].'"'.($_['user_home_site']===$site['site']?'" selected':'"').'>'.$site['site'].'</option>';
-			}
-			?>
-		</select>
+<fieldset id="filesShardingDataFolders" class="section">
+	<h2><?php p($l->t('Data folders')); ?></h2>
+	These folders are intended to hold data: Their content is NOT synchronized.<br />
+	Any files put in them locally, will be uploaded and then deleted locally.
+	<br />
+	<br />
+	<div id="filesShardingDataFoldersList">
+	<?php foreach($_['data_folders'] as $p){ 
+		$path = $p['folder'];
+		?>
+		<div class="dataFolder nowrap" path="<?php print($path);?>">
+			<span style="float:left;width:92%;"><label><?php print($path);?></label></span><label class="remove_data_folder btn btn-flat">-</label>
+			<div class="dialog" display="none"></div>
+		</div>
+	<?php } ?>
 	</div>
-	<div>
-		<label class="nowrap">Backup site: </label>
-		<select class="backup_site">
-			<?php
-			print '<option value=""></option>';
-			foreach ($_['sites_list'] as $site){
-				print '<option value="'.$site['site'].'"'.(isset($_['user_backup_site'])&&$_['user_backup_site']===$site['site']?'" selected':'"').'>'.$site['site'].'</option>';
-			}
-			?>
-		</select>
+	<br />
+	<div class="nowrap addDataFolder">
+		<span style="float:left;width:92%;"><label></label></span><label class="add_data_folder btn btn-flat">+</label>
+		<div id="chosen_folder" style="visibility:hidden;display:none;"></div>
+		<div class="dialog" display="none">
+			<div id="loadFolderTree"></div>
+			<div id="file" style="visibility: hidden; display:inline;"></div>
+		</div>
 	</div>
-	<div>
-		<label class="nowrap">Server for sync clients: </label>
-		<label class="nowrap home_server" id="<?php print($_['user_server_id']);?>"><?php print($_['user_server_url']);?></label>
-	</div>
-	<div>
-		<label class="nowrap">Backup server: </label>
-		<label class="nowrap backup_server" id="<?php print(isset($_['user_backup_server_id'])?$_['user_backup_server_id']:'')?>">
-					<?php print(isset($_['user_backup_server_url'])?$_['user_backup_server_url']:'');?></label>
-	</div>
-	<div class="save_home_server">
-		<a class="save btn btn-primary btn-flat" href="#">Save</a>
-	</div>	
 </fieldset>

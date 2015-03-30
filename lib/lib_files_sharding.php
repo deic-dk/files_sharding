@@ -18,14 +18,32 @@ class Lib {
 		return self::$cookiedomain;
 	}
 	
-	public static function isMaster(){
-		if(self::$masterfq===''){
-			self::$masterfq = \OCP\Config::getSystemValue('masterfq', '');
-			self::$masterfq = (substr(self::$masterfq, 0, 7)==='MASTER_'?null:self::$masterfq);
+	public static function onServerForUser($user_id=null){
+		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
+		$user_server = self::dbLookupServerUrlForUser($user_id);
+		if(!empty($user_server)){
+			$parse = parse_url($user_server);
+			$user_host = $parse['host'];
 		}
-		return (empty(self::$masterfq) ||
-				isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']===self::$masterfq) ||
-				isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME']===self::$masterfq;
+		else{
+			// If no server has been set for the user, he can logically only be on the master
+			return self::isMaster();
+		}
+		return 
+				isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']===$user_host ||
+				isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME']===$user_host;
+	}
+	
+	public static function isMaster(){
+		self::getMasterHostName();
+		self::getMasterInternalURL();
+		if(!empty(self::$masterinternalurl)){
+			$parse = parse_url(self::$masterinternalurl);
+			$masterinternalip =  $parse['host'];
+		}
+		return empty(self::$masterfq) && empty($masterinternalip) ||
+				isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST']===self::$masterfq || $_SERVER['HTTP_HOST']===$masterinternalip) ||
+				isset($_SERVER['SERVER_NAME']) && ($_SERVER['SERVER_NAME']===self::$masterfq || $_SERVER['SERVER_NAME']===$masterinternalip);
 	}
 	
 	public static function getMasterURL(){
@@ -137,6 +155,15 @@ class Lib {
 		return null;
 	}
 	
+	public static function getServersList(){
+		if(self::isMaster()){
+			return self::dbGetServersList();
+		}
+		else{
+			return self::wsGetServersList();
+		}
+	}
+	
 	public static function dbGetServersList(){
 		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_servers`');
 		$result = $query->execute(Array());
@@ -147,6 +174,37 @@ class Lib {
 		return $results;
 	}
 	
+	private static function wsGetServersList(){
+		$url = self::getMasterInternalURL();
+		$url = $url."/apps/files_sharding/ws/get_servers.php";
+		$content = "";
+		$data = array();
+	
+		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
+	
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_HEADER, false);
+	
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_POST, true);
+		curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+	
+		$json_response = curl_exec($curl);
+		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+		if($status===0 || $status>=300 || empty($json_response)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: no data servers found --> '.serialize($json_response), \OC_Log::ERROR);
+			return null;
+		}
+			
+		$response = json_decode($json_response, true);
+		\OCP\Util::writeLog('files_sharding', 'Received data servers '.$json_response, \OC_Log::WARN);
+		$_SESSION['oc_data_folders'] = $response;
+		return $response;
+	}
+	
 	public static function dbGetSitesList(){
 		$query = \OC_DB::prepare('SELECT DISTINCT `site` FROM `*PREFIX*files_sharding_servers`');
 		$result = $query->execute(Array());
@@ -155,7 +213,239 @@ class Lib {
 		}
 		$results = $result->fetchAll();
 		return $results;
-	}	
+	}
+	
+	public static function addDataFolder($folder, $user_id){
+		if(self::isMaster()){
+			$user_server_id = self::dbLookupServerIdForUser($user_id, 0);
+			if($user_server_id==null){
+				$user_server_id = self::dbChooseServerForUser($user_id, $site, 0, null);
+				self::dbSetServerForUser($user_id, $user_server_id, 0);
+			}
+			return self::dbAddDataFolder($folder, $user_server_id, $user_id);
+		}
+		else{
+			return self::wsAddDataFolder($folder, $user_id);
+		}
+	}
+	
+	public static function dbAddDataFolder($folder, $server_id, $user_id){
+		$query = \OC_DB::prepare(
+				'INSERT INTO `*PREFIX*files_sharding_folder_servers` (`folder`, `server_id`, `user_id`,  `priority`) VALUES (?, ?, ?, ?)');
+		$result = $query->execute(Array($folder, $server_id, $user_id, 0));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			return false;
+		}
+		$_SESSION['oc_data_folders'] = self::dbGetDataFoldersList($user_id);
+		return true;
+	}
+	
+	private static function wsAddDataFolder($folder, $user_id){
+		$url = self::getMasterInternalURL();
+		$url = $url."apps/files_sharding/ws/add_data_folder.php";
+		$content = "";
+		$data = array(
+				'folder' => $folder,
+				'user_id' => $user_id,
+		);
+		
+		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
+		
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_HEADER, false);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_POST, true);
+		curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+		
+		$json_response = curl_exec($curl);
+		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+		
+		if($status===0 || $status>=300 || empty($json_response)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not add data folder via ws for user '.$user_id.' : '.$json_response, \OC_Log::ERROR);
+			return null;
+		}
+		
+		$response = json_decode($json_response, true);
+		
+		if(isset($response['error'])){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not add data folder via ws for user '.$user_id.' : '.$response['error'], \OC_Log::ERROR);
+			return false;
+		}
+		$_SESSION['oc_data_folders'] = $response;
+		return true;
+	}
+
+	public static function inDataFolder($path, $user_id=null){
+		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
+		$dataFolders = self::getDataFoldersList($path, $user_id);
+		$checkPath = trim($path, '/ ');
+		$checkPath = '/'.$checkPath;
+		$checkLen = strlen($checkPath);
+		foreach($dataFolders as $p){
+			$dataFolderPath = $p['folder'];
+			$dataFolderLen = strlen($dataFolderPath);
+			if($checkPath===$dataFolderPath || substr($checkPath, 0, $dataFolderLen+1)===$dataFolderPath.'/'){
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static function getDataFoldersList($user_id){
+			if(self::isMaster()){
+			// On the master, get the list from the database
+			return self::dbGetDataFoldersList($user_id);
+		}
+		else{
+			// On a slave, in the web interface, use session variable set by the master
+			if(isset($_SESSION['oc_data_folders'])){
+				return $_SESSION['oc_data_folders'];
+			}
+			else{
+				// On a slave via webdav, ask the master
+				return self::wsGetDataFoldersList($user_id);
+			}
+		}
+	}
+	
+	public static function dbGetDataFoldersList($user_id){
+		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_folder_servers` WHERE user_id = ?');
+		$result = $query->execute(Array($user_id));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$results = $result->fetchAll();
+		return $results;
+	}
+	
+	private static function wsGetDataFoldersList($user_id=null){
+		$url = self::getMasterInternalURL();
+		$url = $url."apps/files_sharding/ws/get_data_folders.php";
+		$content = "";
+		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
+		$data = array(
+				"user_id" => $user_id,
+		);
+	
+		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
+	
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_HEADER, false);
+		
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_POST, true);
+		curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+		
+		curl_setopt($curl, CURLOPT_COOKIEJAR, 'oc_data_folders_'.$user_id);
+		curl_setopt($curl, CURLOPT_COOKIEFILE, '/var/tmp/'.$user_id);
+		
+		$json_response = curl_exec($curl);
+		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+		if($status===0 || $status>=300 || empty($json_response)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: no data folders for '.$user_id.' from '.$url.' --> '.serialize($json_response), \OC_Log::ERROR);
+			return null;
+		}
+			
+		$response = json_decode($json_response, true);
+		\OCP\Util::writeLog('files_sharding', 'Received data folders '.$json_response, \OC_Log::WARN);
+		$_SESSION['oc_data_folders'] = $response;
+		return $response;
+	}
+
+	public static function removeDataFolder($folder, $user_id){
+		if(self::isMaster()){
+			return self::dbRemoveDataFolder($folder, $user_id);
+		}
+		else{
+			return self::wsRemoveDataFolder($folder, $user_id);
+		}
+	}
+	
+	private static function dbRemoveDataFolder($folder, $user_id){
+		// If folder spans several servers, deny syncing
+		$results = self::getServersForFolder($folder, $user_id);
+		if(count($results)>1){
+			\OCP\Util::writeLog('files_sharding', "Error: cannot sync sharded folder ".$folder, \OC_Log::ERROR);
+			return false;
+		}
+		
+		$query = \OC_DB::prepare(
+				'DELETE FROM `*PREFIX*files_sharding_folder_servers` WHERE `folder` = ? AND `user_id` = ?');
+		$result = $query->execute(Array($folder, $user_id));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			return false;
+		}
+		$_SESSION['oc_data_folders'] = self::dbGetDataFoldersList($user_id);
+		return true;
+	}
+	
+	private static function wsRemoveDataFolder($folder, $user_id){
+		$url = self::getMasterInternalURL();
+		$url = $url."apps/files_sharding/ws/remove_data_folder.php";
+		$content = "";
+		$data = array(
+				'folder' => $folder,
+				'user_id' => $user_id,
+		);
+	
+		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
+	
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_HEADER, false);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_POST, true);
+		curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+	
+		$json_response = curl_exec($curl);
+		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+	
+		if($status===0 || $status>=300 || empty($json_response)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not resync data folder '.$folder.' : '.$json_response, \OC_Log::ERROR);
+			return null;
+		}
+	
+		$response = json_decode($json_response, true);
+	
+		if(isset($response['error'])){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not remove data folder via ws for user '.$user_id.' : '.$response['error'], \OC_Log::ERROR);
+			return false;
+		}
+		$_SESSION['oc_data_folders'] = $response;
+		return true;
+	}
+	
+	/**
+	 * From files_sharing.
+	 * get file ID from a given path
+	 * @param string $path
+	 * @return string fileID or null
+	 */
+	public static function getFileId($path) {
+		$view = new \OC\Files\View('/'.\OCP\User::getUser().'/files');
+		$fileId = null;
+		$fileInfo = $view->getFileInfo($path);
+		if ($fileInfo) {
+			$fileId = $fileInfo['fileid'];
+		}
+		return $fileId;
+	}
+
+	public static function getFilePath($id) {
+		return \OC\Files\Filesystem::getpath($id);
+	}
+
+
 	/**
 	 * Get the URL of a server.
 	 * @param $id
@@ -253,20 +543,20 @@ class Lib {
 	 * Get the priority of a server (small number = high priority).
 	 * @param $name
 	 */
-	private static function dbLookupFolderServerPriority($folderId, $serverId){
-		$query = \OC_DB::prepare('SELECT `priority` FROM `*PREFIX*files_sharding_folder_servers` WHERE `folder_id` = ? AND `server_id` = ?');
-		$result = $query->execute(Array($folderId, $serverId));
+	private static function dbLookupFolderServerPriority($folder, $user_id, $server_id){
+		$query = \OC_DB::prepare('SELECT `priority` FROM `*PREFIX*files_sharding_folder_servers` WHERE `folder` = ? AND `user_id` = ? AND `server_id` = ?');
+		$result = $query->execute(Array($folder, $user_id, $server_id));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for server '.$folderId.' : '.$serverId, \OCP\Util::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for server '.$folder.' : '.$server_id, \OCP\Util::ERROR);
 		}
 		foreach($results as $row){
 			return($row['priority']);
 		}
-		\OCP\Util::writeLog('files_sharding', 'ERROR, dbLookupFolderServerPriority: server not found for folder: '.$folderId.' : '.$serverId, \OC_Log::ERROR);
+		\OCP\Util::writeLog('files_sharding', 'ERROR, dbLookupFolderServerPriority: server not found for folder: '.$folder.' : '.$server_id, \OC_Log::ERROR);
 		return -1;
 	}
 	
@@ -406,7 +696,7 @@ class Lib {
 	 * @return ID of server
 	 */
 	public static function dbLookupServerIdForUser($user, $priority){
-		// Priorities: -1: disabled, 0: home (r/w), >0: secondary (r/o)
+		// Priorities: -1: disabled, 0: primary/home (r/w), 1: backup (r/o), >1: unused
 		$query = \OC_DB::prepare('SELECT `server_id` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `priority` = ? ORDER BY `priority`');
 		$result = $query->execute(Array($user, $priority));
 		if(\OCP\DB::isError($result)){
@@ -514,54 +804,66 @@ class Lib {
 	 * @return the base URL (https://...) of the server that will serve the files
 	 */
 	public static function getServerForUser($user){
-		// If I'm the head-node, look up in DB
+		// If I'm the master, look up in DB
 		if(self::isMaster()){
 			$server = self::dbLookupServerUrlForUser($user);
 		}
-		// Otherwise, ask head-node
+		// Otherwise, ask master
 		else{
 			$server = self::wsLookupServerUrlForUser($user);
 		}
 		return $server;
 	}
 	
-	/**
-	 * Lookup server for folder in database.
-	 * @param $folderId
-	 * @return URL (https://...)
-	 */
-	public static function dbLookupNextServerForFolder($folderId){
-		// Who's asking?
-		$currentServerId = -1;
-		if(array_key_exists('REMOTE_ADDR', $_SERVER)){
-			$currentServerId = self::dbLookupServerId($_SERVER['REMOTE_ADDR']);
-			$currentServerPriority = self::dbLookupFolderServerPriority($folderId, $currentServerId);
-		}
-		$query = \OC_DB::prepare('SELECT `priority`, `server_id` FROM `*PREFIX*files_sharding_folder_servers` WHERE `folder_id` = ? ORDER BY `priority`');
-		$result = $query->execute(Array($folderId));
+	private static function getServersForFolder($folder, $user_id=null){
+		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
+		$query = \OC_DB::prepare('SELECT `priority`, `server_id` FROM `*PREFIX*files_sharding_folder_servers` WHERE `folder` = ? and `user_id` = ? ORDER BY `priority`');
+		$result = $query->execute(Array($folder, $user_id));
 		$results = $result->fetchAll();
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
+		return $results;
+	}
+	
+	/**
+	 * Lookup next server for folder in database.
+	 * The premise is that the current server,
+	 * i.e. the server issuing the request, is full.
+	 * @param $folder
+	 * @param $user_id
+	 * @param $currentServerId slave issuing the request - can be null
+	 * @return URL (https://...)
+	 */
+	public static function dbLookupNextServerForFolder($folder, $user_id, $currentServerId=null){
+		$currentServerId = -1;
+		$currentServerPriority = -1;
+		if(!empty($currentServerId)){
+			$currentServerPriority = self::dbLookupFolderServerPriority($folder, $user_id, $currentServerId);
+		}
+		$results = getServersForFolder($folder, $user_id);
 		foreach($results as $row){
 			if($row['priority']>$currentServerPriority){
 				return dbLookupServerURL($row['server_id']);
 			}
 		}
-		\OCP\Util::writeLog('files_sharding', 'ERROR: no free server found for folder '.$folderId, \OC_Log::ERROR);
+		\OCP\Util::writeLog('files_sharding', 'WARNING: no server registered for folder '.$folder, \OC_Log::WARN);
 		return empty($results)?null:$results[0];
 	}
 
 	/**
 	 * Lookup server for user via web service.
-	 * @param int $folderId
+	 * @param $folder
+	 * @param $user_id
 	 * @return URL (https://...)
 	 */
-	private static function wsLookupNextServerForFolder($folderId){
+	private static function wsLookupNextServerForFolder($folder, $user_id){
 		$url = self::getMasterInternalURL();
 		$url = $url."apps/files_sharding/ws/get_folder_server.php";
+		$content = "";
 		$data = array(
-			"folder_id" => $folderId,
+			"folder" => $folder,
+			"user_id" => $user_id,
 		);
 		
 		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
@@ -571,19 +873,21 @@ class Lib {
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($curl, CURLOPT_POST, true);
 		curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
 		
 		$json_response = curl_exec($curl);
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
-		\OCP\Util::writeLog('files_sharding', 'ERROR: no free server found for folder '.$folderId, \OC_Log::ERROR);
 		if($status===0 || $status>=300 || empty($json_response)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: no server found for folder '.$folder, \OC_Log::ERROR);
 			return null;
 		}
 		
 		$response = json_decode($json_response, false);
 		
 		if(strpos($response->status, 'error')!==false){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: no free server found via ws for folder '.$folderId.' : '.$response->status, \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: no free server found via ws for folder '.$folder.' : '.$response->status, \OC_Log::ERROR);
 			return null;
 		}
 		
@@ -592,22 +896,27 @@ class Lib {
 
 	/**
 	 * Lookup home server for folder.
-	 * @param string $folder
+	 * @param string $folder path
+	 * @param string $user_id
 	 * @return URL (https://...)
 	 */
-	public static function getNextServerForFolder($folder){
-		// TODO: use ownCloud method for this
-		\OCP\Util::writeLog('files_sharding', 'Folder: '.$folder, \OC_Log::WARN);
-		$fileInfo = \OC\Files\Filesystem::getFileInfo('/fror@dtu.dk/files'.$folder);
-		$folderId = $fileInfo->getId();
-		\OCP\Util::writeLog('files_sharding', 'Folder ID: '.$folderId, \OC_Log::WARN);
-		// If I'm the head-node, look up in DB
-		if($_SERVER['REMOTE_ADDR']===$_SERVER['SERVER_ADDR']){
-			$server = self::dbLookupNextServerForFolder($folderId);
+	public static function getNextServerForFolder($folder, $user_id=null){
+		if(substr($folder, 0, 1)!=='/'){
+			\OCP\Util::writeLog('files_sharding', 'Relative paths not allowed: '.$folder, \OC_Log::ERROR);
 		}
-		// Otherwise, ask head-node
+		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
+		$folders = explode('/', trim($folder, '/'));
+		$baseFolder = $folders[0];
+		\OCP\Util::writeLog('files_sharding', 'Base folder: '.$baseFolder, \OC_Log::WARN);
+		//$fileInfo = \OC\Files\Filesystem::getFileInfo('/'.$user_id.'/files/'.$baseFolder);
+		//$folderId = $fileInfo->getId();
+		// If I'm the master, look up in DB
+		if(self::isMaster()){
+			$server = self::dbLookupNextServerForFolder($folder, $user_id);
+		}
+		// Otherwise, ask master
 		else{
-			$server = self::wsLookupNextServerForFolder($folderId);
+			$server = self::wsLookupNextServerForFolder($folder, $user_id);
 		}
 	}
 	
@@ -621,11 +930,56 @@ class Lib {
 			self::$trustednet = (substr(self::$trustednet, 0, 8)==='TRUSTED_'?null:self::$trustednet);
 		}
 		
-		\OC_Log::write('files_sharding', 'Client IP '.$_SERVER['REMOTE_ADDR'], \OC_Log::INFO);
 		if(strpos($_SERVER['REMOTE_ADDR'], Lib::$trustednet)===0){
+			\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' OK', \OC_Log::WARN);
 			return true;
 		}
+		\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' not trusted', \OC_Log::WARN);
 		return false;
+	}
+	
+	public static function searchAllServers($query){
+		$user_id = \OCP\USER::getUser();
+		$servers = self::getServersList();
+		\OCP\Util::writeLog('search', 'Searching servers '.serialize($servers), \OC_Log::WARN);
+		$results = array();
+		foreach($servers as $server){
+			if(isset($server['internal_url']) && !empty($server['internal_url'])){
+				$results[$server['url']] = self::wsSearchServer($query, $server['internal_url'], $user_id);
+			}
+		}
+		return $results;
+	}
+	
+	private static function wsSearchServer($query, $url, $user_id){
+		$full_url = $url."/apps/files_sharding/ws/search.php";
+		$content = "";
+		$data = array('query'=>$query, 'user_id'=>$user_id);
+	
+		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
+	
+		$curl = curl_init($full_url);
+		curl_setopt($curl, CURLOPT_HEADER, false);
+	
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_POST, true);
+		curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+		
+		\OCP\Util::writeLog('search', 'Searching: '.$full_url, \OC_Log::WARN);
+		
+		$json_response = curl_exec($curl);
+		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+		if($status===0 || $status>=300 || empty($json_response)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: search failed on '.$full_url.' --> '.serialize($json_response), \OC_Log::ERROR);
+			return null;
+		}
+			
+		$response = json_decode($json_response, true);
+		\OCP\Util::writeLog('files_sharding', 'Received search results '.$json_response, \OC_Log::WARN);
+		return $response;
 	}
 	
 }

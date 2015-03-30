@@ -32,7 +32,7 @@ To use more space than their personal quota, users have three options:
    
    The mapping of users to servers is kept in a database table:
 
-   `oc_files_sharding_user_servers`: `id` (int), `user` (String), `server_id` (int), `current` (bool)
+   `oc_files_sharding_user_servers`: `server_id` (int), `user_id` (String), `priority` (int)
    
    queried via the method
 
@@ -64,12 +64,12 @@ To use more space than their personal quota, users have three options:
    Physically, the above services will keep their state in a MySQL table on the head-
    server:
    
-   `oc_files_sharding_folder_servers`: `id` (int), `folder_id` (int), `server_id` (int), `current` (bool)
+   `oc_files_sharding_folder_servers`: `folder` (string), `server_id` (int), `user_id` (string), `priority` (int)
       
    The path of a folder is looked up in `oc_files_cache` via `\OCP\Files\Folder::getId()`.
    The name of the server is looked up in another table:
    
-   `oc_files_sharding_servers`: `id` (int), `url` (string), `allow_local_login` (string)
+   `oc_files_sharding_servers`: `id` (int), `url` (string), `allow_local_login` (string), `site` (string)
    
    When slave1 runs out of space, put, copy, move and mkcol trigger creation of a file
    or folder in the system folder 'files_sharding' folder (on the same level as
