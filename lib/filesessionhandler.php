@@ -52,6 +52,9 @@ class FileSessionHandler {
 			header('Location: ' . Lib::getMasterURL()."index.php?logout=true&requesttoken=".\OC_Util::callRegister());
 			exit;
 		}
+		else{
+			return $data;
+		}
 	}
 
 	function write($id, $data){
