@@ -100,6 +100,39 @@ class Lib {
 		return $result ? true : false;
 	}
 	
+	// TODO: have all ws* functions use this
+	public static function ws($script, $data, $post=false, $array=true){
+		$content = "";
+		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
+		$url = self::getMasterInternalURL();
+		$url .= "apps/files_sharding/ws/".$script.".php";
+		if(!$post){
+			$url .= "?".$content;
+		}
+		\OCP\Util::writeLog('files_sharding', 'URL: '.$url, \OC_Log::WARN);
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_HEADER, false);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		if($post){
+			curl_setopt($curl, CURLOPT_POST, $post);
+			curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
+		}
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+	
+		$json_response = curl_exec($curl);
+		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+		if($status===0 || $status>=300 || empty($json_response)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: '.$json_response, \OC_Log::ERROR);
+			return null;
+		}
+	
+		$response = json_decode($json_response, $array);
+	
+		return $response;
+	}
+	
 	private static function wsGetAllowLocalLogin($node){
 		$url = self::getMasterInternalURL();
 		$url = $url."apps/files_sharding/ws/get_allow_local_login.php";
