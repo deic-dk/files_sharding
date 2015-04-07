@@ -31,6 +31,6 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 
 $group_id = $_GET['group_id'];
 
-$group_exists = OCP\Group::groupExists($group_id);
+$group_exists = OC_Group::groupExists($group_id);
 
 OCP\JSON::encodedPrint($group_exists);
