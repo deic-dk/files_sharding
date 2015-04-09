@@ -31,8 +31,8 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 
 include_once("files_sharding/lib/lib_files_sharding.php");
 
-$user = $_POST['user'];
-$url = OCA\FilesSharding\Lib::dbLookupServerUrlForUser($user);
+$user_id = $_POST['user_id'];
+$url = OCA\FilesSharding\Lib::dbLookupServerUrlForUser($user_id);
 $status = empty($url)?'error: server '.$url.' not found':'success';
 $ret = Array('url' => $url, 'status' => $status);
 

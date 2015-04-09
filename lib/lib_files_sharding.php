@@ -109,7 +109,7 @@ class Lib {
 		if(!$post){
 			$url .= "?".$content;
 		}
-		\OCP\Util::writeLog('files_sharding', 'URL: '.$url, \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'URL: '.$url.', POST: '.$post, \OC_Log::WARN);
 		$curl = curl_init($url);
 		curl_setopt($curl, CURLOPT_HEADER, false);
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -462,10 +462,14 @@ class Lib {
 	 * From files_sharing.
 	 * get file ID from a given path
 	 * @param string $path
+	 * @param string $user_id
 	 * @return string fileID or null
 	 */
-	public static function getFileId($path) {
-		$view = new \OC\Files\View('/'.\OCP\User::getUser().'/files');
+	public static function getFileId($path, $user_id=null) {
+		if(!isset($user_id)){
+			$user_id = \OCP\User::getUser();
+		}
+		$view = new \OC\Files\View('/'.$user_id.'/files');
 		$fileId = null;
 		$fileInfo = $view->getFileInfo($path);
 		if ($fileInfo) {
@@ -793,12 +797,12 @@ class Lib {
 	 * @param unknown $user
 	 * @return URL of the server
 	 */
-	private static function wsLookupServerUrlForUser($user){
+	private static function wsLookupServerUrlForUser($user_id){
 		$url = self::getMasterInternalURL();
 		$url = $url."apps/files_sharding/ws/get_user_server.php";
 		$content = "";
 		$data = array(
-			'user' => $user
+			'user_id' => $user_id
 		);
 		
 		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
