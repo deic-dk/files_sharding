@@ -926,10 +926,10 @@ class Lib {
 	 * @param unknown $user
 	 * @return the base URL (https://...) of the server that will serve the files
 	 */
-	public static function getServerForUser($user){
+	public static function getServerForUser($user_id){
 		// If I'm the master, look up in DB
 		if(self::isMaster()){
-			$server = self::dbLookupServerUrlForUser($user);
+			$server = self::dbLookupServerUrlForUser($user_id);
 		}
 		// Otherwise, ask master
 		else{
