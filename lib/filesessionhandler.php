@@ -111,7 +111,8 @@ class FileSessionHandler {
 			exit;
 		}
 		if(isset($session['user_id']) && !$this->ocUserDatabase->userExists($session['user_id'])) {
-			$this->createUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'], $session['oc_groups']);
+			$this->createUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'], $session['oc_groups'],
+					$session['oc_storage_id'], $session['oc_numeric_storage_id']);
 			$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'], $session['oc_groups']);
 		}
 		else{
@@ -121,18 +122,19 @@ class FileSessionHandler {
 		return $res->{'session'};
 	}
 	
-	function createUser($uid, $mail, $displayname, $groups){
+	function createUser($uid, $mail, $displayname, $groups, $storageid, $numericstorageid){
 		\OC_Log::write('files_sharding',"Creating user: ".$uid, \OC_Log::WARN);
 		$password = \OC_Util::generateRandomBytes(20);
     $user_created = $this->ocUserDatabase->createUser($uid, $password);
-     if($user_created && $this->ocUserDatabase->userExists($uid)) {
+		if($user_created && $this->ocUserDatabase->userExists($uid)){
+			self::set_numeric_storage_id($storageid, $numericstorageid);
 			\OC_Util::setupFS($uid);
-    }
+		}
 	}
 	
 	function setupUser($uid, $mail, $displayname, $groups){
-		\OC_Log::write('files_sharding',"Setting up user: ".$uid, \OC_Log::WARN);
 		if($this->ocUserDatabase->userExists($uid)) {
+			\OC_Log::write('files_sharding',"Setting up user: ".$uid, \OC_Log::WARN);
 			$password = self::getPassword($uid);
 			if(!$this->setPassword($uid, $password)){
 				\OC_Log::write('files_sharding',"Error setting user password for user".$uid, \OC_Log::ERROR);
@@ -150,7 +152,30 @@ class FileSessionHandler {
 		}
 	}
 	
-	 function setPassword($uid, $password) {
+	private static function set_numeric_storage_id($id, $numeric_id){
+		\OC_Log::write('saml','Setting numeric storage id: '.$id."-->".$numeric_id, \OC_Log::WARN);
+		if(empty($id) || empty($numeric_id)){
+			return;
+		}
+		$sql = 'SELECT `numeric_id` FROM `*PREFIX*storages` WHERE `id` = ?';
+		$result = \OC_DB::executeAudited($sql, array($id));
+		$existing_numeric_id = -1;
+		if($row = $result->fetchRow()){
+			$existing_numeric_id = $row['numeric_id'];
+		}
+		if($existing_numeric_id!==$numeric_id){
+			if($existing_numeric_id===-1){
+				$sql = 'INSERT INTO `*PREFIX*storages` (`id`, `numeric_id`) VALUES(?, ?)';
+				\OC_DB::executeAudited($sql, array($id, $numeric_id));
+			}
+			else{
+				$sql = 'UPDATE `*PREFIX*storages` SET `numeric_id` = ? WHERE `id` = ?';
+				\OC_DB::executeAudited($sql, array($numeric_id, $id));
+			}
+		}
+	}
+	
+	function setPassword($uid, $password) {
 			$query = \OC_DB::prepare('UPDATE `*PREFIX*users` SET `password` = ? WHERE `uid` = ?');
 			$result = $query->execute(array($password, $uid));
 			return $result ? true : false;

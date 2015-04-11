@@ -54,23 +54,26 @@ function checkTokenExists($token, $itemSource){
 
 \OCP\Util::writeLog('files_sharding', 'Sharing, '.serialize($_POST), \OC_Log::WARN);
 
+$user_id = $_POST['user_id'];
+\OC_User::setUserId($user_id);
+\OC_Util::setupFS($user_id);
+
 switch ($_POST['action']) {
 	case 'share':
 		if (isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])) {
-			try {
-				
-				$user_id = $_POST['user_id'];
-				\OC_User::setUserId($user_id);
-				\OC_Util::setupFS($user_id);
-				
+			try {				
 				// Create file/folder if not there
 				$file_path = $_POST['itemPath'];
 				if(($_POST['itemType'] === 'file' or $_POST['itemType'] === 'folder')){
 					if(!OC\Files\Filesystem::file_exists($file_path)){
-						if ($_POST['itemType'] === 'file') {
+						if($_POST['itemType']==='file'){
+							$parent_path = dirname($file_path);
+							if(!OC\Files\Filesystem::file_exists($parent_path)){
+								mkdir($parent_path, '0770', true);
+							}
 							OC\Files\Filesystem::touch($file_path);
 						}
-						if ($_POST['itemType'] === 'folder') {
+						if($_POST['itemType']==='folder'){
 							//OC\Files\Filesystem::mkdir($file_path);
 							mkdir($file_path, '0770', true);
 							\OCP\Util::writeLog('files_sharding', 'Created '.$file_path, \OC_Log::WARN);
@@ -126,6 +129,8 @@ switch ($_POST['action']) {
 			} else {
 				$shareWith = $_POST['shareWith'];
 			}
+			$file_path = $_POST['itemPath'];
+			//$itemMasterSource = OCA\FilesSharding\Lib::getFileId($file_path, $user_id);
 			$return = OCP\Share::unshare($_POST['itemType'], $_POST['itemSource'], $_POST['shareType'], $shareWith);
 			($return) ? OC_JSON::success() : OC_JSON::error();
 		}
