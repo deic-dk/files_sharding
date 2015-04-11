@@ -105,7 +105,7 @@ class Lib {
 	public static function ws($script, $data, $post=false, $array=true, $assoc=''){
 
 		// wsSearchServer uses different url scheme, that is caught here
-		if(strcmp($script, "search")){
+		if(strcmp($script, "search")===0){
 			// $url = $data['url']."/"; // TODO[DONE]: maybe add intelligence in order to add slash after url if not existent
 			$url = strcmp(substr($data['url'],-1),"/")===0?$data['url']:$data['url']."/";
 			unset($data['url']);
@@ -131,7 +131,7 @@ class Lib {
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
 
 		// wsGetDataFoldersList uses more CURL options
-		if(strcmp($script, 'get_data_folders'){
+		if(strcmp($script, 'get_data_folders')===0){
 			curl_setopt($curl, CURLOPT_COOKIEJAR, 'oc_data_folders_'.$data['user_id']);
 			curl_setopt($curl, CURLOPT_COOKIEFILE, '/var/tmp/'.$data['user_id']);
 		}
@@ -191,18 +191,18 @@ class Lib {
 		*/
 		if(empty($assoc)){
 			$words = explode("_", $script);
-			if(strcmp($words[0],'add') || strcmp($words[0],'remove')){				
+			if(strcmp($words[0],'add')===0 || strcmp($words[0],'remove')===0){				
 				if(isset($response['error'])){					
 					\OCP\Util::writeLog('files_sharding', 'ERROR: could not "'.$script.'"" via ws for user '.$data['user_id'].' : '.$response['error'], \OC_Log::ERROR);
 					return false;
 				}
 				$_SESSION['oc_data_folders'] = $response;
 				return true;
-			}else if(strcmp($words[0],'get')){
+			}else if(strcmp($words[0],'get')===0){
 				\OCP\Util::writeLog('files_sharding', 'Received data of "'.$script.'" '.$json_response, \OC_Log::WARN);
 				$_SESSION['oc_data_folders'] = $response;
 				return $response;
-			}else if(strcmp($words[0],'search')){
+			}else if(strcmp($words[0],'search')===0){
 				\OCP\Util::writeLog('files_sharding', 'Received search results '.$json_response, \OC_Log::WARN);
 				return $response;
 			}
