@@ -75,7 +75,8 @@ class Lib {
 			return self::dbGetAllowLocalLogin($node)==='yes';
 		}
 		else{
-			return self::wsGetAllowLocalLogin($node)==='yes';
+			//return self::wsGetAllowLocalLogin($node)==='yes';
+			return self::ws('get_allow_local_login',array('node' => $node),true,false,'allow_local_login')==='yes';
 		}
 	}
 	
@@ -100,12 +101,21 @@ class Lib {
 		return $result ? true : false;
 	}
 	
-	// TODO: have all ws* functions use this
-	public static function ws($script, $data, $post=false, $array=true){
+	// TODO[DONE]: have all ws* functions use this
+	public static function ws($script, $data, $post=false, $array=true, $assoc=''){
+
+		// wsSearchServer uses different url scheme, that is caught here
+		if(strcmp($script, "search")){
+			// $url = $data['url']."/"; // TODO[DONE]: maybe add intelligence in order to add slash after url if not existent
+			$url = strcmp(substr($data['url'],-1),"/")===0?$data['url']:$data['url']."/";
+			unset($data['url']);
+		}else{
+			$url = self::getMasterInternalURL();
+		}
+
+		$url .= "apps/files_sharding/ws/".$script.".php";
 		$content = "";
 		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
-		$url = self::getMasterInternalURL();
-		$url .= "apps/files_sharding/ws/".$script.".php";
 		if(!$post){
 			$url .= "?".$content;
 		}
@@ -119,6 +129,12 @@ class Lib {
 		}
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+
+		// wsGetDataFoldersList uses more CURL options
+		if(strcmp($script, 'get_data_folders'){
+			curl_setopt($curl, CURLOPT_COOKIEJAR, 'oc_data_folders_'.$data['user_id']);
+			curl_setopt($curl, CURLOPT_COOKIEFILE, '/var/tmp/'.$data['user_id']);
+		}
 	
 		$json_response = curl_exec($curl);
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
@@ -129,9 +145,75 @@ class Lib {
 		}
 	
 		$response = json_decode($json_response, $array);
-	
-		return $response;
-	}
+		/*
+		there are 3 different return values in the ws functions : true, $response or $response->[url or allow_local_login]
+		this is first caught with the $assoc parameter which some functions use and some dont
+		and after with the script names -> $words = explode("_", $script)
+		if this is used further on, all scripts used from app/ws/* have to be named snake_case
+		
+		Pseudo code for the different returns:
+		empty?($assoc) #could also use $array parameter
+		then $response->[url or allow_local_login]
+		else (true: "add_" and "remove_" scripts) OR ($response: "get_" OR "search" scripts)
+		
+		ALL ws-SCRIPTS IN THIS FILE WITH THEIR RETURNS AND CALLS:
+		$url."apps/files_sharding/ws/get_allow_local_login.php";
+		return value: $response->allow_local_login
+		self::ws('get_allow_local_login',array('node' => $node),true,false,'allow_local_login')
+
+		$url."/apps/files_sharding/ws/get_servers.php";
+		return value: $response
+		self::ws('get_servers',array(),true,true);
+
+		$url."apps/files_sharding/ws/add_data_folder.php";
+		return value: true
+		self::ws('add_data_folder',array('folder' => $folder, 'user_id' => $user_id),true,true)
+
+		$url."apps/files_sharding/ws/get_data_folders.php";
+		return value: $response
+		self::ws('get_data_folders',array("user_id" => $user_id),true,true)
+
+		$url."apps/files_sharding/ws/remove_data_folder.php";
+		return value: true
+		self::ws('remove_data_folder',array('folder' => $folder,'user_id' => $user_id),true,true)
+
+		$url."apps/files_sharding/ws/get_user_server.php";
+		return value: $response->url
+		self::ws('get_user_server',array('user_id' => $user_id),true,false,'url')
+
+		$url."apps/files_sharding/ws/get_folder_server.php";
+		return value: $response->url
+		self::ws('get_folder_server',array('folder' => $folder,'user_id' => $user_id),true,false,'url')
+
+		$url."/apps/files_sharding/ws/search.php";
+		return value: $response
+		self::ws('search',array('query'=>$query, 'user_id'=>$user_id, 'url'=>$server['internal_url']),true,true)
+		*/
+		if(empty($assoc)){
+			$words = explode("_", $script);
+			if(strcmp($words[0],'add') || strcmp($words[0],'remove')){				
+				if(isset($response['error'])){					
+					\OCP\Util::writeLog('files_sharding', 'ERROR: could not "'.$script.'"" via ws for user '.$data['user_id'].' : '.$response['error'], \OC_Log::ERROR);
+					return false;
+				}
+				$_SESSION['oc_data_folders'] = $response;
+				return true;
+			}else if(strcmp($words[0],'get')){
+				\OCP\Util::writeLog('files_sharding', 'Received data of "'.$script.'" '.$json_response, \OC_Log::WARN);
+				$_SESSION['oc_data_folders'] = $response;
+				return $response;
+			}else if(strcmp($words[0],'search')){
+				\OCP\Util::writeLog('files_sharding', 'Received search results '.$json_response, \OC_Log::WARN);
+				return $response;
+			}
+		}else{
+			if(strpos($response['status'], 'error')!==false){
+				\OCP\Util::writeLog('files_sharding', 'ERROR: '.$response['status'], \OC_Log::ERROR);
+				return null;
+			}
+			return $response[$assoc];
+		}		
+	}// ws() end
 	
 	private static function wsGetAllowLocalLogin($node){
 		$url = self::getMasterInternalURL();
@@ -193,7 +275,8 @@ class Lib {
 			return self::dbGetServersList();
 		}
 		else{
-			return self::wsGetServersList();
+			// return self::wsGetServersList();
+			return self::ws('get_servers',array(),true,true);
 		}
 	}
 	
@@ -258,7 +341,8 @@ class Lib {
 			return self::dbAddDataFolder($folder, $user_server_id, $user_id);
 		}
 		else{
-			return self::wsAddDataFolder($folder, $user_id);
+			//return self::wsAddDataFolder($folder, $user_id);
+			return self::ws('add_data_folder',array('folder' => $folder, 'user_id' => $user_id),true,true);
 		}
 	}
 	
@@ -340,7 +424,8 @@ class Lib {
 			}
 			else{
 				// On a slave via webdav, ask the master
-				return self::wsGetDataFoldersList($user_id);
+				// return self::wsGetDataFoldersList($user_id);
+				return self::ws('get_data_folders',array("user_id" => $user_id),true,true);
 			}
 		}
 	}
@@ -355,7 +440,7 @@ class Lib {
 		return $results;
 	}
 	
-	private static function wsGetDataFoldersList($user_id=null){
+	private static function wsGetDataFoldersList($user_id=null){ // =null is not given anymore with uniform ws function
 		$url = self::getMasterInternalURL();
 		$url = $url."apps/files_sharding/ws/get_data_folders.php";
 		$content = "";
@@ -397,7 +482,8 @@ class Lib {
 			return self::dbRemoveDataFolder($folder, $user_id);
 		}
 		else{
-			return self::wsRemoveDataFolder($folder, $user_id);
+			// return self::wsRemoveDataFolder($folder, $user_id);
+			return self::ws('remove_data_folder',array('folder' => $folder,'user_id' => $user_id),true,true);
 		}
 	}
 	
@@ -847,7 +933,8 @@ class Lib {
 		}
 		// Otherwise, ask master
 		else{
-			$server = self::wsLookupServerUrlForUser($user);
+			// $server = self::wsLookupServerUrlForUser($user);
+			$server = self::ws('get_user_server',array('user_id' => $user_id),true,false,'url');
 		}
 		return $server;
 	}
@@ -953,7 +1040,8 @@ class Lib {
 		}
 		// Otherwise, ask master
 		else{
-			$server = self::wsLookupNextServerForFolder($folder, $user_id);
+			// $server = self::wsLookupNextServerForFolder($folder, $user_id);
+			$server = self::ws('get_folder_server',array('folder' => $folder,'user_id' => $user_id),true,false,'url');
 		}
 	}
 	
@@ -982,7 +1070,8 @@ class Lib {
 		$results = array();
 		foreach($servers as $server){
 			if(isset($server['internal_url']) && !empty($server['internal_url'])){
-				$results[$server['url']] = self::wsSearchServer($query, $server['internal_url'], $user_id);
+				// $results[$server['url']] = self::wsSearchServer($query, $server['internal_url'], $user_id);
+				$results[$server['url']] = self::ws('search',array('query'=>$query, 'user_id'=>$user_id, 'url'=>$server['internal_url']),true,true);
 			}
 		}
 		return $results;
