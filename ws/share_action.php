@@ -35,7 +35,7 @@ require_once('lib/base.php');
 $defaults = new \OCP\Defaults();
 
 function checkTokenExists($token, $itemSource){
-	$query = \OC_DB::prepare('SELECT `item_source` FROM `*PREFIX*share` WHERE `token` = ?');
+	$query = \OC_DB::prepare('SELECT `file_source` FROM `*PREFIX*share` WHERE `token` = ?');
 	$result = $query->execute(Array($token));
 	if(\OCP\DB::isError($result)){
 		\OCP\Util::writeLog('sharing', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
@@ -43,11 +43,11 @@ function checkTokenExists($token, $itemSource){
 	$i = 0;
 	while($row = $result->fetchRow()){
 		++$i;
-		if($row['item_source']!=$itemSource){
-			throw new Exception('Token '.$token.' already used.');
+		if($row['file_source']!=$itemSource){
+			throw new Exception('Token '.$token.' already used. '.$row['file_source'].'!='.$itemSource);
 		}
 		if($i>1){
-			\OCP\Util::writeLog('sharing', 'ERROR: Duplicate entries found for token:item_source '.$token.' : '.$itemSource, \OCP\Util::ERROR);
+			\OCP\Util::writeLog('sharing', 'ERROR: Duplicate entries found for token:file_source '.$token.' : '.$itemSource, \OCP\Util::ERROR);
 		}
 	}
 }
@@ -101,6 +101,7 @@ switch ($_POST['action']) {
 				// Now we need to fix the entries in the database to match the original itemSource, otherwise the js view will
 				// not catch the shared items, i.e. getItems() from share.php will not.
 				if($_POST['itemSource']!==$itemMasterSource){
+					\OCP\Util::writeLog('files_sharding', 'Updating  file_source '.$_POST['itemSource'].'-->'.$itemMasterSource, \OC_Log::WARN);
 					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `file_source` = ? WHERE `item_source` = ?');
 					$query->execute(array($_POST['itemSource'], $itemMasterSource));
 				}
@@ -111,7 +112,7 @@ switch ($_POST['action']) {
 					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `token` = ? WHERE `item_source` = ?');
 					$query->execute(array($_POST['token'], $_POST['itemSource']));
 					$token = $_POST['token'];
-				}				
+				}
 				if (is_string($token)) {
 					OC_JSON::success(array('data' => array('token' => $token)));
 				} else {
