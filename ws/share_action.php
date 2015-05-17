@@ -35,7 +35,7 @@ require_once('lib/base.php');
 $defaults = new \OCP\Defaults();
 
 function checkTokenExists($token, $itemSource){
-	$query = \OC_DB::prepare('SELECT `file_source` FROM `*PREFIX*share` WHERE `token` = ?');
+	$query = \OC_DB::prepare('SELECT `item_source` FROM `*PREFIX*share` WHERE `token` = ?');
 	$result = $query->execute(Array($token));
 	if(\OCP\DB::isError($result)){
 		\OCP\Util::writeLog('sharing', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
@@ -43,8 +43,8 @@ function checkTokenExists($token, $itemSource){
 	$i = 0;
 	while($row = $result->fetchRow()){
 		++$i;
-		if($row['file_source']!=$itemSource){
-			throw new Exception('Token '.$token.' already used. '.$row['file_source'].'!='.$itemSource);
+		if($row['item_source']!=$itemSource){
+			throw new Exception('Token '.$token.' already used. '.$row['item_source'].'!='.$itemSource);
 		}
 		if($i>1){
 			\OCP\Util::writeLog('sharing', 'ERROR: Duplicate entries found for token:file_source '.$token.' : '.$itemSource, \OCP\Util::ERROR);
@@ -61,7 +61,8 @@ $user_id = $_POST['user_id'];
 switch ($_POST['action']) {
 	case 'share':
 		if (isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])) {
-			try {				
+			try {
+				// TODO: Get rid of this hack
 				// Create file/folder if not there
 				$file_path = $_POST['itemPath'];
 				if(($_POST['itemType'] === 'file' or $_POST['itemType'] === 'folder')){
@@ -101,9 +102,9 @@ switch ($_POST['action']) {
 				// Now we need to fix the entries in the database to match the original itemSource, otherwise the js view will
 				// not catch the shared items, i.e. getItems() from share.php will not.
 				if($_POST['itemSource']!==$itemMasterSource){
-					\OCP\Util::writeLog('files_sharding', 'Updating  file_source '.$_POST['itemSource'].'-->'.$itemMasterSource, \OC_Log::WARN);
-					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `file_source` = ? WHERE `item_source` = ?');
-					$query->execute(array($_POST['itemSource'], $itemMasterSource));
+					\OCP\Util::writeLog('files_sharding', 'Updating item_source '.$_POST['itemSource'].'-->'.$itemMasterSource, \OC_Log::WARN);
+					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `parent` = ?, `item_source` = ? WHERE `item_source` = ?');
+					$query->execute(array(-1, $_POST['itemSource'], $itemMasterSource));
 				}
 				// FO: Allow any string to be used as token.
 				if(isset($_POST['token']) && !empty($_POST['token'])){
@@ -131,8 +132,10 @@ switch ($_POST['action']) {
 				$shareWith = $_POST['shareWith'];
 			}
 			$file_path = $_POST['itemPath'];
+			//$return = OCP\Share::unshare($_POST['itemType'], $_POST['itemSource'], $_POST['shareType'], $shareWith);
 			//$itemMasterSource = OCA\FilesSharding\Lib::getFileId($file_path, $user_id);
-			$return = OCP\Share::unshare($_POST['itemType'], $_POST['itemSource'], $_POST['shareType'], $shareWith);
+			$itemMasterSource = OCA\FilesSharding\Lib::getFileSource($_POST['itemSource'], $_POST['itemType'], false);
+			$return = OCP\Share::unshare($_POST['itemType'], $itemMasterSource, $_POST['shareType'], $shareWith);
 			($return) ? OC_JSON::success() : OC_JSON::error();
 		}
 		break;
@@ -151,7 +154,8 @@ switch ($_POST['action']) {
 	case 'setExpirationDate':
 		if (isset($_POST['date'])) {
 			try {
-				$return = OCP\Share::setExpirationDate($_POST['itemType'], $_POST['itemSource'], $_POST['date']);
+				$shareTime = isset($_POST['shareTime']) ? $_POST['shareTime'] : null;
+				$return = OCP\Share::setExpirationDate($_POST['itemType'], $_POST['itemSource'], $_POST['date'], $shareTime);
 				($return) ? OC_JSON::success() : OC_JSON::error();
 			} catch (\Exception $e) {
 				OC_JSON::error(array('data' => array('message' => $e->getMessage())));

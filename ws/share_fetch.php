@@ -37,12 +37,29 @@ $user_id = $_GET['user_id'];
 switch ($_GET['fetch']) {
 	case 'getItemsSharedStatuses':
 		if (isset($_GET['itemType'])) {
+			//$return = OCP\Share::getItemsShared($_GET['itemType']);
+			//\OCP\Util::writeLog('sharing', 'SHARED: '.$user_id.'-->'.serialize($return), \OCP\Util::WARN);
 			$return = OCP\Share::getItemsShared($_GET['itemType'], OCP\Share::FORMAT_STATUSES);
+			$master_to_slave_id_map = OCP\Share::getItemsShared($_GET['itemType']);
+			// Set item_source - apparently OCP\Share::FORMAT_STATUSES causes this not to be set
+			foreach($return as $item=>$data){
+				foreach($master_to_slave_id_map as $item1=>$data1){
+					if($master_to_slave_id_map[$item1]['file_source'] == $item){
+						$return[$item]['item_source'] = $master_to_slave_id_map[$item1]['item_source'];
+						break;
+					}
+				}
+			}
 			\OCP\Util::writeLog('sharing', 'SHARED: '.$user_id.'-->'.serialize($return), \OCP\Util::WARN);
 			is_array($return) ? OC_JSON::success(array('data' => $return)) : OC_JSON::error();
 		}
 		break;
 	case 'getItem':
+		if(isset($_GET['myItemSource'])&&$_GET['myItemSource']){
+			// On the master, file_source holds the id of the dummy file
+			$_GET['itemSource'] = OCA\FilesSharding\Lib::getFileSource($_GET['myItemSource'], $_GET['itemType'],
+					$_GET['sharedWithMe']);
+		}
 		if (isset($_GET['itemType'])
 			&& isset($_GET['itemSource'])
 			&& isset($_GET['checkReshare'])
@@ -69,6 +86,7 @@ switch ($_GET['fetch']) {
 			} else {
 				$shares = false;
 			}
+			\OCP\Util::writeLog('sharing', 'SHARES: '.$user_id.':'.$_GET['itemSource'].'-->'.serialize($shares), \OCP\Util::WARN);
 			OC_JSON::success(array('data' => array('reshare' => $reshare, 'shares' => $shares)));
 		}
 		break;

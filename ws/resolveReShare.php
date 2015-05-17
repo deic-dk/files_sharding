@@ -28,15 +28,11 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	exit;
 }
 
-$token = $_GET['t'];
-$checkPasswordProtection = false;
-if(isset($_GET['checkPasswordProtection'])){
-	$checkPasswordProtection = $_GET['checkPasswordProtection']==='1';
-}
+$linkItem = json_decode($_POST['linkItem'], true);
 
-$linkItem = OCP\Share::getShareByToken($token, $checkPasswordProtection);
+$rootLinkItem = \OCP\Share::resolveReShare($linkItem);
 
-\OCP\Util::writeLog('files_sharding', 'Returning linkItem '.serialize($linkItem), \OC_Log::WARN);
+\OCP\Util::writeLog('files_sharding', 'Returning rootLinkItem '.serialize($linkItem).' --> '.serialize($rootLinkItem), \OC_Log::WARN);
 
-OCP\JSON::encodedPrint($linkItem);
+OCP\JSON::encodedPrint($rootLinkItem);
 

@@ -32,7 +32,14 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 include_once("files_sharding/lib/lib_files_sharding.php");
 
 $user_id = $_POST['user_id'];
-$url = OCA\FilesSharding\Lib::dbLookupServerUrlForUser($user_id);
+$internal = isset($_POST['internal'])?$_POST['internal']:false;
+
+if($internal && $internal!=="false" && $internal!=="no"){
+	$url = OCA\FilesSharding\Lib::dbLookupInternalServerUrlForUser($user_id);
+}
+else{
+	$url = OCA\FilesSharding\Lib::dbLookupServerUrlForUser($user_id);
+}
 $status = empty($url)?'error: server '.$url.' not found':'success';
 $ret = Array('url' => $url, 'status' => $status);
 

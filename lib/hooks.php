@@ -71,4 +71,35 @@ class Hooks {
 		}
 	}
 	
+	public static function setup($options) {
+		if(!\OCP\App::isEnabled('files_sharding') || \OCA\FilesSharding\Lib::isMaster()){
+			$shares = \OCP\Share::getItemsSharedWith('file');
+		}
+		else{
+			$shares = \OCA\FilesSharding\Lib::ws('getItemsSharedWith', array('user_id' => \OC_User::getUser(),
+				'itemType' => 'file'));
+		}
+		$manager = \OC\Files\Filesystem::getMountManager();
+		$loader = \OC\Files\Filesystem::getLoader();
+		if (!\OCP\User::isLoggedIn() || \OCP\User::getUser() != $options['user']
+				|| $shares
+		) {
+			foreach ($shares as $share) {
+				// don't mount shares where we have no permissions
+				if ($share['permissions'] > 0) {
+					$mount = new \OCA\Files_Sharing\SharedMount(
+							'\OC\Files\Storage\Shared',
+							$options['user_dir'] . '/' . $share['file_target'],
+							array(
+									'share' => $share,
+							),
+							$loader
+					);
+					\OCP\Util::writeLog('files_sharing','Adding mount '.serialize($share), \OCP\Util::WARN);
+					$manager->addMount($mount);
+				}
+			}
+		}
+	}
+	
 }

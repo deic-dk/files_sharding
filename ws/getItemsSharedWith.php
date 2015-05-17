@@ -28,15 +28,20 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	exit;
 }
 
-$token = $_GET['t'];
-$checkPasswordProtection = false;
-if(isset($_GET['checkPasswordProtection'])){
-	$checkPasswordProtection = $_GET['checkPasswordProtection']==='1';
-}
+$itemType = $_GET['itemType'];
+$format = isset($_GET['format'])?$_GET['format']:\OCP\Share::FORMAT_NONE;
+$parameters = isset($_GET['parameters'])?$_GET['parameters']:null;
+$limit = isset($_GET['limit'])?$_GET['limit']:-1;
+$includeCollections = isset($_GET['includeCollections'])?$_GET['includeCollections']:false;
 
-$linkItem = OCP\Share::getShareByToken($token, $checkPasswordProtection);
+$user_id = $_GET['user_id'];
+\OC_User::setUserId($user_id);
+\OC_Util::setupFS($user_id);
 
-\OCP\Util::writeLog('files_sharding', 'Returning linkItem '.serialize($linkItem), \OC_Log::WARN);
 
-OCP\JSON::encodedPrint($linkItem);
+$itemsShared = \OCP\Share::getItemsSharedWith($itemType, $format, $parameters, $limit, $includeCollections);
+
+\OCP\Util::writeLog('files_sharding', 'Returning items shared '.serialize($itemsShared), \OC_Log::WARN);
+
+OCP\JSON::encodedPrint($itemsShared);
 

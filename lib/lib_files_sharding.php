@@ -20,7 +20,7 @@ class Lib {
 	
 	public static function onServerForUser($user_id=null){
 		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
-		$user_server = self::dbLookupServerUrlForUser($user_id);
+		$user_server = self::getServerForUser($user_id);
 		if(!empty($user_server)){
 			$parse = parse_url($user_server);
 			$user_host = $parse['host'];
@@ -101,11 +101,13 @@ class Lib {
 	}
 	
 	// TODO: have all ws* functions use this
-	public static function ws($script, $data, $post=false, $array=true){
+	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null){
 		$content = "";
 		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
-		$url = self::getMasterInternalURL();
-		$url .= "apps/files_sharding/ws/".$script.".php";
+		if($baseUrl==null){
+			$baseUrl = self::getMasterInternalURL();
+		}
+		$url = $baseUrl . "/apps/files_sharding/ws/".$script.".php";
 		if(!$post){
 			$url .= "?".$content;
 		}
@@ -505,6 +507,26 @@ class Lib {
 	}
 
 	/**
+	 * Get the internal URL of a server.
+	 * @param $id
+	 */
+	private static function dbLookupInternalServerURL($id){
+		$query = \OC_DB::prepare('SELECT `internal_url` FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?');
+		$result = $query->execute(Array($id));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$results = $result->fetchAll();
+		if(count($results)>1){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for server '.$id, \OCP\Util::ERROR);
+		}
+		foreach($results as $row){
+			return($row['internal_url']);
+		}
+		\OCP\Util::writeLog('files_sharding', 'ERROR: ID not found: '.$id, \OC_Log::ERROR);
+		return null;
+	}
+	/**
 	 * Get the ID of a server.
 	 * @param $hostname hostname of the server
 	 */
@@ -729,6 +751,20 @@ class Lib {
 	}
 	
 	/**
+	 * Lookup internal URL of home server for user in database.
+	 * @param $user
+	 * @return URL of the server - null if none has been set. Important as user_saml relies on this.
+	 */
+	private static function dbLookupInternalServerUrlForUser($user){
+		$id = self::dbLookupServerIdForUser($user, 0);
+		if(!empty($id)){
+			return self::dbLookupInternalServerURL($id);
+		}
+		\OCP\Util::writeLog('files_sharding', 'No server found via db for user '.$user. '. Using default', \OC_Log::DEBUG);
+		return null;
+	}
+	
+	/**
 	 * @param $user
 	 * @return ID of server
 	 */
@@ -797,7 +833,7 @@ class Lib {
 	 * @param unknown $user
 	 * @return URL of the server
 	 */
-	private static function wsLookupServerUrlForUser($user_id){
+	/*private static function wsLookupServerUrlForUser($user_id){
 		$url = self::getMasterInternalURL();
 		$url = $url."apps/files_sharding/ws/get_user_server.php";
 		$content = "";
@@ -821,33 +857,41 @@ class Lib {
 		curl_close($curl);
 		
 		if($status===0 || $status>=300 || empty($json_response)){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: no free server found via ws for user '.$user.' : '.$json_response, \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: no free server found via ws for user '.$user_id.' : '.$json_response, \OC_Log::ERROR);
 			return null;
 		}
 		
 		$response = json_decode($json_response, false);
 		
 		if(strpos($response->status, 'error')!==false){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: no free server found via ws for user '.$user.' : '.$response->status, \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: no free server found via ws for user '.$user_id.' : '.$response->status, \OC_Log::ERROR);
 			return null;
 		}
 		
 		return $response->url;
-	}
+	}*/
 
 	/**
-	 * Lookup server for user.
-	 * @param unknown $user
+	 * Lookup URL of server for user.
+	 * @param unknown $user_id
+	 * @param internal $internal whether to return the internal URL
 	 * @return the base URL (https://...) of the server that will serve the files
 	 */
-	public static function getServerForUser($user){
+	public static function getServerForUser($user_id, $internal = false){
 		// If I'm the master, look up in DB
 		if(self::isMaster()){
-			$server = self::dbLookupServerUrlForUser($user);
+			if($internal){
+				$server = self::dbLookupInternalServerUrlForUser($user_id);
+			}
+			else{
+				$server = self::dbLookupServerUrlForUser($user_id);
+			}
 		}
 		// Otherwise, ask master
 		else{
-			$server = self::wsLookupServerUrlForUser($user);
+			//$server = self::wsLookupServerUrlForUser($user);
+			$response = self::ws('get_user_server', Array('user_id' => $user, 'internal' => $internal), false, false);
+			$server = $response->url;
 		}
 		return $server;
 	}
@@ -974,6 +1018,22 @@ class Lib {
 		\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' not trusted', \OC_Log::WARN);
 		return false;
 	}
+	
+	public static function getFileSource($itemSource, $itemType='file', $sharedWithMe=false) {
+		if($sharedWithMe){
+			$master_to_slave_id_map = \OCP\Share::getItemsSharedWith($itemType);
+		}
+		else{
+			$master_to_slave_id_map = \OCP\Share::getItemsShared($itemType);
+		}
+		foreach($master_to_slave_id_map as $item1=>$data1){
+			if($master_to_slave_id_map[$item1]['item_source'] == $itemSource){
+				$ret = $master_to_slave_id_map[$item1]['file_source'];
+				return $ret;
+			}
+		}
+		return $itemSource;
+}
 	
 	public static function searchAllServers($query){
 		$user_id = \OCP\USER::getUser();

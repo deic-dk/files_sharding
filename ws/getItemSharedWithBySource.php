@@ -28,15 +28,17 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	exit;
 }
 
-$token = $_GET['t'];
-$checkPasswordProtection = false;
-if(isset($_GET['checkPasswordProtection'])){
-	$checkPasswordProtection = $_GET['checkPasswordProtection']==='1';
-}
+$itemType = $_GET['itemType'];
+$itemSource = $_GET['itemSource'];
 
-$linkItem = OCP\Share::getShareByToken($token, $checkPasswordProtection);
+$user_id = $_GET['user_id'];
+\OC_User::setUserId($user_id);
+\OC_Util::setupFS($user_id);
 
-\OCP\Util::writeLog('files_sharding', 'Returning linkItem '.serialize($linkItem), \OC_Log::WARN);
 
-OCP\JSON::encodedPrint($linkItem);
+$itemShared = \OCP\Share::getItemSharedWithBySource($itemType, $itemSource);
+
+\OCP\Util::writeLog('files_sharding', 'Returning items shared by source'.serialize($itemShared), \OC_Log::WARN);
+
+OCP\JSON::encodedPrint($itemShared);
 
