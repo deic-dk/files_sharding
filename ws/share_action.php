@@ -103,15 +103,18 @@ switch ($_POST['action']) {
 				// not catch the shared items, i.e. getItems() from share.php will not.
 				if($_POST['itemSource']!==$itemMasterSource){
 					\OCP\Util::writeLog('files_sharding', 'Updating item_source '.$_POST['itemSource'].'-->'.$itemMasterSource, \OC_Log::WARN);
-					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `parent` = ?, `item_source` = ? WHERE `item_source` = ?');
-					$query->execute(array(-1, $_POST['itemSource'], $itemMasterSource));
+					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `item_source` = ? WHERE `item_source` = ?');
+					$query->execute(array($_POST['itemSource'], $itemMasterSource));
 				}
+				// Now set parent to -1 to prevent showing the item in the file listing
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `parent` = ? = ? WHERE `item_source` = ?');
+				$query->execute(array(-1, $_POST['itemSource']));
 				// FO: Allow any string to be used as token.
 				if(isset($_POST['token']) && !empty($_POST['token'])){
 					checkTokenExists($_POST['token'], $_POST['itemSource']);
 					\OCP\Util::writeLog('sharing', "token:item_source " . $_POST['token'].":".$_POST['itemSource'], \OCP\Util::WARN);
-					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `token` = ? WHERE `item_source` = ?');
-					$query->execute(array($_POST['token'], $_POST['itemSource']));
+					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `token` = ? WHERE `item_source` = ? AND `shareType` = ? AND `token` = ?');
+					$query->execute(array($_POST['token'], $_POST['itemSource'], $shareType, $token));
 					$token = $_POST['token'];
 				}
 				if (is_string($token)) {
