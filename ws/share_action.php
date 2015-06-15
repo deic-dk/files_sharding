@@ -113,7 +113,7 @@ switch ($_POST['action']) {
 				if(isset($_POST['token']) && !empty($_POST['token'])){
 					checkTokenExists($_POST['token'], $_POST['itemSource']);
 					\OCP\Util::writeLog('sharing', "token:item_source " . $_POST['token'].":".$_POST['itemSource'], \OCP\Util::WARN);
-					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `token` = ? WHERE `item_source` = ? AND `shareType` = ? AND `token` = ?');
+					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `token` = ? WHERE `item_source` = ? AND `share_type` = ? AND `token` = ?');
 					$query->execute(array($_POST['token'], $_POST['itemSource'], $shareType, $token));
 					$token = $_POST['token'];
 				}

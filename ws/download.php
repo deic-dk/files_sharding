@@ -20,7 +20,7 @@ if(!empty($id)){
 	$path = \OC\Files\Filesystem::getPath($id);
 	$dir = substr($path, 0, strrpos($path, '/'));
 }
-if(!empty($owner)){
+if(!empty($user_id)){
 	\OC_User::setUserId($user_id);
 	\OC_Util::setupFS($user_id);
 }

@@ -28,35 +28,42 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	exit;
 }
 
-$dir = urldecode($_GET['dir']);
+$path = isset($_GET['path'])? urldecode($_GET['path']) : '';
 $id = isset($_GET['id']) ? $_GET['id'] : null;
 $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
+$user_id = isset($_GET['user_id']) ? $_GET['user_id'] : '';
 
-if(!empty($id) && !empty($owner)){
+if($owner){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
-	//$view = new \OC\Files\View('/'.$owner.'/files');
-	//$path = $view->getPath($id);
-	$path = \OC\Files\Filesystem::getPath($id);
-	\OCP\Util::writeLog('files_sharding', 'Path: '.$path, \OC_Log::WARN);
-	//$dirInfo = $view->getFileInfo($path);
-	$dirInfo = \OC\Files\Filesystem::getFileInfo($path);
 }
-else{
-	$user_id = $_GET['user_id'];
+elseif($user_id){
 	\OC_User::setUserId($user_id);
 	\OC_Util::setupFS($user_id);
 	\OCP\Util::writeLog('files_sharding', 'No id or owner: '.$owner.':'.$id, \OC_Log::WARN);
-	$dirInfo = \OC\Files\Filesystem::getFileInfo($dir);
-	$path = $dir;
 }
-$data = $dirInfo->getData();
-$data['directory'] = $path;
-$data['path'] = $dirInfo->getpath();
-$data['storage'] = $dirInfo->getStorage();
-$data['internalPath'] = $dirInfo->getInternalPath();
 
-\OCP\Util::writeLog('files_sharding', 'Returning file info for '.$owner.'-->'.$id.':'.$dir.':'.$path.':'.$data['path'], \OC_Log::WARN);
+if($id){
+	$path = \OC\Files\Filesystem::getPath($id);
+}
+
+\OCP\Util::writeLog('files_sharding', 'Path: '.$path, \OC_Log::WARN);
+$info = \OC\Files\Filesystem::getFileInfo($path);
+
+if(!$info){
+	\OCP\Util::writeLog('files_sharding', 'File not found '.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
+	OCP\JSON::encodedPrint('');
+	exit;
+}
+
+$data = $info->getData();
+//$data['directory'] = $path;
+$data['path'] = $info->getpath();
+//$data['storage'] = $info->getStorage();
+//\OCP\Util::writeLog('files_sharding', 'STORAGE: '.serialize($data['storage']), \OC_Log::WARN);
+$data['internalPath'] = $info->getInternalPath();
+
+\OCP\Util::writeLog('files_sharding', 'Returning file info for '.$owner.'-->'.$id.':'.$path.':'.$data['path'], \OC_Log::WARN);
 
 OCP\JSON::encodedPrint($data);
 

@@ -20,7 +20,7 @@
 * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-class OC_Sharding_Backend_File implements OCP\Share_Backend_File_Dependent {
+class OC_Shard_Backend_File implements OCP\Share_Backend_File_Dependent {
 
 	const FORMAT_SHARED_STORAGE = 0;
 	const FORMAT_GET_FOLDER_CONTENTS = 1;

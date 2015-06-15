@@ -95,10 +95,38 @@ class Hooks {
 							),
 							$loader
 					);
-					\OCP\Util::writeLog('files_sharing','Adding mount '.serialize($share), \OCP\Util::WARN);
+					//\OCP\Util::writeLog('files_sharing','Adding mount '.serialize($share), \OCP\Util::WARN);
 					$manager->addMount($mount);
 				}
 			}
+		}
+	}
+	
+	public static function renameHook($params){
+		\OCP\Util::writeLog('files_sharing','RENAME '.serialize($params), \OCP\Util::WARN);
+		$user_id = \OCP\User::getUser();
+		if(!isset($user_id) || !$user_id){
+			\OCP\Util::writeLog('files_sharing','ERROR: not logged in.', \OCP\Util::WARN);
+			return false;
+		}
+		
+		$id = \OCA\FilesSharding\Lib::getFileId($params['newpath']);
+		
+		$matchlen = \OCA\FilesSharding\Lib::stripleft($params['oldpath'], $params['newpath']);
+		$oldname = substr($params['oldpath'], $matchlen);
+		$newname = substr($params['newpath'], $matchlen);
+		
+		$old_file_target = \OCA\FilesSharding\Lib::getShareFileTarget($id);
+		
+		$new_file_target = preg_replace('|(.*)'.$oldname.'$|', '$1'.$newname, $old_file_target);
+				
+		\OC_Log::write('OCP\Share', 'QUERY: '.$oldname.':'.$newname.':'.$new_file_target, \OC_Log::WARN);
+		
+		$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `file_target` = ? WHERE `uid_owner` = ? AND `item_source` = ? AND `file_target` = ?');
+		$result = $query->execute(array($new_file_target, $user_id, $id, $old_file_target));
+		
+		if($result === false) {
+			\OC_Log::write('OCP\Share', 'Couldn\'t update share table for '.$user_id.' --> '.serialize($params), \OC_Log::ERROR);
 		}
 	}
 	
