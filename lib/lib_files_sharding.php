@@ -76,7 +76,7 @@ class Lib {
 		}
 		else{
 			$ret = self::ws('get_allow_local_login', Array('node' => $node), true, false);
-			return $ret==='yes';
+			return $ret->allow_local_login==='yes';
 		}
 	}
 	
@@ -88,7 +88,7 @@ class Lib {
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for server '.$id, \OCP\Util::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for server '.$node, \OCP\Util::ERROR);
 		}
 		foreach($results as $row){
 			return $row['allow_local_login'];
