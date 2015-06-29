@@ -50,8 +50,11 @@ class FileSessionHandler {
 		}
 		if(!Lib::getAllowLocalLogin($_SERVER['HTTP_HOST'])){
 			\OC_Log::write('files_sharding',"Local login not allowed on ".$_SERVER['HTTP_HOST'], \OC_Log::WARN);
-			header('Location: ' . Lib::getMasterURL()."index.php?logout=true&requesttoken=".\OC_Util::callRegister());
-			exit;
+			$master_url = Lib::getMasterURL();
+			if($master_url){
+				header('Location: ' . $master_url."index.php?logout=true&requesttoken=".\OC_Util::callRegister());
+				exit;
+			}
 		}
 		else{
 			return $data;

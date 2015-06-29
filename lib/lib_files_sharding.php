@@ -72,11 +72,11 @@ class Lib {
 
 	public static function getAllowLocalLogin($node){
 		if(self::isMaster()){
-			return self::dbGetAllowLocalLogin($node)==='yes';
+			return self::dbGetAllowLocalLogin($node)!=='no';
 		}
 		else{
 			$ret = self::ws('get_allow_local_login', Array('node' => $node), true, false);
-			return $ret->allow_local_login==='yes';
+			return $ret->allow_local_login!=='no';
 		}
 	}
 	
