@@ -107,7 +107,7 @@ switch ($_POST['action']) {
 					$query->execute(array($_POST['itemSource'], $itemMasterSource));
 				}
 				// Now set parent to -1 to prevent showing the item in the file listing
-				$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `parent` = ? = ? WHERE `item_source` = ?');
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `parent` = ? WHERE `item_source` = ?');
 				$query->execute(array(-1, $_POST['itemSource']));
 				// FO: Allow any string to be used as token.
 				if(isset($_POST['token']) && !empty($_POST['token'])){
