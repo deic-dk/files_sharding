@@ -9,29 +9,23 @@ if(isset($_GET['user_id'])){
 else{
 	$user_id = OCP\USER::getUser();
 }
-$internal = isset($_GET['internal'])?$_GET['internal']:false;
+$internal = isset($_GET['internal'])?$_GET['internal'] && $_GET['internal']!=="false" && $_GET['internal']!=="no":false;
 
-$url = OCA\FilesSharding\Lib::getServerForUser($user_id, $internal && $internal!=="false" && $internal!=="no");
+$url = OCA\FilesSharding\Lib::getServerForUser($user_id, $internal);
 
 if(!empty($url)){
-	$parse = parse_url($url);
-	$user_host = $parse['host'];
+	$status ='success';
 }
 else{
 	// If no server has been set for the user, he can logically only be on the master
-	$user_host = OCA\FilesSharding\Lib::getMasterURL();
-}
-
-$same = isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']===$user_host ||
-				isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME']===$user_host;
-
-if(empty($url)){
 	$status = 'success: server '.$url.' not found, using master';
-	$url = OCA\FilesSharding\Lib::getMasterInternalURL();
+	$url = $internal?OCA\FilesSharding\Lib::getMasterInternalURL():OCA\FilesSharding\Lib::getMasterURL();
 }
-else{
-	$status ='success';
-}
+
+$parse = parse_url($url);
+$user_host = $parse['host'];
+
+$same = OCA\FilesSharding\Lib::onServerForUser($user_id);
 
 $ret = Array('url' => $url, 'same' => $same, 'status' => $status);
 

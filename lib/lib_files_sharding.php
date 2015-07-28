@@ -886,7 +886,14 @@ class Lib {
 				if($owner!=\OCP\USER::getUser()){
 					$user_id = self::switchUser($owner);
 				}
-				$path = \OC\Files\Filesystem::getPath($id);
+				if($id){
+					$path = \OC\Files\Filesystem::getPath($id);
+				}
+				elseif($parentId){
+					$parentPath = \OC\Files\Filesystem::getPath($parentId);
+					$path = $parentPath . '/' . basename($path);
+				}
+				\OCP\Util::writeLog('files_sharding', 'Getting info for '.$path, \OC_Log::WARN);
 				$info = \OC\Files\Filesystem::getFileInfo($path);
 			}
 		}
@@ -907,8 +914,8 @@ class Lib {
 	
 	public static function moveTmpFile($tmpFile, $path, $dirOwner, $dirId){
 		if($dirId){
-			$dirMeta = self::getFileInfo($path, $dirOwner, $dirId, null);
-			$dirPath = preg_replace('|^files/|','/', $dirMeta['internalPath']);
+			$dirMeta = self::getFileInfo(null, $dirOwner, $dirId, null);
+			$dirPath = preg_replace('|^files/|','/', $dirMeta->getInternalPath());
 			$pathinfo = pathinfo($path);
 			$path = $dirPath.'/'.$pathinfo['basename'];
 		}
@@ -928,7 +935,6 @@ class Lib {
 				}
 			}
 		}
-		
 		$ret = \OC\Files\Filesystem::fromTmpFile($tmpFile, $path);
 		
 		if(isset($user_id) && $user_id){

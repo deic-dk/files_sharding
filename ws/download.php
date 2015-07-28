@@ -12,13 +12,18 @@ $dir = $_GET["dir"];
 $user_id = isset($_GET['user_id'])&&$_GET['user_id'] ? $_GET['user_id'] : OCP\USER::getUser();
 $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
 $id = isset($_GET['id']) ? $_GET['id'] : '';
+$dirId = isset($_GET['id']) ? $_GET['dir_id'] : '';
 if(!empty($owner)){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
 }
 if(!empty($id)){
 	$path = \OC\Files\Filesystem::getPath($id);
-	$dir = substr($path, 0, strrpos($path, '/'));
+	$files = basename($path);
+	$dir = dirname($path);
+}
+if(!empty($dirId)){
+	$dir = \OC\Files\Filesystem::getPath($dirId);
 }
 if(!empty($user_id)){
 	\OC_User::setUserId($user_id);
