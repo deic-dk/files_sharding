@@ -799,7 +799,9 @@ class Lib {
 		$view = \OC\Files\Filesystem::getView();
 		if($id){
 			$path = $view->getPath($id);
-			$dir = substr($path, 0, strrpos($path, '/'));
+			$pathinfo = pathinfo($path);
+			$dir = $pathinfo['dirname'];
+			$name = $pathinfo['basename'];
 			\OCP\Util::writeLog('files_sharding', 'DIR: '.$dir.', PATH: '.$path.', ID: '.$id, \OC_Log::WARN);
 		}
 		$files = new \OCA\Files\App(
@@ -811,7 +813,7 @@ class Lib {
 				$name,
 				$newname
 		);
-		if($user_id){
+		if(isset($user_id) && $user_id){
 			// If not done, the user shared with will now be logged in as $owner
 			\OC_Util::teardownFS();
 			\OC_User::setUserId($user_id);
