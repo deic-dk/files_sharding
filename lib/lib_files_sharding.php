@@ -101,14 +101,13 @@ class Lib {
 		return $result ? true : false;
 	}
 	
-	// TODO: have all ws* functions use this
-	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null){
+	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null, $appName=null){
 		$content = "";
 		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
 		if($baseUrl==null){
 			$baseUrl = self::getMasterInternalURL();
 		}
-		$url = $baseUrl . "/apps/files_sharding/ws/".$script.".php";
+		$url = $baseUrl . "/apps/".(empty($appName)?"files_sharding":$appName)."/ws/".$script.".php";
 		\OCP\Util::writeLog('files_sharding', 'URL: '.$url.', '.($post?'POST':'GET').': '.$content, \OC_Log::WARN);
 		if(!$post){
 			$url .= "?".$content;

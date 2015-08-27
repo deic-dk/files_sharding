@@ -283,7 +283,7 @@ class Api {
 	 * get files shared with the user
 	 * @return \OC_OCS_Result
 	 */
-	private static function getFilesSharedWithMe() {
+	public static function getFilesSharedWithMe() {
 		try	{
 			if(!\OCP\App::isEnabled('files_sharding') || \OCA\FilesSharding\Lib::isMaster()){
 				$shares = \OCP\Share::getItemsSharedWith('file');
@@ -301,7 +301,8 @@ class Api {
 				}
 			}
 			$result = new \OC_OCS_Result($shares);
-		} catch (\Exception $e) {
+		}
+		catch (\Exception $e) {
 			$result = new \OC_OCS_Result(null, 403, $e->getMessage());
 		}
 
