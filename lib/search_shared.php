@@ -35,7 +35,7 @@ class SearchShared extends \OC_Search_Provider {
 		$allServers = \OCA\FilesSharding\Lib::getServersList();
 		$owners = array();
 		$serverIDs = array();
-		/7$currentServerId = OCA\FilesSharding\Lib::dbLookupServerId($_SERVER['REMOTE_ADDR']);
+		$currentServerId = OCA\FilesSharding\Lib::dbLookupServerId($_SERVER['REMOTE_ADDR']);
 		foreach($sharedItems as $item){
 			if(!in_array($item['owner'], $owners)){
 				$owners[] = $item['owner'];
