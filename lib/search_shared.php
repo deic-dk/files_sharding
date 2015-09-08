@@ -28,18 +28,18 @@ class SearchShared extends \OC_Search_Provider {
 
   function search($query) {
 		$user_id = \OCP\USER::getUser();
-		$sharedItems = \OCA\FilesSharding\Lib::getItemsSharedWithUser($user_id);
+		$sharedItems = Lib::getItemsSharedWithUser($user_id);
 		if(empty($sharedItems)){
 			return array();
 		}
-		$allServers = \OCA\FilesSharding\Lib::getServersList();
+		$allServers = Lib::getServersList();
 		$owners = array();
 		$serverIDs = array();
-		$currentServerId = OCA\FilesSharding\Lib::dbLookupServerId($_SERVER['REMOTE_ADDR']);
+		$currentServerId = Lib::dbLookupServerId($_SERVER['REMOTE_ADDR']);
 		foreach($sharedItems as $item){
 			if(!in_array($item['owner'], $owners)){
 				$owners[] = $item['owner'];
-				$serverID = \OCA\FilesSharding\Lib::lookupServerIdForUser($user_id);
+				$serverID = Lib::lookupServerIdForUser($user_id);
 				/*if($serverID==$currentServerId){
 					continue;
 				}*/
@@ -56,7 +56,7 @@ class SearchShared extends \OC_Search_Provider {
 				continue;
 			}
 			if(isset($server['internal_url']) && !empty($server['internal_url'])){
-				$matches = \OCA\FilesSharding\Lib::ws('search', Array('user_id'=>$user_id, 'query'=>$query), true, true,
+				$matches = Lib::ws('search', Array('user_id'=>$user_id, 'query'=>$query), true, true,
 						$server['internal_url']);
 				$res = array();
 				foreach($sharedItems as $item){

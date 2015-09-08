@@ -23,6 +23,8 @@ OC_API::register('get', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Fi
 //OC_API::register('delete', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'deleteShare'), 'files_sharing');
 
 // Fix broken stuff in Lucene. TODO: remove when fixed upstream
+// This is not working - presumably because the apps in question are loaded after this one.
+// We do it in the theme instead (in js.js and search.php).
 OC_Search::removeProvider('OC\Search\Provider\File');
 OC_Search::removeProvider('OCA\Search_Lucene\Lucene');
 OC::$CLASSPATH['OCA\Search_Lucene\MyLucene'] = 'files_sharding/lib/my_lucene.php';

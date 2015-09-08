@@ -277,25 +277,25 @@ class MyLucene extends \OC_Search_Provider {
 				if ($hit->mimetype=='application/xml') {
 					$type='Text';
 				} else {
-					$type='Files';
+					//$type='Files';
+					$type='file';
 				}
 		}
 
 		switch ($hit->mimetype) {
 			case 'httpd/unix-directory':
 				$url = Util::linkTo('files', 'index.php') . '?dir='.$hit->path;
+				$type='folder';
 				break;
 			default:
 				$url = \OC::$server->getRouter()->generate('download', array('file'=>$hit->path));
 		}
 		
 		return new \OC_Search_Result(
-			//basename($hit->path),
-				$hit->fileid,
-			//dirname($hit->path)
-				$hit->path
-				. '<span class="gray"> - ' . \OCP\Util::humanFileSize($hit->size)
-				. ', Score: ' . number_format($hit->score, 2).'</span>',
+				$hit->id,
+			basename($hit->path) . ' ('. dirname($hit->path) . ', '
+				. \OCP\Util::humanFileSize($hit->size)
+				. ', Score: ' . number_format($hit->score, 2).')',
 			$url,
 			$type,
 			dirname($hit->path)

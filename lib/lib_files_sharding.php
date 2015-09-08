@@ -785,16 +785,16 @@ class Lib {
 		return $itemSource;
 	}
 	
-	private static function getItemsSharedWithUser($user_id){
+	public static function getItemsSharedWithUser($user_id){
 		if(self::isMaster()){
 			$sharedFiles = \OCP\Share::getItemsSharedWithUser('file', $user_id, \OCP\Share::FORMAT_NONE);
 			$sharedFolders = \OCP\Share::getItemsSharedWithUser('folder', $user_id, \OCP\Share::FORMAT_NONE);
 		}
 		else{
 			$sharedFiles =  \OCA\FilesSharding\Lib::ws('getItemsSharedWithUser',
-					array('itemType' => 'file', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => self::FORMAT_TARGET_NAMES));
+					array('itemType' => 'file', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Share_Backend_File::FORMAT_TARGET_NAMES));
 			$sharedFolders =  \OCA\FilesSharding\Lib::ws('getItemsSharedWithUser',
-					array('itemType' => 'folder', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => self::FORMAT_TARGET_NAMES));
+					array('itemType' => 'folder', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Share_Backend_File::FORMAT_TARGET_NAMES));
 		}
 		$result = array();
 		if(!empty($sharedFiles)){
