@@ -586,6 +586,22 @@ class Lib {
 	
 	/**
 	 * @param $user
+	 * @return ID of primary server
+	 */
+	public static function lookupServerIdForUser($user){
+		if(self::isMaster()){
+			$serverId = self::dbLookupServerIdForUser($user, 0);
+		}
+		// Otherwise, ask master
+		else{
+			$res = self::ws('get_user_server', Array('user_id' => $user), false, true);
+			$serverId = $res['id'];
+		}
+		return $serverId;
+	}
+	
+	/**
+	 * @param $user
 	 * @return ID of server
 	 */
 	public static function dbLookupServerIdForUser($user, $priority){
@@ -767,20 +783,27 @@ class Lib {
 			}
 		}
 		return $itemSource;
-}
+	}
 	
-	public static function searchAllServers($query){
-		$user_id = \OCP\USER::getUser();
-		$servers = self::getServersList();
-		\OCP\Util::writeLog('search', 'Searching servers '.serialize($servers), \OC_Log::WARN);
-		$results = array();
-		foreach($servers as $server){
-			if(isset($server['internal_url']) && !empty($server['internal_url'])){
-				$results[$server['url']] = self::ws('search', Array('user_id'=>$user_id, 'query'=>$query), true, true,
-						$server['internal_url']);
-			}
+	private static function getItemsSharedWithUser($user_id){
+		if(self::isMaster()){
+			$sharedFiles = \OCP\Share::getItemsSharedWithUser('file', $user_id, \OCP\Share::FORMAT_NONE);
+			$sharedFolders = \OCP\Share::getItemsSharedWithUser('folder', $user_id, \OCP\Share::FORMAT_NONE);
 		}
-		return $results;
+		else{
+			$sharedFiles =  \OCA\FilesSharding\Lib::ws('getItemsSharedWithUser',
+					array('itemType' => 'file', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => self::FORMAT_TARGET_NAMES));
+			$sharedFolders =  \OCA\FilesSharding\Lib::ws('getItemsSharedWithUser',
+					array('itemType' => 'folder', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => self::FORMAT_TARGET_NAMES));
+		}
+		$result = array();
+		if(!empty($sharedFiles)){
+			$result = array_merge($result, $sharedFiles);
+		}
+		if(!empty($sharedFolders)){
+			$result = array_merge($result, $sharedFolders);
+		}
+		return $result;
 	}
 	
 	public static function rename($owner, $id, $dir, $name, $newname){

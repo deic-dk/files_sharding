@@ -28,7 +28,7 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	exit;
 }
 
-$itemType = $_GET['itemType'];
+$itemType = isset($_GET['itemType'])?$_GET['itemType']:'file';
 $format = isset($_GET['format'])?$_GET['format']:\OCP\Share::FORMAT_NONE;
 $parameters = isset($_GET['parameters'])?$_GET['parameters']:null;
 $limit = isset($_GET['limit'])?$_GET['limit']:-1;

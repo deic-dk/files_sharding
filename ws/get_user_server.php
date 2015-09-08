@@ -40,7 +40,8 @@ if($internal && $internal!=="false" && $internal!=="no"){
 else{
 	$url = OCA\FilesSharding\Lib::dbLookupServerUrlForUser($user_id);
 }
+$id = OCA\FilesSharding\Lib::dbLookupServerIdForUser($user, 0);
 $status = empty($url)?'error: server '.$url.' not found':'success';
-$ret = Array('url' => $url, 'status' => $status);
+$ret = Array('url' => $url, 'id' => $id, status' => $status);
 
 OCP\JSON::encodedPrint($ret);

@@ -119,7 +119,7 @@ class OC_Shard_Backend_File implements OCP\Share_Backend_File_Dependent {
 		}
 		else{
 			$excludeList =  \OCA\FilesSharding\Lib::ws('getItemsSharedWithUser',
-					array('user_id' => \OC_User::getUser(), 'shareWith' => $shareWith, 'format' => self::FORMAT_TARGET_NAMES));
+					array('user_id' => \OC_User::getUser(), 'format' => self::FORMAT_TARGET_NAMES));
 		}
 		
 		if (is_array($exclude)) {
