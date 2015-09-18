@@ -300,8 +300,15 @@ class Lib {
 		return $fileId;
 	}
 
-	public static function getFilePath($id) {
-		return \OC\Files\Filesystem::getpath($id);
+	public static function getFilePath($id, $owner=null) {
+		if(isset($owner) && $owner!=\OCP\USER::getUser()){
+			$user_id = self::switchUser($owner);
+		}
+		$ret = \OC\Files\Filesystem::getpath($id);
+		if(isset($user_id) && $user_id){
+			self::restoreUser($user_id);
+		}
+		return $ret;
 	}
 
 
@@ -350,6 +357,16 @@ class Lib {
 	 * Get the ID of a server.
 	 * @param $hostname hostname of the server
 	 */
+	public static function lookupServerId($hostname){
+		if(self::isMaster()){
+			return self::dbLookupServerId($hostname);
+		}
+		else{
+			$res = self::ws('get_server_id', Array('hostname' => $hostname), false, true);
+			return $res['id'];
+		}
+	}
+	
 	public static function dbLookupServerId($hostname){
 		$query = \OC_DB::prepare('SELECT `id` FROM `*PREFIX*files_sharding_servers` WHERE `url` LIKE ?');
 		$result = $query->execute(Array("http%://$hostname%"));
@@ -787,14 +804,14 @@ class Lib {
 	
 	public static function getItemsSharedWithUser($user_id){
 		if(self::isMaster()){
-			$sharedFiles = \OCP\Share::getItemsSharedWithUser('file', $user_id, \OCP\Share::FORMAT_NONE);
-			$sharedFolders = \OCP\Share::getItemsSharedWithUser('folder', $user_id, \OCP\Share::FORMAT_NONE);
+			$sharedFiles = \OCP\Share::getItemsSharedWithUser('file', $user_id, \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS);
+			$sharedFolders = \OCP\Share::getItemsSharedWithUser('folder', $user_id, \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS);
 		}
 		else{
 			$sharedFiles =  \OCA\FilesSharding\Lib::ws('getItemsSharedWithUser',
-					array('itemType' => 'file', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Share_Backend_File::FORMAT_TARGET_NAMES));
+					array('itemType' => 'file', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS));
 			$sharedFolders =  \OCA\FilesSharding\Lib::ws('getItemsSharedWithUser',
-					array('itemType' => 'folder', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Share_Backend_File::FORMAT_TARGET_NAMES));
+					array('itemType' => 'folder', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS));
 		}
 		$result = array();
 		if(!empty($sharedFiles)){

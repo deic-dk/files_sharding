@@ -34,35 +34,68 @@ class SearchShared extends \OC_Search_Provider {
 		}
 		$allServers = Lib::getServersList();
 		$owners = array();
-		$serverIDs = array();
-		$currentServerId = Lib::dbLookupServerId($_SERVER['REMOTE_ADDR']);
+		$serverUsers = array();
+		//$hostname = $_SERVER['HTTP_HOST'];
+		//$thisServerId = Lib::lookupServerId($hostname);
 		foreach($sharedItems as $item){
-			if(!in_array($item['owner'], $owners)){
-				$owners[] = $item['owner'];
-				$serverID = Lib::lookupServerIdForUser($user_id);
-				/*if($serverID==$currentServerId){
+			if(!in_array($item['uid_owner'], $owners)){
+				$owners[] = $item['uid_owner'];
+				$serverID = Lib::lookupServerIdForUser($item['uid_owner']);
+				if(empty($serverID)){
+					$masterHostName =  Lib::getMasterHostName();
+					$serverID = Lib::lookupServerId($masterHostName);
+				}
+				/*if($serverID==$thisServerId){
 					continue;
 				}*/
-				if(in_array($serverID, $serverIDs)){
-					continue;
+				if(array_key_exists($serverID, $serverUsers)){
+					if(in_array($item['uid_owner'], $serverUsers[$serverID])){
+						continue;
+					}
 				}
-				$serverIDs[] = $serverID;
+				else{
+					$serverUsers[$serverID] = array();
+				}
+				$serverUsers[$serverID][] = $item['uid_owner'];
 			}
 		}
-		\OCP\Util::writeLog('search', 'Searching servers '.serialize($allServers), \OC_Log::WARN);
+		$storage = \OC\Files\Filesystem::getStorage('/');
+		$cache = $storage->getCache();
 		$results = array();
 		foreach($allServers as $server){
-			if(!in_array($server['id'], $serverIDs)){
+			if(!array_key_exists($server['id'], $serverUsers)){
 				continue;
 			}
-			if(isset($server['internal_url']) && !empty($server['internal_url'])){
-				$matches = Lib::ws('search', Array('user_id'=>$user_id, 'query'=>$query), true, true,
+			\OCP\Util::writeLog('search', 'Searching server '.$server['internal_url'], \OC_Log::WARN);
+			if(!isset($server['internal_url']) && !empty($server['internal_url'])){
+				continue;
+			}
+			foreach($serverUsers[$server['id']] as $owner){
+				$matches = Lib::ws('search', Array('user_id'=>$owner, 'query'=>$query), true, true,
 						$server['internal_url']);
 				$res = array();
-				foreach($sharedItems as $item){
-					foreach($matches as $match){
-						if($item['item_source']===$match['fileid']){
+				foreach($matches as $match){
+					foreach($sharedItems as $item){
+						if(in_array($match, $res)){
+							continue;
+						}
+						if(isset($item['fileid']) && isset($match['id']) && $item['fileid']==$match['id']){
+							$match['server'] = $server['internal_url'];
+							$match['owner'] = $owner;
 							$res[] = $match;
+							continue;
+						}
+						// Check if match is in a shared folder or subfolders thereof
+						if($cache->getMimetype($item['mimetype']) === 'httpd/unix-directory'){
+							$len = strlen($item['owner_path'])+1;
+							\OCP\Util::writeLog('search', 'Matching '.$match['link'].':'.$item['owner_path'].' --> '.$server['internal_url'].
+										' --> '.$owner, \OC_Log::WARN);
+							if(substr($match['link'], 0, $len)===$item['owner_path'].'/'){
+								$match['server'] = $server['internal_url'];
+								$match['owner'] = $owner;
+								$res[] = $match;
+								continue;
+							}
 						}
 					}
 				}

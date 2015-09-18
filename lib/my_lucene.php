@@ -27,6 +27,11 @@ class MyLucene extends \OC_Search_Provider {
 	 * @return Zend_Search_Lucene_Interface 
 	 */
 	public static function openOrCreate($user = null) {
+	
+	\OCP\Util::writeLog('files_sharding', 'DIR: '.getcwd(), \OC_Log::DEBUG);
+	chdir(\OC::$SERVERROOT.'/apps/search_lucene/3rdparty');
+	\OC::$CLASSPATH['Zend_Search_Lucene'] = 'search_lucene/3rdparty/Zend/Search/Lucene.php';
+	\OC::$CLASSPATH['Zend_Search_Lucene_Analysis_Analyzer'] = 'search_lucene/3rdparty/Zend/Search/Lucene/Analysis/Analyzer.php';
 
 		if ($user == null) {
 			$user = User::getUser();
@@ -201,7 +206,7 @@ class MyLucene extends \OC_Search_Provider {
 
 	/**
 	 * performs a search on the users index
-	 * 
+	 * FilesSharding
 	 * @author Jörn Dreyer <jfd@butonic.de>
 	 * 
 	 * @param string $query lucene search query
@@ -291,15 +296,17 @@ class MyLucene extends \OC_Search_Provider {
 				$url = \OC::$server->getRouter()->generate('download', array('file'=>$hit->path));
 		}
 		
-		return new \OC_Search_Result(
-				$hit->id,
+		$id = \OCA\FilesSharding\Lib::getFileId($hit->path);
+		
+		$ret = new \OC_Search_Result(
+				$id,
 			basename($hit->path) . ' ('. dirname($hit->path) . ', '
 				. \OCP\Util::humanFileSize($hit->size)
 				. ', Score: ' . number_format($hit->score, 2).')',
-			$url,
-			$type,
-			dirname($hit->path)
+			$hit->path,//$url,
+			$type
 		);
+		return $ret;
 	}
 
 	/**

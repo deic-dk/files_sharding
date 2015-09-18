@@ -22,11 +22,11 @@ OC_API::register('get', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Fi
 //OC_API::register('put', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'updateShare'), 'files_sharing');
 //OC_API::register('delete', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'deleteShare'), 'files_sharing');
 
-// Fix broken stuff in Lucene. TODO: remove when fixed upstream
+// Fix stuff in Lucene. TODO: remove when fixed upstream
 // This is not working - presumably because the apps in question are loaded after this one.
 // We do it in the theme instead (in js.js and search.php).
-OC_Search::removeProvider('OC\Search\Provider\File');
-OC_Search::removeProvider('OCA\Search_Lucene\Lucene');
+//OC_Search::removeProvider('OC\Search\Provider\File');
+//OC_Search::removeProvider('OCA\Search_Lucene\Lucene');
 OC::$CLASSPATH['OCA\Search_Lucene\MyLucene'] = 'files_sharding/lib/my_lucene.php';
 OC_Search::registerProvider('OCA\Search_Lucene\MyLucene');
 
@@ -36,6 +36,8 @@ OC_Search::registerProvider('OCA\FilesSharding\SearchShared');
 OC::$CLASSPATH['OCA\FilesSharding\Hooks'] = 'files_sharding/lib/hooks.php';
 \OCP\Util::connectHook('OC_Filesystem', 'post_rename', 'OCA\FilesSharding\Hooks', 'renameHook');
 
+OCP\App::registerPersonal('files_sharding', 'personalsettings');
+
 if(OCA\FilesSharding\Lib::isMaster()){
 	OCP\App::registerAdmin('files_sharding', 'settings');
 	return;
@@ -43,8 +45,6 @@ if(OCA\FilesSharding\Lib::isMaster()){
 
 //\OCP\Util::connectHook('OC_Filesystem', 'setup', 'OCA\FilesSharding\Hooks', 'setup');
 \OCP\Util::connectHook('OC_Filesystem', 'post_initMountPoints', 'OCA\FilesSharding\Hooks', 'setup');
-
-OCP\App::registerPersonal('files_sharding', 'personalsettings');
 
 OCP\Util::connectHook('OC', 'initSession', 'OCA\FilesSharding\Hooks', 'initSession');
 OCP\Util::connectHook('OC_User', 'logout', 'OCA\FilesSharding\Hooks', 'logout');
