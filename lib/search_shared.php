@@ -32,36 +32,11 @@ class SearchShared extends \OC_Search_Provider {
 		if(empty($sharedItems)){
 			return array();
 		}
-		$allServers = Lib::getServersList();
-		$owners = array();
-		$serverUsers = array();
-		//$hostname = $_SERVER['HTTP_HOST'];
-		//$thisServerId = Lib::lookupServerId($hostname);
-		foreach($sharedItems as $item){
-			if(!in_array($item['uid_owner'], $owners)){
-				$owners[] = $item['uid_owner'];
-				$serverID = Lib::lookupServerIdForUser($item['uid_owner']);
-				if(empty($serverID)){
-					$masterHostName =  Lib::getMasterHostName();
-					$serverID = Lib::lookupServerId($masterHostName);
-				}
-				/*if($serverID==$thisServerId){
-					continue;
-				}*/
-				if(array_key_exists($serverID, $serverUsers)){
-					if(in_array($item['uid_owner'], $serverUsers[$serverID])){
-						continue;
-					}
-				}
-				else{
-					$serverUsers[$serverID] = array();
-				}
-				$serverUsers[$serverID][] = $item['uid_owner'];
-			}
-		}
+		$serverUsers = Lib::getServerUsers($sharedItems);
 		$storage = \OC\Files\Filesystem::getStorage('/');
 		$cache = $storage->getCache();
 		$results = array();
+		$allServers = Lib::getServersList();
 		foreach($allServers as $server){
 			if(!array_key_exists($server['id'], $serverUsers)){
 				continue;

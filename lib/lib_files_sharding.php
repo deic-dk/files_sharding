@@ -823,6 +823,36 @@ class Lib {
 		return $result;
 	}
 	
+	public static function getServerUsers($sharedItems){
+		$owners = array();
+		$serverUsers = array();
+		//$hostname = $_SERVER['HTTP_HOST'];
+		//$thisServerId = Lib::lookupServerId($hostname);
+		foreach($sharedItems as $item){
+			if(!in_array($item['uid_owner'], $owners)){
+				$owners[] = $item['uid_owner'];
+				$serverID = Lib::lookupServerIdForUser($item['uid_owner']);
+				if(empty($serverID)){
+					$masterHostName =  Lib::getMasterHostName();
+					$serverID = Lib::lookupServerId($masterHostName);
+				}
+				/*if($serverID==$thisServerId){
+				 continue;
+				}*/
+				if(array_key_exists($serverID, $serverUsers)){
+					if(in_array($item['uid_owner'], $serverUsers[$serverID])){
+						continue;
+					}
+				}
+				else{
+					$serverUsers[$serverID] = array();
+				}
+				$serverUsers[$serverID][] = $item['uid_owner'];
+			}
+		}
+		return $serverUsers;
+	}
+	
 	public static function rename($owner, $id, $dir, $name, $newname){
 		$user_id = \OCP\USER::getUser();
 		if($owner && $owner!==$user_id){
