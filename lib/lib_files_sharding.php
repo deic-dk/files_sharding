@@ -110,6 +110,7 @@ class Lib {
 		$url = $baseUrl . "/apps/".(empty($appName)?"files_sharding":$appName)."/ws/".$script.".php";
 		\OCP\Util::writeLog('files_sharding', 'URL: '.$url.', '.($post?'POST':'GET').': '.$content, \OC_Log::WARN);
 		if(!$post){
+			$content = str_replace ( ' ', '%20', $content );
 			$url .= "?".$content;
 		}
 		$curl = curl_init($url);
