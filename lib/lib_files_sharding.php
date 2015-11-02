@@ -103,7 +103,7 @@ class Lib {
 	
 	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null, $appName=null){
 		$content = "";
-		foreach($data as $key=>$value) { $content .= $key.'='.urlencode($value).'&'; }
+		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
 		if($baseUrl==null){
 			$baseUrl = self::getMasterInternalURL();
 		}
