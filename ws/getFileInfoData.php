@@ -27,8 +27,9 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	http_response_code(401);
 	exit;
 }
-
-$path = isset($_GET['path'])? urldecode($_GET['path']) : '';
+//$path = isset($_GET['path'])? urldecode($_GET['path']) : '';
+// The superglobals $_GET and $_REQUEST are already decoded
+$path = isset($_GET['path'])? $_GET['path'] : '';
 $id = isset($_GET['id']) ? $_GET['id'] : null;
 $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
 $user_id = isset($_GET['user_id']) ? $_GET['user_id'] : '';

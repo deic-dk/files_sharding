@@ -137,7 +137,7 @@ class Api {
 					}
 				}
 			}
-			\OCP\Util::writeLog('files_sharding', 'Got items shared '.serialize($shares), \OC_Log::WARN);
+			\OCP\Util::writeLog('files_sharding', 'Got items shared '.serialize($shares), \OC_Log::DEBUG);
 			return new \OC_OCS_Result($shares);
 		}
 

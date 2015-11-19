@@ -57,25 +57,35 @@ class SearchShared extends \OC_Search_Provider {
 						if(isset($item['fileid']) && isset($match['id']) && $item['fileid']==$match['id']){
 							$match['server'] = $server['internal_url'];
 							$match['owner'] = $owner;
+							if(in_array($match, $res)){
+								continue;
+							}
 							$res[] = $match;
 							continue;
 						}
 						// Check if match is in a shared folder or subfolders thereof
-						if($cache->getMimetype($item['mimetype']) === 'httpd/unix-directory'){
+						if(isset($item['owner_path']) && $cache->getMimetype($item['mimetype']) === 'httpd/unix-directory'){
 							$len = strlen($item['owner_path'])+1;
 							\OCP\Util::writeLog('search', 'Matching '.$match['link'].':'.$item['owner_path'].' --> '.$server['internal_url'].
 										' --> '.$owner, \OC_Log::WARN);
 							if(substr($match['link'], 0, $len)===$item['owner_path'].'/'){
 								$match['server'] = $server['internal_url'];
 								$match['owner'] = $owner;
+								if(in_array($match, $res)){
+									continue;
+								}
 								$res[] = $match;
 								continue;
 							}
 						}
 					}
+					if($match['type']==='tag' && $match['public']==='1'|| $match['type']==='metadata'){
+						\OCP\Util::writeLog('search', 'Matched '.serialize($match), \OC_Log::WARN);
+						$res[] = $match;
+					}
 				}
 				//$results[$server['url']] = $res;
-				$results = array_merge($results, $res);
+				$results = array_unique(array_merge($results, $res), SORT_REGULAR);
 			}
 		}
 		return $results;

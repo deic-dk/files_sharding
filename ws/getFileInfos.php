@@ -28,7 +28,9 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	exit;
 }
 
-$dir = urldecode($_GET['dir']);
+//$dir = urldecode($_GET['dir']);
+// The superglobals $_GET and $_REQUEST are already decoded
+$dir = $_GET['dir'];
 $id = isset($_GET['id']) ? $_GET['id'] : null;
 $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
 $sortAttribute = isset($_GET['sortAttribute']) ? $_GET['sortAttribute'] : '';
@@ -51,7 +53,7 @@ else{
 
 $data = OCA\Files\Helper::formatFileInfos($files);
 
-\OCP\Util::writeLog('files_sharding', 'Returning files for '.$owner.':'.$id.':'.$dir.':'.$path.'-->'.serialize($data), \OC_Log::WARN);
+\OCP\Util::writeLog('files_sharding', 'Returning files for '.$owner.':'.$id.':'.$dir.':'.$path.'-->'.serialize($data), \OC_Log::DEBUG);
 
 OCP\JSON::encodedPrint($data);
 

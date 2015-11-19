@@ -38,10 +38,9 @@ $user_id = $_GET['user_id'];
 \OC_User::setUserId($user_id);
 \OC_Util::setupFS($user_id);
 
-
 $itemsShared = \OCP\Share::getItemsSharedWith($itemType, $format, $parameters, $limit, $includeCollections);
 
-\OCP\Util::writeLog('files_sharding', 'Returning items shared '.serialize($itemsShared), \OC_Log::WARN);
+\OCP\Util::writeLog('files_sharding', 'Returning items shared '.serialize($itemsShared), \OC_Log::DEBUG);
 
 OCP\JSON::encodedPrint($itemsShared);
 

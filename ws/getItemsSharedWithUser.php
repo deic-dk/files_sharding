@@ -41,7 +41,7 @@ $itemsShared = \OCP\Share::getItemsSharedWithUser($itemType, $user_id, $format, 
 foreach($itemsShared as &$item){
 	$item['owner_path'] = OCA\FilesSharding\Lib::getFilePath($item['fileid'], $item['uid_owner']);
 }
-\OCP\Util::writeLog('files_sharding', 'Returning items shared '.serialize($itemsShared), \OC_Log::WARN);
+\OCP\Util::writeLog('files_sharding', 'Returning items shared '.serialize($itemsShared), \OC_Log::DEBUG);
 
 OCP\JSON::encodedPrint($itemsShared);
 
