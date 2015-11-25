@@ -211,14 +211,16 @@ class Lib {
 
 	public static function inDataFolder($path, $user_id=null){
 		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
-		$dataFolders = self::getDataFoldersList($path, $user_id);
+		$dataFolders = self::getDataFoldersList($user_id);
 		$checkPath = trim($path, '/ ');
 		$checkPath = '/'.$checkPath;
 		$checkLen = strlen($checkPath);
 		foreach($dataFolders as $p){
 			$dataFolderPath = $p['folder'];
 			$dataFolderLen = strlen($dataFolderPath);
+			\OCP\Util::writeLog('files_sharding', 'Checking path: '.$user_id.'-->'.$checkPath.'-->'.$dataFolderPath, \OC_Log::DEBUG);
 			if($checkPath===$dataFolderPath || substr($checkPath, 0, $dataFolderLen+1)===$dataFolderPath.'/'){
+				\OCP\Util::writeLog('files_sharding', 'Excluding '.$dataFolderPath, \OC_Log::INFO);
 				return true;
 			}
 		}
@@ -226,7 +228,7 @@ class Lib {
 	}
 
 	public static function getDataFoldersList($user_id){
-			if(self::isMaster()){
+		if(self::isMaster()){
 			// On the master, get the list from the database
 			return self::dbGetDataFoldersList($user_id);
 		}
