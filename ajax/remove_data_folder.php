@@ -13,6 +13,14 @@ if(empty($folder) ||
 	$ret['error'] = "Failed resyncing folder ".$folder;
 }
 else{
+	$data_folders = array();
+	$session = \OC::$server->getSession();
+	foreach ($session['oc_data_folders'] as $row){
+		if($row['folder']!=$folder){
+			$data_folders[] = $row;
+		}
+	}
+	$_SESSION['oc_data_folders'] = $data_folders;
 	$ret['msg'] = "Resynced folder ".$folder;
 }
 

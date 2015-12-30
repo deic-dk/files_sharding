@@ -129,7 +129,12 @@ function removeDataFolder(folder){
 		 },
 		 dataType:'json',
 		 success: function(s){
-				$("#filesShardingDataFolders div#filesShardingDataFoldersList div.dataFolder[path='"+folder+"']").remove();
+				if(s.error){
+					alert(s.error);
+				}
+				else{
+					$("#filesShardingDataFolders div#filesShardingDataFoldersList div.dataFolder[path='"+folder+"']").remove();
+				}
 		 },
 		error:function(s){
 			alert("Unexpected error!");

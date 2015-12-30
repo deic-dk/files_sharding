@@ -20,6 +20,8 @@ if(empty($folder) || empty($user_id) ||
 	$ret['error'] = "Failed adding folder ".$folder;
 }
 else{
+	$session = \OC::$server->getSession();
+	$session['oc_data_folders'] = OCA\FilesSharding\Lib::getDataFoldersList($user_id);
 	$ret['folder'] = $folder;
 	$ret['msg'] = "Added folder ".$folder;
 }

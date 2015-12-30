@@ -95,11 +95,19 @@ class Lib {
 		}
 	}
 
-	private static function dbSetAllowLocalLogin($id, $value){
+	public static function dbSetAllowLocalLogin($id, $value){
 		$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_servers` set `allow_local_login` = ? WHERE `id` = ?');
 		$result = $query->execute( array($value, $id));
 		return $result ? true : false;
 	}
+	
+	/*
+	 * Map of calls to be cached => seconds to live.
+	 */
+	private static $WS_CACHE_CALLS = array('getItemsSharedWith'=>10, 'get_data_folders'=>10,
+			'get_user_server'=>10, 'getFileTags'=>10, 'share_fetch'=>10, 'getShareByToken'=>10,
+			'share_fetch'=>10, 'searchTagsByIDs'=>10, 'searchTags'=>10, 'getItemsSharedWithUser'=>10,
+			'get_server_id'=>10, 'get_servers'=>10, 'getTaggedFiles'=>10);
 	
 	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null, $appName=null){
 		$content = "";
@@ -107,11 +115,24 @@ class Lib {
 		if($baseUrl==null){
 			$baseUrl = self::getMasterInternalURL();
 		}
-		$url = $baseUrl . "/apps/".(empty($appName)?"files_sharding":$appName)."/ws/".$script.".php";
-		\OCP\Util::writeLog('files_sharding', 'URL: '.$url.', '.($post?'POST':'GET').': '.$content, \OC_Log::WARN);
+		$url = $baseUrl . "/apps/".(empty($appName)?"files_sharding":$appName)."/ws/".$script.".php";		
 		if(!$post){
 			$url .= "?".$content;
+			$cache_key = $url;
 		}
+		else{
+			$cache_key = $url.$content;
+		}
+		
+		if(isset(self::$WS_CACHE_CALLS[$script]) && apc_exists($cache_key)){
+			$json_response = apc_fetch($cache_key);
+			$response = json_decode($json_response, $array);
+			\OCP\Util::writeLog('files_sharding', 'Returning cached response for '.$script.'-->'.$cache_key, \OC_Log::DEBUG);
+			return $response;	
+		}
+		
+		\OCP\Util::writeLog('files_sharding', 'URL: '.$url.', '.($post?'POST':'GET').': '.$content, \OC_Log::WARN);
+		
 		$curl = curl_init($url);
 		curl_setopt($curl, CURLOPT_HEADER, false);
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -123,7 +144,7 @@ class Lib {
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
 		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, TRUE);
 		curl_setopt($curl, CURLOPT_UNRESTRICTED_AUTH, TRUE);
-		
+			
 		$json_response = curl_exec($curl);
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
@@ -131,9 +152,16 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'ERROR: '.$json_response, \OC_Log::ERROR);
 			return null;
 		}
-	
+		
+		if(isset(self::$WS_CACHE_CALLS[$script])){
+			\OCP\Util::writeLog('files_sharding', 'Caching response for '.$script.'-->'.$cache_key, \OC_Log::WARN);
+			apc_store($cache_key, $json_response, self::$WS_CACHE_CALLS[$script]);
+		}
+		else{
+			\OCP\Util::writeLog('files_sharding', 'NOT caching response for '.$script.'-->'.$cache_key, \OC_Log::WARN);
+		}
+		
 		$response = json_decode($json_response, $array);
-	
 		return $response;
 	}
 
