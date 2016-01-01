@@ -955,7 +955,7 @@ class Lib {
 		\OC_Log::write('OCP\Share', 'QUERY: '.$path, \OC_Log::WARN);
 		
 		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `uid_owner` = ? AND `item_source` = ?');
-		$result = $query->execute(array($user_id, $id));
+		$result = $query->execute(array($owner, $id));
 		
 		if($result === false) {
 			\OC_Log::write('OCP\Share', 'Couldn\'t update share table for '.$user_id.' --> '.serialize($params), \OC_Log::ERROR);

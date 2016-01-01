@@ -129,8 +129,8 @@ class Hooks {
 			return true;
 		}
 		$user_id = \OCP\User::getUser();
-		$id = \OCA\FilesSharding\Lib::getFileId($params['uid']);
-		$path = substr($params['path'], $matchlen);
+		$path = $params['path'];
+		$id = \OCA\FilesSharding\Lib::getFileId($path);
 		
 		if(\OCA\FilesSharding\Lib::isMaster()){
 			$res = \OCA\FilesSharding\Lib::deleteShareFileTarget($user_id, $id, $path);
