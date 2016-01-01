@@ -921,6 +921,49 @@ class Lib {
 		return $result;
 	}
 	
+	public static function renameShareFileTarget($owner, $id, $oldname, $newname){
+		
+		if(!isset($owner) || !$owner){
+			\OCP\Util::writeLog('files_sharing','ERROR: no owner given.', \OCP\Util::WARN);
+			return false;
+		}
+		
+		$old_file_target = self::getShareFileTarget($id);
+		$new_file_target = preg_replace('|(.*)'.$oldname.'$|', '$1'.$newname, $old_file_target);
+		
+		\OC_Log::write('OCP\Share', 'QUERY: '.$oldname.':'.$newname.':'.$new_file_target, \OC_Log::WARN);
+		
+		$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `file_target` = ? WHERE `uid_owner` = ? AND `item_source` = ? AND `file_target` = ?');
+		$result = $query->execute(array($new_file_target, $user_id, $id, $old_file_target));
+		
+		if($result === false) {
+			\OC_Log::write('OCP\Share', 'Couldn\'t update share table for '.$user_id.' --> '.serialize($params), \OC_Log::ERROR);
+		}
+		
+		return $result;
+	}
+	
+	public static function deleteShareFileTarget($owner, $id, $path){
+		
+		if(!isset($owner) || !$owner){
+			\OCP\Util::writeLog('files_sharing','ERROR: no owner given.', \OCP\Util::WARN);
+			return false;
+		}
+		
+		$old_file_target = self::getShareFileTarget($id);
+		
+		\OC_Log::write('OCP\Share', 'QUERY: '.$path, \OC_Log::WARN);
+		
+		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `uid_owner` = ? AND `item_source` = ?');
+		$result = $query->execute(array($user_id, $id));
+		
+		if($result === false) {
+			\OC_Log::write('OCP\Share', 'Couldn\'t update share table for '.$user_id.' --> '.serialize($params), \OC_Log::ERROR);
+		}
+		
+		return $result;
+	}
+	
 	public static function getShareFileTarget($item_source){
 		$query = \OC_DB::prepare('SELECT `file_target` FROM `*PREFIX*share` WHERE `item_source` = ?');
 		$result = $query->execute(array($item_source));

@@ -35,6 +35,7 @@ OC_Search::registerProvider('OCA\FilesSharding\SearchShared');
 
 OC::$CLASSPATH['OCA\FilesSharding\Hooks'] = 'files_sharding/lib/hooks.php';
 \OCP\Util::connectHook('OC_Filesystem', 'post_rename', 'OCA\FilesSharding\Hooks', 'renameHook');
+\OCP\Util::connectHook('OC_Filesystem', 'post_delete', 'OCA\FilesSharding\Hooks', 'deleteHook');
 
 OCP\App::registerPersonal('files_sharding', 'personalsettings');
 
