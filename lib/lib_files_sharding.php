@@ -476,7 +476,7 @@ class Lib {
 	 */
 	public static function getUserServerAccess($serverId=null, $userId=null){
 		if(empty($serverId)){
-			$serverId = self::dbLookupServerId($_SERVER['REMOTE_ADDR']);
+			$serverId = self::dbLookupServerId($_SERVER['HTTP_HOST']);
 		}
 		if(empty($userId)){
 			$userId = \OCP\USER::getUser();
@@ -492,7 +492,7 @@ class Lib {
 
 	public static function dbGetUserServerAccess($serverId, $userId){
 		$query = \OC_DB::prepare('SELECT `access` FROM `*PREFIX*files_sharding_user_servers` WHERE `server_id` = ? AND  `user_id` = ?');
-		$result = $query->execute(Array($id));
+		$result = $query->execute(Array($serverId, $userId));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
@@ -503,7 +503,7 @@ class Lib {
 		foreach($results as $row){
 			return($row['access']);
 		}
-		\OCP\Util::writeLog('files_sharding', 'ERROR: server '.$serverId.', user '.$userId.' not found.', \OC_Log::ERROR);
+		\OCP\Util::writeLog('files_sharding', 'WARNING: server '.$serverId.', user '.$userId.' not found.', \OC_Log::DEBUG);
 		return array(self::$USER_ACCESS_ALL);
 	}
 	

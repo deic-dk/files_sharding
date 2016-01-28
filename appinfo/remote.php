@@ -24,7 +24,7 @@
 require_once 'files_sharding/lib/lib_files_sharding.php';
 require_once 'files_sharding/lib/Normalizer.php';
 
-OC_Log::write('files_sharding','Remote access',OC_Log::INFO);
+OC_Log::write('files_sharding','Remote access',OC_Log::DEBUG);
 OCP\App::checkAppEnabled('files_sharding');
 
 $FILES_BASE = "/files";
