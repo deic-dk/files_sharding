@@ -4,8 +4,9 @@
 		<label class="nowrap">Home site: </label>
 		<select class="home_site">
 			<?php
-			foreach ($_['sites_list'] as $site){
-				print '<option value="'.$site['site'].'"'.($_['user_home_site']===$site['site']?'" selected':'"').'>'.$site['site'].'</option>';
+			print '<option value="'.$_['user_home_site'].'">'.$_['user_home_site'].'</option>';
+			if(isset($_['synced_user_backup_site'])){
+				print '<option value="'.$_['synced_user_backup_site'].'"'.($_['user_home_site']===$_['synced_user_backup_site']?'" selected':'"').'>'.$_['synced_user_backup_site'].'</option>';
 			}
 			?>
 		</select>
@@ -16,7 +17,13 @@
 			<?php
 			print '<option value=""></option>';
 			foreach ($_['sites_list'] as $site){
-				print '<option value="'.$site['site'].'"'.(isset($_['user_backup_site'])&&$_['user_backup_site']===$site['site']?'" selected':'"').'>'.$site['site'].'</option>';
+				if($site['site']==$_['user_home_site']){
+					continue;
+				}
+				print '<option value="'.$site['site'].'"'.
+				($site['site']==$_['user_home_site']?'" class="hidden"':'"').
+				(isset($_['user_backup_site'])&&$_['user_backup_site']===$site['site']?'" selected':'"').
+				'>'.$site['site'].'</option>';
 			}
 			?>
 		</select>

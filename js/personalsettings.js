@@ -1,4 +1,4 @@
-function get_home_server(site){
+function get_home_server(previous_site, site){
 	backup_server_id = $('#filesShardingPersonalSettings .backup_server').attr('id');
 	$.ajax(OC.linkTo('files_sharding','ajax/get_server.php'), {
 		 type:'POST',
@@ -15,6 +15,9 @@ function get_home_server(site){
 			 }
 			  $('#filesShardingPersonalSettings .home_server').text( s.server_url);
 			  $('#filesShardingPersonalSettings .home_server').attr('id',  s.server_id);
+				// When changing - remove current backup site from backup sites list and replace it with current main site (selected)
+			  $('#filesShardingPersonalSettings div select.backup_site option[value='+site+']').hide();
+			  $('#filesShardingPersonalSettings div select.backup_site option[value='+previous_site+']').show().attr('selected', 'selected');
 		 },
 		error:function(s){
 			alert("Unexpected error!");
@@ -48,6 +51,10 @@ function get_backup_server(site){
 }
 
 function set_home_server(home_server_id, backup_server_id){
+	
+	//TODO: check if backup server is set and a backup has been performed. Allow only changing to this.
+	//               When saving - set new backup site and new main site with r/o access (will be changed by sync cron job)
+	
 	$.ajax(OC.linkTo('files_sharding','ajax/set_home_server.php'), {
 		 type:'POST',
 		  data:{
@@ -152,6 +159,8 @@ function stripTrailingSlash(str) {
 	return str;
 }
 
+var previous_home_site;
+
 $(document).ready(function(){
 	
 	$("li").click(function(){
@@ -180,6 +189,13 @@ $(document).ready(function(){
 	$('#filesShardingPersonalSettings div select.home_site').on('change', function() {
 		get_home_server($(this).val());
 	 });
+	
+	$('#filesShardingPersonalSettings div select.home_site').focus(function () {
+		previous_home_site = $(this).val();
+	}).change(function() {
+	get_home_server(previous_home_site, $(this).val());
+	});
+	
 	$('#filesShardingPersonalSettings div select.backup_site').on('change', function() {
 		get_backup_server($(this).val());
 	 });

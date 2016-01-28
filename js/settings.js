@@ -55,7 +55,7 @@ function delete_server(id){
 	});
 }
 
-function add_server(url, site, allow_local_login){
+function add_server(url, site, charge, allow_local_login){
 	if(!url){
 		alert("You need to provide a URL");
 		return;
@@ -64,11 +64,16 @@ function add_server(url, site, allow_local_login){
 		alert("You need to provide a site name");
 		return;
 	}
+	if(!charge){
+		alert("You need to provide a charge amount");
+		return;
+	}
 	$.ajax(OC.linkTo('files_sharding','ajax/add_server.php'), {
 		 type:'POST',
 		  data:{
 			  url: url,
 			  site: site,
+			  charge: charge,
 			  allow_local_login: allow_local_login
 		 },
 		 dataType:'json',
@@ -95,7 +100,8 @@ $(document).ready(function(){
 	$('#filesShardingSettings div .add_server').live('click', function(){
 			url = $(this).parent().find('input.url').first().val();
 			site = $(this).parent().find('input.site').first().val();
+			charge = $(this).parent().find('input.charge').first().val();
 			allow_local_login =  $(this).parent().find('input.allow_local_login').first().is(':checked')?'yes':'no';
-			add_server(url, site, allow_local_login);
+			add_server(url, site, charge, allow_local_login);
 	});
 });

@@ -39,6 +39,11 @@ OC::$CLASSPATH['OCA\FilesSharding\Hooks'] = 'files_sharding/lib/hooks.php';
 
 OCP\App::registerPersonal('files_sharding', 'personalsettings');
 
+// Cron job for syncing users 
+OC::$CLASSPATH['OCA\FilesSharding\BackgroundJob'] = 'apps/files_sharding/lib/sync_user.php';
+OCP\Backgroundjob::registerJob('OCA\FilesSharding\BackgroundJob\SyncUser');
+OCP\Backgroundjob::registerJob('OCA\FilesSharding\BackgroundJob\DeleteUser');
+
 if(OCA\FilesSharding\Lib::isMaster()){
 	OCP\App::registerAdmin('files_sharding', 'settings');
 	return;

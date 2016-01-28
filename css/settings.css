@@ -13,6 +13,10 @@ input.site {
   width: 8em;
 }
 
+input.charge {
+  padding: 0.6em 0.5em 0.4em;
+  width: 3em;
+}
 div.server {
   white-space: nowrap;
 }

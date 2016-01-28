@@ -35,5 +35,14 @@ if(!empty($user_backup_server_id)){
 	$tmpl->assign('user_backup_server_url', $user_backup_server_url);
 	$tmpl->assign('user_backup_site', $user_backup_site);
 }
+$yesterday = time() - 24*60*60;
+$synced_user_backup_server_id = OCA\FilesSharding\Lib::dbLookupServerIdForUser($user_id, 1, $yesterday);
+if(!empty($synced_user_backup_server_id)){
+	$synced_user_backup_server_url = OCA\FilesSharding\Lib::dbLookupServerURL($user_backup_server_id);
+	$synced_user_backup_site = OCA\FilesSharding\Lib::dbGetSite($user_backup_server_id);
+	$tmpl->assign('synced_user_backup_server_id', $synced_user_backup_server_id);
+	$tmpl->assign('synced_user_backup_server_url', $synced_user_backup_server_url);
+	$tmpl->assign('synced_user_backup_site', $synced_user_backup_site);
+}
 
 return $tmpl->fetchPage();
