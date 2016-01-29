@@ -476,7 +476,7 @@ class Lib {
 	 */
 	public static function getUserServerAccess($serverId=null, $userId=null){
 		if(empty($serverId)){
-			$serverId = self::dbLookupServerId($_SERVER['HTTP_HOST']);
+			$serverId = self::lookupServerId($_SERVER['HTTP_HOST']);
 		}
 		if(empty($userId)){
 			$userId = \OCP\USER::getUser();
