@@ -30,7 +30,7 @@
   		print('</div>');
   	}
   	print('<div><label>Add server:</label></div><div>');
-  	print_server("", "", "", "");
+  	print_server("", "", "", "", "");
   	print('<label class="add_server btn btn-flat">+</label>');
   	print('</div>');
   	?>
