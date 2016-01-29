@@ -453,7 +453,7 @@ class Lib {
 	 * Get the internal URL of a server.
 	 * @param $id
 	 */
-	private static function dbLookupInternalServerURL($id){
+	public static function dbLookupInternalServerURL($id){
 		$query = \OC_DB::prepare('SELECT `internal_url` FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?');
 		$result = $query->execute(Array($id));
 		if(\OCP\DB::isError($result)){
