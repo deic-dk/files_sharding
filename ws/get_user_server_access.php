@@ -34,8 +34,7 @@ include_once("files_sharding/lib/lib_files_sharding.php");
 $userId = $_GET['user_id'];
 $serverId = $_GET['server_id'];
 
-$accessArr = OCA\FilesSharding\Lib::dbGetUserServerAccess($serverId, $userId);
-$access = $accessArr['access'];
+$access = OCA\FilesSharding\Lib::dbGetUserServerAccess($serverId, $userId);
 $ret = Array('access' => $access);
 
 OCP\JSON::encodedPrint($ret);
