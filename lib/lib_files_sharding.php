@@ -453,7 +453,7 @@ class Lib {
 	 * Get the internal URL of a server.
 	 * @param $id
 	 */
-	private static function dbLookupInternalServerURL($id){
+	public static function dbLookupInternalServerURL($id){
 		$query = \OC_DB::prepare('SELECT `internal_url` FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?');
 		$result = $query->execute(Array($id));
 		if(\OCP\DB::isError($result)){
@@ -504,7 +504,7 @@ class Lib {
 			return($row['access']);
 		}
 		\OCP\Util::writeLog('files_sharding', 'WARNING: server '.$serverId.', user '.$userId.' not found.', \OC_Log::DEBUG);
-		return array(self::$USER_ACCESS_ALL);
+		return self::$USER_ACCESS_ALL;
 	}
 	
 	private static function dbGetServerUsers($serverId){
@@ -710,7 +710,7 @@ class Lib {
 		}*/
 		// If we're setting a backup server, disable current backup server
 		if($priority===1){
-			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set priority` = ? WHERE `user_id` = ? AND `priority` >= ?');
+			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ? WHERE `user_id` = ? AND `priority` >= ?');
 			$result = $query->execute( array(self::$USER_SERVER_PRIORITY_DISABLE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1));
 			// Backup server cleared, nothing more to do
 			if(empty($server_id)){
