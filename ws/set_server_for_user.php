@@ -31,12 +31,13 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 
 include_once("files_sharding/lib/lib_files_sharding.php");
 
-$hostname = isset($_GET['hostname'])?$_GET['hostname']:$_SERVER['REMOTE_ADDR'];
+$priority = isset($_GET['priority'])?$_GET['priority']:null;
+$user_id = isset($_GET['user_id'])?$_GET['user_id']:null;
+$server_id = isset($_GET['server_id'])?$_GET['server_id']:null;
+if(empty($server_id)){
+	$server_id = self::dbLookupServerId($_SERVER['REMOTE_ADDR']);
+}
 
-$id = OCA\FilesSharding\Lib::dbLookupServerId($hostname);
-
-$status = empty($id)?'error: server '.$id.' not found':'success';
-
-$ret = Array('id' => $id, 'status' => $status);
+$ret = OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $server_id, $priority);
 
 OCP\JSON::encodedPrint($ret);

@@ -532,8 +532,8 @@ class Lib {
 	}
 	
 	public static function dbLookupServerId($hostname){
-		$query = \OC_DB::prepare('SELECT `id` FROM `*PREFIX*files_sharding_servers` WHERE `url` LIKE ?');
-		$result = $query->execute(Array("http%://$hostname%"));
+		$query = \OC_DB::prepare('SELECT `id` FROM `*PREFIX*files_sharding_servers` WHERE `url` LIKE ? OR `internal_url` LIKE ?');
+		$result = $query->execute(Array("http%://$hostname%", "http%://$hostname%"));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
@@ -710,8 +710,8 @@ class Lib {
 		}*/
 		// If we're setting a backup server, disable current backup server
 		if($priority===1){
-			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ? WHERE `user_id` = ? AND `priority` >= ?');
-			$result = $query->execute( array(self::$USER_SERVER_PRIORITY_DISABLE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1));
+			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `priority` >= ?');
+			$result = $query->execute( array(self::$USER_SERVER_PRIORITY_DISABLE, self::$USER_ACCESS_NONE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1));
 			// Backup server cleared, nothing more to do
 			if(empty($server_id)){
 				return $result ? true : false;
@@ -739,6 +739,27 @@ class Lib {
 		$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `server_id` = ?');
 		$result = $query->execute( array($priority, self::$USER_ACCESS_READ_ONLY, $user_id, $server_id));
 		return $result ? true : false;
+	}
+	
+	public static function setServerForUser($user_id, $server_id=null, $priority){
+		if(self::isMaster()){
+			if(empty($server_id)){
+				$server = self::getMasterHostName();
+				$server_id = self::dbLookupServerId($server);
+			}
+			$ret = self::dbSetServerForUser($user_id, $server_id, $priority);
+		}
+		else{
+			if(empty($server_id)){
+				$ret = self::ws('set_server_for_user',
+						array('user_id'=>$user_id, 'priority'=>$priority));
+			}
+			else{
+				$ret = self::ws('set_server_for_user',
+						array('user_id'=>$user_id, 'server_id'=>$server_id, 'priority'=>$priority));
+			}
+		}
+		return $ret;
 	}
 
 	
@@ -945,31 +966,88 @@ class Lib {
 		return $server;
 	}
 	
-	/**
-	 * Check if a user is currently being synced to this server.
-	 * Returns true if a user *is* syncing, false otherwise.
-	 */
-	private static function checkUserSyncing(){
-		// TODO
+	public static function getNextSyncUser(){
+		if(self::isMaster()){
+			$user = self::dbGetNextSyncUser();
+		}
+		else{
+			$userArr =  self::ws('get_next_sync_user', array());
+			$user = $userArr['user_id'];
+		}
+		return $user;
 	}
 	
-		
-	public static function getNextSyncUser(){
-		// Get first row in oc_files_sharding_user_servers with server_id matching mine,
-		$serverId = self::dbLookupServerId($_SERVER['REMOTE_ADDR']);
+	public static function dbGetNextSyncUser($server=null){
+		if(empty($server)){
+			$server = getMasterHostName();
+		};
+		// Get first row in oc_files_sharding_user_servers with server_id matching mine.
+		// Notice: We cannot use methods relying on $_SERVER IP/host variables, as we are run from cron.
+		$serverId = self::dbLookupServerId($server);
 		$rows = self::dbGetServerUsers($serverId);
 		foreach($rows as $row){
 		// no matching process/running shell script, last_sync more than 20 hours ago and
 		// ( priority 0 and access 1: execute shell script with the obtained user+(new) backup server OR
 		//   priority>0: execute shell script with the obtained user+server ).
-			if(!self::checkUserSyncing($row['user_id']) &&
-					$row['last_sync'] < time() - self::$USER_SYNC_INTERVAL_SECONDS
-					($row['priority']===0 && $row['access']===1 ||
-						$row['priority']>0)){
+			if($row['last_sync'] < time() - self::$USER_SYNC_INTERVAL_SECONDS
+					($row['priority']===self::$USER_SERVER_PRIORITY_PRIMARY &&
+							$row['access']===self::$USER_ACCESS_READ_ONLY ||
+						$row['priority']>self::$USER_SERVER_PRIORITY_PRIMARY)){
 				return($row['user_id']);
 			}
 		}
 		return null;
+	}
+	
+	public static function getNextDeleteUser(){
+		if(self::isMaster()){
+			$user = self::dbGetNextDeleteUser();
+		}
+		else{
+			$userArr =  self::ws('get_next_delete_user', array());
+			$user = $userArr['user_id'];
+		}
+		return $user;
+	}
+	
+	public static function dbGetNextDeleteUser($server=null){
+		if(empty($server)){
+			$server = getMasterHostName();
+		};
+		// Get first row in oc_files_sharding_user_servers with server_id matching mine.
+		// Notice: We cannot use methods relying on $_SERVER IP/host variables, as we are run from cron.
+		$serverId = self::dbLookupServerId($server);
+		$rows = self::dbGetServerUsers($serverId);
+		foreach($rows as $row){
+			if($row['priority']===self::$USER_SERVER_PRIORITY_DISABLE){
+				return($row['user_id']);
+			}
+		}
+		return null;
+	}
+	
+	public static function updateUserSharedFiles($user_id){
+		// Get all files/folders shared by user
+		$sharedItems = \OCA\FilesSharding\Lib::getItemSharedByUser($user_id);
+		// Correction array to send to master
+		$newIdMap = array('user_id'=>$user_id);
+		foreach($sharedItems as $share){
+			$path = \OC\Files\Filesystem::getPath($share['file_source']);
+			// Get files/folders owned by user (locally) with the path of $share
+			$file = OCA\FilesSharding\Lib::dbGetUserFile('files'.$path, $user_id);
+			\OCP\Util::writeLog('files_sharding', 'Share: '.$file['path'].'==='.'files'.$path, \OC_Log::WARN);
+			if($share['item_source']!=$file['fileid']){
+				$newIdMap[$share['item_source']] = $file['fileid'];
+			}
+		}
+		// Send the correction array to master
+		$ret = \OCA\FilesSharding\Lib::ws('update_share_item_sources', $newIdMap);
+		if($ret){
+			return $newIdMap;
+		}
+		else{
+			\OCP\Util::writeLog('files_sharding', 'updateUserSharedFiles error: '.$ret, \OC_Log::ERROR);
+		}
 	}
 	
 	/**

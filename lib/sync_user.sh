@@ -10,11 +10,11 @@ OC_REMOTE_BASE_DIR="/remote.php/webdav/"
 #
 
 function usage(){
-	echo "Usage: sync_user.sh [-u user] [-p password] [folder] [URL]"
+	echo "Usage: sync_user.sh [-u user] [-s server] [-p password] [folder URL]"
 	exit -1
 }
 
-while getopts "u:p:o:" flag; do
+while getopts "u:p:s:" flag; do
 case "$flag" in
     u) user="-u \"$OPTARG\"";;
     p) pass="-p \"$OPTARG\"";;
@@ -26,21 +26,31 @@ done
 
 shift $((OPTIND-1))
 
-if [ -z "$1" -a -n "$user" ]; then
-	folder="$OC_LOCAL_DATA_ROOT/user"
-else
+if [ -n "$1" ]; then
 	folder="\"$1\""
+elif [ -n "$user" ]
+	folder="$OC_LOCAL_DATA_ROOT/$user"
 fi
 
-if [ -z "$2" -a -n "$server" ]; then
+if [ -n "$server" ]; then
 	url="https://${server}$OC_REMOTE_BASE_DIR"
-else
-	url="\"$2\""
+elif [ -n "$2" ]
+		url="\"$2\""
 fi
 
-if [ -z "$url" ]; then
+if [ -z "$folder" -o -z "$url" ]; then
 	usage
 fi
+
+# Check if script is already running for this user
+is_running=`ps auxw | grep sync_user.sh | grep "$user" | grep -v grep`
+if [ "$is_running" != "" ]; then
+	echo "User $user is already being synced"
+	exit 0
+fi
+
+# Get number of files to begin with
+files_start=`find "$folder" | wc -l`
 
 ## Sync files
 $OC_CMD $user $pass $folder $url
@@ -54,10 +64,9 @@ if [ "$?" != "0" ]; then
 	exit 1
 fi
 
-## Get list of shared file mappings: ID -> path and update item_source on oc_share table on master with new IDs
-curl --insecure "https://localhost/index.php/apps/files_sharding/ws/update_user_shared_files.php\?user=$user"
-
-## Get exported metadata (by path) via remote metadata web API and insert metadata on synced files by using local metadata web API
-curl --insecure "https://localhost/index.php/apps/meta_data/ws/updateFileTags.php\?user=$user\&url=$url"
-
+# Get number of files after sync
+files_end=`find "$folder" | wc -l`
+# Print the difference
+synced_files=$((files_end-files_start))
+echo "Synced files:$synced_files"
 
