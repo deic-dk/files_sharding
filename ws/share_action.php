@@ -32,8 +32,6 @@ require_once('lib/base.php');
 
 \OCP\Util::writeLog('share_action', 'POST: '.serialize($_POST), \OCP\Util::WARN);
 
-$defaults = new \OCP\Defaults();
-
 function checkTokenExists($token, $itemSource){
 	$query = \OC_DB::prepare('SELECT `item_source` FROM `*PREFIX*share` WHERE `token` = ?');
 	$result = $query->execute(Array($token));
