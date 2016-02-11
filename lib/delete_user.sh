@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/local/bin/bash
 
 OC_LOCAL_DATA_ROOT="/tank/data/owncloud"
 
