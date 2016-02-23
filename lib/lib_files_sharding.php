@@ -1084,9 +1084,6 @@ class Lib {
 				$access = self::$USER_ACCESS_ALL;
 			}
 			self::setServerForUser($user, null, $priority, $access);
-			// Notify user
-			send($app, $subject, $subjectparams = array(), $message = '', $messageparams = array(),
-			$file = '', $link = '', $affecteduser = '', $type = '', $prio = IExtension::PRIORITY_MEDIUM);
 		}
 	}
 	

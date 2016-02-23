@@ -2,6 +2,9 @@
 
 namespace OCA\FilesSharding\BackgroundJob;
 
+require_once('user_notification/lib/data.php');
+require_once('activity/lib/data.php');
+
 class SyncUser extends \OC\BackgroundJob\TimedJob {
 	
 	public function __construct() {
@@ -20,6 +23,14 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 		\OCP\Util::writeLog('files_sharding', 'Syncing user '.$user, \OC_Log::WARN);
 		if(!empty($user)){
 			\OCA\FilesSharding\Lib::syncUser($user, $priority);
+			// Notify user
+			if(\OCP\App::isEnabled('user_notification')){
+				$primary_server_url = \OCA\FilesSharding\Lib::getServerForUser($user);
+				\OCA\UserNotification\Data::send('files_sharding', 'Your files have been backed up.', array(),
+						'Your files have been synchronized up to '.$primary_server_url,
+						array(), '', '', $user, \OCA\UserNotification\Data::TYPE_SYNC_FINISHED,
+						\OCA\UserNotification\Data::PRIORITY_HIGH);
+			}
 		}
 	}
 }
