@@ -33,10 +33,10 @@ include_once("files_sharding/lib/lib_files_sharding.php");
 
 $hostname = isset($_GET['hostname'])?$_GET['hostname']:$_SERVER['REMOTE_ADDR'];
 
-$user_id = OCA\FilesSharding\Lib::dbGetNextSyncUser($hostname);
+$ret = OCA\FilesSharding\Lib::dbGetNextSyncUser($hostname);
 
-$status = empty($user_id)?'error: no user '.$user_id.' found':'success';
+$status = empty($ret)?'error: no user found':'success';
 
-$ret = Array('user_id' => $user_id, 'status' => $status);
+$ret['status'] = $status;
 
 OCP\JSON::encodedPrint($ret);

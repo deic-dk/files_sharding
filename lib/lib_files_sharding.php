@@ -1058,7 +1058,7 @@ class Lib {
 	}
 	
 	public static function syncUser($user, $priority) {
-		$serverURL = \OCA\FilesSharding\Lib::getServerForUser($user, true);
+		$serverURL = self::getServerForUser($user, true);
 		$parse = parse_url($serverURL);
 		$server = $parse['host'];
 		if(empty($server)){
@@ -1071,7 +1071,7 @@ class Lib {
 				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
 				break;
 			}
-			$syncedFiles = shell_exec(__DIR__."/../sync_user.sh -u \"".$user."\" -s ".$server." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'");
+			$syncedFiles = shell_exec(__DIR__."/sync_user.sh -u \"".$user."\" -s ".$server." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'");
 			\OCP\Util::writeLog('files_sharding', 'Synced '.$syncedFiles.' files for '.$user.' from '.$server, \OC_Log::ERROR);
 			++$i;
 		}
