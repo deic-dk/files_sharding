@@ -4,6 +4,7 @@ OCP\JSON::checkAppEnabled('files_sharding');
 OCP\JSON::checkLoggedIn();
 
 $internal = isset($_GET['internal'])?$_GET['internal'] && $_GET['internal']!=="false" && $_GET['internal']!=="no":false;
+$user_id = isset($_GET['user_id'])?$_GET['user_id']:null;
 
 $url = OCA\FilesSharding\Lib::getServerForUser($user_id, $internal);
 

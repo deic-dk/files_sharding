@@ -31,9 +31,13 @@ $user_backup_server_id = OCA\FilesSharding\Lib::dbLookupServerIdForUser($user_id
 if(!empty($user_backup_server_id)){
 	$user_backup_server_url = OCA\FilesSharding\Lib::dbLookupServerURL($user_backup_server_id);
 	$user_backup_site = OCA\FilesSharding\Lib::dbGetSite($user_backup_server_id);
+	$user_backup_server_lastsync = OCA\FilesSharding\Lib::dbLookupLastSync($user_backup_server_id, $user_id);
+	$user_backup_server_nextsync = (empty($user_backup_server_lastsync)?time():$user_backup_server_lastsync) + OCA\FilesSharding\Lib::$USER_SYNC_INTERVAL_SECONDS;
 	$tmpl->assign('user_backup_server_id', $user_backup_server_id);
 	$tmpl->assign('user_backup_server_url', $user_backup_server_url);
 	$tmpl->assign('user_backup_site', $user_backup_site);
+	$tmpl->assign('user_backup_server_lastsync', $user_backup_server_lastsync);
+	$tmpl->assign('user_backup_server_nextsync', $user_backup_server_nextsync);
 }
 $yesterday = time() - 24*60*60;
 $synced_user_backup_server_id = OCA\FilesSharding\Lib::dbLookupServerIdForUser($user_id, 1, $yesterday);

@@ -34,10 +34,19 @@
 	</div>
 	<div>
 		<label class="nowrap">Backup server: </label>
-		<label class="nowrap backup_server" id="<?php print(isset($_['user_backup_server_id'])?$_['user_backup_server_id']:'')?>">
-					<?php print(isset($_['user_backup_server_url'])?$_['user_backup_server_url']:'');?></label>
-	</div>
+		<label class="nowrap backup_server"
+			id="<?php print(isset($_['user_backup_server_id'])?$_['user_backup_server_id']:'')?>">
+			<?php print(isset($_['user_backup_server_url'])?$_['user_backup_server_url']:'');?></label>
+			<label class="nowrap">Last sync:</label><span id="lastSync">
+				<?php print(!empty($_['user_backup_server_lastsync'])?
+						OCP\Util::formatDate($_['user_backup_server_lastsync']):'')?>
+			</span>
+			<label class="nowrap">Next sync:</label><span id="nextSync">
+				<?php print(!empty($_['user_backup_server_nextsync'])?
+						OCP\Util::formatDate($_['user_backup_server_nextsync']):'')?>
+			</span>
+			</div>
 	<div class="save_home_server">
-		<a class="save btn btn-primary btn-flat" href="#">Save</a>
-	</div>	
+		<a class="save btn btn-primary btn-flat" href="#">Save</a><span id="setHomeServerMsg" class="msg">
+	</div>
 </fieldset>

@@ -139,8 +139,8 @@ class FileSessionHandler {
 	function setupUser($uid, $mail, $displayname, $groups){
 		if($this->ocUserDatabase->userExists($uid)) {
 			\OC_Log::write('files_sharding',"Setting up user: ".$uid, \OC_Log::WARN);
-			$password = self::getPassword($uid);
-			if(!$this->setPassword($uid, $password)){
+			$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($uid);
+			if(!\OCA\FilesSharding\Lib::setPasswordHash($uid, $pwHash)){
 				\OC_Log::write('files_sharding',"Error setting user password for user".$uid, \OC_Log::ERROR);
 			}
      if (isset($mail)) {
@@ -177,36 +177,6 @@ class FileSessionHandler {
 				\OC_DB::executeAudited($sql, array($numeric_id, $id));
 			}
 		}
-	}
-	
-	function setPassword($uid, $password) {
-			$query = \OC_DB::prepare('UPDATE `*PREFIX*users` SET `password` = ? WHERE `uid` = ?');
-			$result = $query->execute(array($password, $uid));
-			return $result ? true : false;
-	}
-	
-	static function getPassword($id){
-		$ch = curl_init();
-		$masterinturl = Lib::getMasterInternalURL();
-		curl_setopt($ch, CURLOPT_URL, $masterinturl."apps/files_sharding/ws/get_pw_hash.php");
-		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-		curl_setopt($ch, CURLOPT_DNS_USE_GLOBAL_CACHE, false);
-		curl_setopt($ch, CURLOPT_DNS_CACHE_TIMEOUT, 2);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_POST, 1);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id));
-		$ret = curl_exec($ch);
-		curl_close ($ch);
-		$res = json_decode($ret);
-		if(empty($res->{'password'})){
-			\OC_Log::write('files_sharding',"No password returned. ".$res->{'error'}, \OC_Log::WARN);
-			return null;
-		}
-		if( !empty($res->{'error'})){
-			\OC_Log::write('files_sharding',"Password error. ".$res->{'error'}, \OC_Log::WARN);
-		}		return $res->{'password'};
 	}
 		
 	// From user_saml

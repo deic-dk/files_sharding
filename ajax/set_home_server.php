@@ -14,8 +14,10 @@ else{
 OC_Log::write('files_sharding',"Setting home server: ".$user_id.":".$home_server_id, OC_Log::WARN);
 
 $ret['msg'] = "";
+$ret['last_sync'] = "";
+$ret['next_sync'] = "";
 
-if(!OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $home_server_id, 0)){
+if(!OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $home_server_id, OCA\FilesSharding\Lib::$USER_SERVER_PRIORITY_PRIMARY)){
 	$ret['error'] = "Failed setting home server ".$home_server_id;
 }
 else{
@@ -27,6 +29,10 @@ if(!OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $backup_server_id, 1)){
 	$ret['error'] = "Failed setting backup server ".$backup_server_id;
 }
 else{
+	$lastSync = empty($lastSync)?'':OCA\FilesSharding\Lib::dbLookupLastSync($server_id, $user_id);
+	$nextSync = (empty($lastSync)?time():$lastSync) + OCA\FilesSharding\Lib::$USER_SYNC_INTERVAL_SECONDS;
+	$ret['last_sync'] = empty($lastSync)?'':OCP\Util::formatDate($lastSync);
+	$ret['next_sync'] = OCP\Util::formatDate($nextSync);
 	$ret['msg'] .= ". Set backup server ".$home_server_id;
 }
 

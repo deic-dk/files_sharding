@@ -28,16 +28,17 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	exit;
 }
 
-$user_id = $_GET['user'];
+$user_id = $_GET['user_id'];
 
 //\OC_Util::setupFS($user_id);
 
 function isInteger($val) {
 	return isset($val) && (!empty($val) || $val==='0' || $val===0) && is_int($val);
 }
-$map = array_values(array_filter($_GET, array(__CLASS__, 'isInteger')));
+$map = array_filter($_GET, 'isInteger');
+$vals = empty($map)?array():array_values($map);
 
 // Send the correction array to master
-$ret = \OCA\FilesSharding\Lib::updateShareItemSources($user_id, $map);
+$ret = empty($map)?array():\OCA\FilesSharding\Lib::updateShareItemSources($user_id, $vals);
 
 OCP\JSON::encodedPrint($ret);

@@ -21,6 +21,7 @@ class Lib {
 	public static $USER_SERVER_PRIORITY_BACKUP_2 = 2;
 	
 	public static $USER_SYNC_INTERVAL_SECONDS = 86400; // 24 hours
+	private static $MAX_SYNC_ATTEMPTS = 3;
 	
 	public static function getCookieDomain(){
 		if(self::$cookiedomain===''){
@@ -161,7 +162,7 @@ class Lib {
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
 		if($status===0 || $status>=300 || empty($json_response)){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: '.$json_response, \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response. '.$json_response, \OC_Log::ERROR);
 			return null;
 		}
 		
@@ -233,6 +234,7 @@ class Lib {
 			return null;
 		}
 		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*filecache` WHERE storage = ?');
+		$result = $query->execute(Array($numericStorageId));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
@@ -509,7 +511,7 @@ class Lib {
 	
 	private static function dbGetServerUsers($serverId){
 		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_user_servers` WHERE `server_id` = ?');
-		$result = $query->execute(Array($id));
+		$result = $query->execute(Array($serverId));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
@@ -697,7 +699,15 @@ class Lib {
 	 * @throws Exception
 	 * @return boolean true on success, false on failure
 	 */
-	public static function dbSetServerForUser($user_id, $server_id, $priority){
+	public static function dbSetServerForUser($user_id, $server_id, $priority, $access=null){
+		if(empty($server_id)){
+			$server = $_SERVER['REMOTE_ADDR'];
+			$server_id = self::dbLookupServerId($server);
+			if(empty($server_id)){
+				$server = self::getMasterHostName();
+				$server_id = self::dbLookupServerId($server);
+			}
+		}
 		// If we're not changing anything, just return true
 		if(self::dbLookupServerIdForUser($user_id, $priority)===$server_id){
 			return true;
@@ -708,8 +718,8 @@ class Lib {
 			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = 1 WHERE `user_id` = ? AND `priority` = 0');
 			$result = $query->execute( array($user_id));
 		}*/
-		// If we're setting a backup server, disable current backup server
-		if($priority===1){
+		// If we're setting a new backup server, disable current backup server
+		if($priority==1){
 			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `priority` >= ?');
 			$result = $query->execute( array(self::$USER_SERVER_PRIORITY_DISABLE, self::$USER_ACCESS_NONE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1));
 			// Backup server cleared, nothing more to do
@@ -718,7 +728,7 @@ class Lib {
 			}
 		}
 		
-		$query = \OC_DB::prepare('SELECT `user_id`, `server_id`, `priority` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
+		$query = \OC_DB::prepare('SELECT `user_id`, `server_id`, `priority`, `access` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
 		$result = $query->execute(Array($user_id, $server_id));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
@@ -727,37 +737,37 @@ class Lib {
 		
 		\OCP\Util::writeLog('files_sharding', 'Number of servers for '.$user_id.":".$server_id.":".count($results), \OCP\Util::ERROR);
 		if(count($results)===0){
+			$newAccess = empty($access)?$access=self::$USER_ACCESS_READ_ONLY:$access;
 			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*files_sharding_user_servers` (`user_id`, `server_id`, `priority`, `access`) VALUES (?, ?, ?, ?)');
-			$result = $query->execute( array($user_id, $server_id, $priority, self::$USER_ACCESS_READ_ONLY));
+			$result = $query->execute( array($user_id, $server_id, $priority, $newAccess));
 			return $result ? true : false;
 		}
-		foreach($results as $row){
-			if($row['priority']===$priority){
-				return true;
-			}
-		}
-		$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `server_id` = ?');
-		$result = $query->execute( array($priority, self::$USER_ACCESS_READ_ONLY, $user_id, $server_id));
-		return $result ? true : false;
-	}
-	
-	public static function setServerForUser($user_id, $server_id=null, $priority){
-		if(self::isMaster()){
-			if(empty($server_id)){
-				$server = self::getMasterHostName();
-				$server_id = self::dbLookupServerId($server);
-			}
-			$ret = self::dbSetServerForUser($user_id, $server_id, $priority);
-		}
 		else{
-			if(empty($server_id)){
-				$ret = self::ws('set_server_for_user',
-						array('user_id'=>$user_id, 'priority'=>$priority));
+			foreach($results as $row){
+				if($row['priority']==$priority && (empty($access) || $row['access']==$access)){
+					return true;
+				}
+			}
+			
+			if(empty($access)){
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ? WHERE `user_id` = ? AND `server_id` = ?');
+				$result = $query->execute(array($priority, $user_id, $server_id));
 			}
 			else{
-				$ret = self::ws('set_server_for_user',
-						array('user_id'=>$user_id, 'server_id'=>$server_id, 'priority'=>$priority));
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `server_id` = ?');
+				$result = $query->execute(array($priority, $access, $user_id, $server_id));
 			}
+			return $result ? true : false;
+		}
+	}
+	
+	public static function setServerForUser($user_id, $server_id, $priority, $access=null){
+		if(self::isMaster()){
+			$ret = self::dbSetServerForUser($user_id, $server_id, $priority, $access);
+		}
+		else{
+			$ret = self::ws('set_server_for_user',
+				array('user_id'=>$user_id, 'server_id'=>$server_id, 'priority'=>$priority, 'access'=>$access));
 		}
 		return $ret;
 	}
@@ -810,7 +820,7 @@ class Lib {
 	/**
 	 * @param $user
 	 * @param $priority
-	 * @param $lastSync If given, 
+	 * @param $lastSync If given, only return server if it has been synced since $lastSync
 	 * @return ID of server
 	 */
 	public static function dbLookupServerIdForUser($user, $priority, $lastSync=-1){
@@ -857,6 +867,22 @@ class Lib {
 		}
 		\OCP\Util::writeLog('files_sharding', 'No server found via db for user:site '.$user.":".$site, \OC_Log::DEBUG);
 		return null;
+	}
+	
+	public static function dbLookupLastSync($server_id, $user_id){
+		$sql = 'SELECT `last_sync` FROM `*PREFIX*files_sharding_user_servers` WHERE `server_id` = ? AND `user_id` = ?';
+		$query = \OC_DB::prepare($sql);
+		$result = $query->execute(Array($server_id, $user_id));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$results = $result->fetchAll();
+		if(count($results)>1){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for server:user '.$server_id.":".$user_id, \OCP\Util::ERROR);
+		}
+		foreach($results as $row){
+			return $row['last_sync'];
+		}
 	}
 	
 /**
@@ -968,13 +994,12 @@ class Lib {
 	
 	public static function getNextSyncUser(){
 		if(self::isMaster()){
-			$user = self::dbGetNextSyncUser();
+			$userArr = self::dbGetNextSyncUser();
 		}
 		else{
 			$userArr =  self::ws('get_next_sync_user', array());
-			$user = $userArr['user_id'];
 		}
-		return $user;
+		return $userArr;
 	}
 	
 	public static function dbGetNextSyncUser($server=null){
@@ -987,13 +1012,13 @@ class Lib {
 		$rows = self::dbGetServerUsers($serverId);
 		foreach($rows as $row){
 		// no matching process/running shell script, last_sync more than 20 hours ago and
-		// ( priority 0 and access 1: execute shell script with the obtained user+(new) backup server OR
-		//   priority>0: execute shell script with the obtained user+server ).
-			if($row['last_sync'] < time() - self::$USER_SYNC_INTERVAL_SECONDS
+		// ( priority 0 and access 1: execute shell script with the user+(new) primary server OR
+		//   priority>0 and access 1: execute shell script with the user+backup server ).
+			if($row['last_sync'] < time() - self::$USER_SYNC_INTERVAL_SECONDS &&
 					($row['priority']===self::$USER_SERVER_PRIORITY_PRIMARY &&
 							$row['access']===self::$USER_ACCESS_READ_ONLY ||
 						$row['priority']>self::$USER_SERVER_PRIORITY_PRIMARY)){
-				return($row['user_id']);
+				return($row);
 			}
 		}
 		return null;
@@ -1026,9 +1051,63 @@ class Lib {
 		return null;
 	}
 	
+	public static function syncUser($user, $priority) {
+		$serverURL = \OCA\FilesSharding\Lib::getServerForUser($user, true);
+		$parse = parse_url($serverURL);
+		$server = $parse['host'];
+		if(empty($server)){
+			\OCP\Util::writeLog('files_sharding', 'No server for user '.$user, \OC_Log::ERROR);
+			return;
+		}
+		$i = 0;
+		do{
+			if($i>self::$MAX_SYNC_ATTEMPTS){
+				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
+				break;
+			}
+			$syncedFiles = shell_exec(__DIR__."/../sync_user.sh -u \"".$user."\" -s ".$server." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'");
+			\OCP\Util::writeLog('files_sharding', 'Synced '.$syncedFiles.' files for '.$user.' from '.$server, \OC_Log::ERROR);
+			++$i;
+		}
+		while(!is_numeric($syncedFiles) || is_numeric($syncedFiles) && $syncedFiles!=0);
+		// Get list of shared file mappings: ID -> path and update item_source on oc_share table on master with new IDs
+		self::updateUserSharedFiles($user);
+		// Get exported metadata (by path) via remote metadata web API and insert metadata on synced files by using local metadata web API
+		\OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
+		// Get and insert the password of the user
+		$pwHash = self::getPasswordHash($user, $serverURL);
+		$pwOk = self::setPasswordHash($user, $pwHash);
+		if($i<=self::$MAX_SYNC_ATTEMPTS && $pwOk){
+			// Update last_sync, set r/w if this is a new primary server
+			$access = null;
+			if($priority==self::$USER_SERVER_PRIORITY_PRIMARY){
+				$access = self::$USER_ACCESS_ALL;
+			}
+			self::setServerForUser($user, null, $priority, $access);
+			// Notify user
+			send($app, $subject, $subjectparams = array(), $message = '', $messageparams = array(),
+			$file = '', $link = '', $affecteduser = '', $type = '', $prio = IExtension::PRIORITY_MEDIUM);
+		}
+	}
+	
+	public static function deleteUser($user) {
+		$i = 0;
+		do{
+			\OCP\Util::writeLog('files_sharding', 'Deleting user '.$user, \OC_Log::WARN);
+			if($i>self::$MAX_SYNC_ATTEMPTS){
+				\OCP\Util::writeLog('files_sharding', 'ERROR: Deletion not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
+				break;
+			}
+			$remainingFiles = shell_exec(__DIR__."/../delete_user.sh -u \"".$user." | grep 'Remaining files:' | awk -F ':' '{printf $NF}'");
+			++$i;
+		}
+		while(!is_numeric($remainingFiles) || is_numeric($remainingFiles) && $remainingFiles!=0);
+		self::setServerForUser($user, null, self::$USER_SERVER_PRIORITY_DISABLED, self::$USER_ACCESS_NONE);
+	}
+	
 	public static function updateUserSharedFiles($user_id){
 		// Get all files/folders shared by user
-		$sharedItems = \OCA\FilesSharding\Lib::getItemSharedByUser($user_id);
+		$sharedItems = self::getItemSharedByUser($user_id);
 		// Correction array to send to master
 		$newIdMap = array('user_id'=>$user_id);
 		foreach($sharedItems as $share){
@@ -1041,13 +1120,31 @@ class Lib {
 			}
 		}
 		// Send the correction array to master
-		$ret = \OCA\FilesSharding\Lib::ws('update_share_item_sources', $newIdMap);
-		if($ret){
-			return $newIdMap;
+		$ret = self::ws('update_share_item_sources', $newIdMap);
+		if($ret==null){
+			\OCP\Util::writeLog('files_sharding', 'updateUserSharedFiles error', \OC_Log::ERROR);
 		}
-		else{
-			\OCP\Util::writeLog('files_sharding', 'updateUserSharedFiles error: '.$ret, \OC_Log::ERROR);
+	}
+	
+	public static function setPasswordHash($user_id, $pwHash) {
+		$query = \OC_DB::prepare('UPDATE `*PREFIX*users` SET `password` = ? WHERE `uid` = ?');
+		$result = $query->execute(array($pwHash, $user_id));
+		return $result ? true : false;
+	}
+	
+	static function getPasswordHash($user_id, $serverURL=null){
+		if($serverURL==null){
+			$serverURL = self::getMasterInternalURL();
 		}
+		$res = self::ws('get_pw_hash', array('user_id'=>$user_id), true, true, $serverURL);
+		if(empty($res->{'pw_hash'})){
+			\OC_Log::write('files_sharding',"No password returned. ".$res->{'error'}, \OC_Log::WARN);
+			return null;
+		}
+		if(!empty($res->{'error'})){
+			\OC_Log::write('files_sharding',"Password error. ".$res->{'error'}, \OC_Log::WARN);
+		}
+		return $res->{'pw_hash'};
 	}
 	
 	/**
@@ -1111,7 +1208,7 @@ class Lib {
 	 * @return array
 	 */
 	public static function getItemSharedByUser($user_id){
-		if(!\OCP\App::isEnabled('files_sharding') || \OCA\FilesSharding\Lib::isMaster()){
+		if(!\OCP\App::isEnabled('files_sharding') || self::isMaster()){
 			
 			$loggedin_user = \OCP\USER::getUser();
 			if(isset($user_id)){
@@ -1138,7 +1235,7 @@ class Lib {
 		}
 		else{
 			\OCP\Util::writeLog('files_sharding', 'OCA\Files\Share_files_sharding::getItemShared '.$user_id.":".'file'.":".null, \OC_Log::WARN);
-			return \OCA\FilesSharding\Lib::ws('getItemShared', array('user_id' => $user_id, 'itemType' => 'file',
+			return self::ws('getItemShared', array('user_id' => $user_id, 'itemType' => 'file',
 					'itemSource' =>null));
 		}
 	}
@@ -1224,10 +1321,10 @@ class Lib {
 		\OC_Log::write('OCP\Share', 'QUERY: '.$oldname.':'.$newname.':'.$new_file_target, \OC_Log::WARN);
 		
 		$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `file_target` = ? WHERE `uid_owner` = ? AND `item_source` = ? AND `file_target` = ?');
-		$result = $query->execute(array($new_file_target, $user_id, $id, $old_file_target));
+		$result = $query->execute(array($new_file_target, $owner, $id, $old_file_target));
 		
 		if($result === false) {
-			\OC_Log::write('OCP\Share', 'Couldn\'t update share table for '.$user_id.' --> '.serialize($params), \OC_Log::ERROR);
+			\OC_Log::write('OCP\Share', 'Couldn\'t update share table for '.$owner.' --> '.serialize($params), \OC_Log::ERROR);
 		}
 		
 		return $result;
@@ -1403,7 +1500,7 @@ class Lib {
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
 		if($status===0 || $status>=300){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: '.$res, \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not put. '.$res, \OC_Log::ERROR);
 			return null;
 		}
 		return true;

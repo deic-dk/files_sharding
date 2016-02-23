@@ -12,7 +12,7 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	$ret['error'] = "Network not secure";
 }
 else{
-	$uid = $_POST['id'];
+	$uid = $_POST['user_id'];
 	
 	$query = OC_DB::prepare( "SELECT `password` FROM `*PREFIX*users` WHERE `uid` = ?" );
 	$result = $query->execute( array( $uid ))->fetchRow();
@@ -20,7 +20,7 @@ else{
 		$ret['error'] = "User not found";
 	}
 	else{
-		$ret['password'] = $result['password'];
+		$ret['pw_hash'] = $result['password'];
 	}
 	OC_Log::write('files_sharding', 'Giving out password hash', OC_Log::WARN);
 }

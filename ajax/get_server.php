@@ -24,9 +24,13 @@ else{
 	$server_id = $priority===0?OCA\FilesSharding\Lib::dbLookupServerIdForUser($user_id, $priority):null;
 }
 
-if(empty($server_id) && $priority===0){
-	\OCP\Util::writeLog('files_sharding', 'get_server: No server found via db for user '.$user_id. '. Using default', \OC_Log::WARN);
-	$ret['error'] = "Failed getting server for ".$site;
+if(empty($server_id)){
+	if($priority===0){
+		\OCP\Util::writeLog('files_sharding', 'get_server: No server found via db for user '.$user_id. '. Using default', \OC_Log::WARN);
+		$ret['error'] = "Failed getting server for ".$site;
+	}
+	$ret['server_url'] = "";
+	$ret['server_id'] = "";
 }
 else{
 	\OCP\Util::writeLog('files_sharding', 'Getting server for '.$server_id.' via db for user '.$user_id, \OC_Log::WARN);

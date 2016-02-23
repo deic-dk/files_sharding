@@ -34,15 +34,20 @@ OC::$CLASSPATH['OCA\FilesSharding\SearchShared'] = 'apps/files_sharding/lib/sear
 OC_Search::registerProvider('OCA\FilesSharding\SearchShared');
 
 OC::$CLASSPATH['OCA\FilesSharding\Hooks'] = 'files_sharding/lib/hooks.php';
-\OCP\Util::connectHook('OC_Filesystem', 'post_rename', 'OCA\FilesSharding\Hooks', 'renameHook');
-\OCP\Util::connectHook('OC_Filesystem', 'post_delete', 'OCA\FilesSharding\Hooks', 'deleteHook');
+OCP\Util::connectHook('OC_Filesystem', 'post_rename', 'OCA\FilesSharding\Hooks', 'renameHook');
+OCP\Util::connectHook('OC_Filesystem', 'post_delete', 'OCA\FilesSharding\Hooks', 'deleteHook');
 
 OCP\App::registerPersonal('files_sharding', 'personalsettings');
 
 // Cron job for syncing users 
-OC::$CLASSPATH['OCA\FilesSharding\BackgroundJob'] = 'apps/files_sharding/lib/sync_user.php';
+OC::$CLASSPATH['OCA\FilesSharding\BackgroundJob\SyncUser'] = 'apps/files_sharding/lib/backgroundjob/sync_user.php';
+OC::$CLASSPATH['OCA\FilesSharding\BackgroundJob\DeleteUser'] = 'apps/files_sharding/lib/backgroundjob/sync_user.php';
+require_once('apps/files_sharding/lib/backgroundjob/sync_user.php');
 OCP\Backgroundjob::registerJob('OCA\FilesSharding\BackgroundJob\SyncUser');
 OCP\Backgroundjob::registerJob('OCA\FilesSharding\BackgroundJob\DeleteUser');
+// 
+
+OCP\Util::addScript('files_sharding', 'access');
 
 if(OCA\FilesSharding\Lib::isMaster()){
 	OCP\App::registerAdmin('files_sharding', 'settings');
