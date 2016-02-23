@@ -54,6 +54,12 @@ class Lib {
 			$parse = parse_url(self::$masterinternalurl);
 			$masterinternalip =  $parse['host'];
 		}
+		if(empty($_SERVER['HTTP_HOST']) && empty($_SERVER['SERVER_NAME'])){
+			// Running off cron
+			$myShortName = php_uname("n");
+			$masterNameArr = explode(".", self::$masterfq);
+			return isset($masterNameArr[0]) && $myShortName == $masterNameArr[0];
+		}
 		return empty(self::$masterfq) && empty($masterinternalip) ||
 				isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST']===self::$masterfq || $_SERVER['HTTP_HOST']===$masterinternalip) ||
 				isset($_SERVER['SERVER_NAME']) && ($_SERVER['SERVER_NAME']===self::$masterfq || $_SERVER['SERVER_NAME']===$masterinternalip);

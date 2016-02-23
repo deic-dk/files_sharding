@@ -184,7 +184,6 @@ $(document).ready(function(){
 	  }
 	});
 
-
 	$('#filesShardingPersonalSettings div select.home_site').on('change', function() {
 		get_home_server($(this).val());
 	 });
@@ -200,6 +199,7 @@ $(document).ready(function(){
 		 $('#nextSync').text('');
 		get_backup_server($(this).val());
 	 });
+	
 	$('#filesShardingPersonalSettings .save_home_server .save').click(function(){
 		home_server_id = $('#filesShardingPersonalSettings .home_server').attr('id');
 		backup_server_id = $('#filesShardingPersonalSettings .backup_server').attr('id');

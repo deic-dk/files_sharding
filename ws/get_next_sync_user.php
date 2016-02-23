@@ -35,7 +35,7 @@ $hostname = isset($_GET['hostname'])?$_GET['hostname']:$_SERVER['REMOTE_ADDR'];
 
 $user_id = OCA\FilesSharding\Lib::dbGetNextSyncUser($hostname);
 
-$status = empty($user_id)?'error: no user '.$id.' found':'success';
+$status = empty($user_id)?'error: no user '.$user_id.' found':'success';
 
 $ret = Array('user_id' => $user_id, 'status' => $status);
 
