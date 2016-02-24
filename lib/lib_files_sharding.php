@@ -126,11 +126,13 @@ class Lib {
 	private static $WS_CACHE_CALLS = array('getItemsSharedWith'=>10, 'get_data_folders'=>10,
 			'get_user_server'=>10, 'getFileTags'=>10, 'share_fetch'=>10, 'getShareByToken'=>10,
 			'share_fetch'=>10, 'searchTagsByIDs'=>10, 'searchTags'=>10, 'getItemsSharedWithUser'=>10,
-			'get_server_id'=>10, 'get_servers'=>10, 'getTaggedFiles'=>10, 'get_user_server_access'=>20);
+			'get_server_id'=>10, 'get_servers'=>10, 'getTaggedFiles'=>10, 'get_user_server_access'=>20,
+			'read'=>30);
 	
-	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null, $appName=null){
+	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null,
+			$appName=null, $urlencode=false){
 		$content = "";
-		foreach($data as $key=>$value) { $content .= $key.'='.$value.'&'; }
+		foreach($data as $key=>$value) { $content .= $key.'='.($urlencode?urlencode($value):$value).'&'; }
 		if($baseUrl==null){
 			$baseUrl = self::getMasterInternalURL();
 		}
@@ -167,7 +169,7 @@ class Lib {
 		$json_response = curl_exec($curl);
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
-		if($status===0 || $status>=300 || empty($json_response)){
+		if($status===0 || $status>=300 || $json_response===null || $json_response===false){
 			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response. '.$json_response, \OC_Log::ERROR);
 			return null;
 		}
@@ -1139,7 +1141,7 @@ class Lib {
 		if($serverURL==null){
 			$serverURL = self::getMasterInternalURL();
 		}
-		$res = self::ws('get_pw_hash', array('user_id'=>$user_id), true, true, $serverURL);
+		$res = self::ws('get_pw_hash', array('user_id'=>$user_id), true, false, $serverURL);
 		if(empty($res->{'pw_hash'})){
 			\OC_Log::write('files_sharding',"No password returned. ".$res->{'error'}, \OC_Log::WARN);
 			return null;

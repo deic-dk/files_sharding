@@ -36,7 +36,7 @@ $access = isset($_GET['access'])?$_GET['access']:null;
 $user_id = isset($_GET['user_id'])?$_GET['user_id']:null;
 $server_id = isset($_GET['server_id'])?$_GET['server_id']:null;
 if(empty($server_id)){
-	$server_id = self::dbLookupServerId($_SERVER['REMOTE_ADDR']);
+	$server_id = OCA\FilesSharding\Lib::dbLookupServerId($_SERVER['REMOTE_ADDR']);
 }
 
 $ret = OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $server_id, $priority, $access);
