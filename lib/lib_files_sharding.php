@@ -1103,7 +1103,7 @@ class Lib {
 				\OCP\Util::writeLog('files_sharding', 'ERROR: Deletion not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
 				break;
 			}
-			$remainingFiles = shell_exec(__DIR__."/../delete_user.sh -u \"".$user." | grep 'Remaining files:' | awk -F ':' '{printf $NF}'");
+			$remainingFiles = shell_exec(__DIR__."/delete_user.sh -u \"".$user." | grep 'Remaining files:' | awk -F ':' '{printf $NF}'");
 			++$i;
 		}
 		while(!is_numeric($remainingFiles) || is_numeric($remainingFiles) && $remainingFiles!=0);
