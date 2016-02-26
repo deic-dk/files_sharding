@@ -35,4 +35,4 @@ $user_id = $_GET['user_id'];
 
 $files = OCA\FilesSharding\Lib::dbGetUserFiles($user_id);
 
-OCP\JSON::encodedPrint($ret);
+OCP\JSON::encodedPrint($files);

@@ -51,6 +51,15 @@ OCP\Util::addScript('files_sharding', 'access');
 
 if(OCA\FilesSharding\Lib::isMaster()){
 	OCP\App::registerAdmin('files_sharding', 'settings');
+	OC::$CLASSPATH['ServerSync_Activity']   ='apps/files_sharding/lib/activity.php';
+	\OC::$server->getActivityManager()->registerExtension(function() {
+		return new ServerSync_Activity(
+				\OC::$server->query('L10NFactory'),
+				\OC::$server->getURLGenerator(),
+				\OC::$server->getActivityManager(),
+				\OC::$server->getConfig()
+		);
+	});
 	return;
 }
 

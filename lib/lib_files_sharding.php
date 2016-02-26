@@ -20,6 +20,8 @@ class Lib {
 	public static $USER_SERVER_PRIORITY_BACKUP_1 = 1;
 	public static $USER_SERVER_PRIORITY_BACKUP_2 = 2;
 	
+	const TYPE_SERVER_SYNC = 'server_sync';
+	
 	public static $USER_SYNC_INTERVAL_SECONDS = 86400; // 24 hours
 	private static $MAX_SYNC_ATTEMPTS = 3;
 	

@@ -28,7 +28,7 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 				$primary_server_url = \OCA\FilesSharding\Lib::getServerForUser($user);
 				\OCA\UserNotification\Data::send('files_sharding', 'Your files have been backed up.', array(),
 						'Your files have been synchronized from '.$primary_server_url,
-						array(), '', '', $user, \OCA\UserNotification\Data::TYPE_SYNC_FINISHED,
+						array(), '', '', $user, \OCA\FilesSharding\Lib::TYPE_SERVER_SYNC,
 						\OCA\UserNotification\Data::PRIORITY_HIGH);
 			}
 		}
