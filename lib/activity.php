@@ -72,8 +72,12 @@ class ServerSync_Activity implements IExtension {
 			return false;
 		}
 		switch ($text) {
-			case 'finished_sync':
-				return (string) $this->l->t('Syncing has finished for: <strong>%1$s</strong>', $params);
+			case 'sync_finished':
+				if(\OCA\FilesSharding\Lib::isMaster()){
+					$params[2] = \OCA\FilesSharding\Lib::dbLookupServerURL($params[2]);
+				}
+				return (string) $this->l->t('Your files have been synchronized from <strong>%1$s</strong> to <strong>%2$s</strong>',
+				array($params));
 			default:
 				return false;
 		}

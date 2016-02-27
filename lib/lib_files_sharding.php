@@ -530,15 +530,18 @@ class Lib {
 	}
 
 /**
-	 * Get the ID of a server.
+	 * Get the ID of a server. Default to ID of myself.
 	 * @param $hostname hostname of the server
 	 */
-	public static function lookupServerId($hostname){
+	public static function lookupServerId($hostname=null){
 		if(self::isMaster()){
+			if(empty($hostname)){
+				$hostname = self::$masterfq;
+			}
 			return self::dbLookupServerId($hostname);
 		}
 		else{
-			$res = self::ws('get_server_id', Array('hostname' => $hostname), false, true);
+			$res = self::ws('get_server_id', empty($hostname)?Array():Array('hostname' => $hostname), false, true);
 			return $res['id'];
 		}
 	}
@@ -1094,6 +1097,10 @@ class Lib {
 				$access = self::$USER_ACCESS_ALL;
 			}
 			self::setServerForUser($user, null, $priority, $access);
+			return $serverURL;
+		}
+		else{
+			return null;
 		}
 	}
 	

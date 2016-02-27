@@ -22,13 +22,14 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 		$priority = $userArr['priority'];
 		\OCP\Util::writeLog('files_sharding', 'Syncing user '.$user, \OC_Log::WARN);
 		if(!empty($user)){
-			\OCA\FilesSharding\Lib::syncUser($user, $priority);
+			$server = \OCA\FilesSharding\Lib::syncUser($user, $priority);
+			$thisServerId = \OCA\FilesSharding\Lib::lookupServerId();
 			// Notify user
 			if(\OCP\App::isEnabled('user_notification')){
 				$primary_server_url = \OCA\FilesSharding\Lib::getServerForUser($user);
 				\OCA\UserNotification\Data::send('files_sharding', 'Your files have been backed up.', array(),
-						'Your files have been synchronized from '.$primary_server_url,
-						array(), '', '', $user, \OCA\FilesSharding\Lib::TYPE_SERVER_SYNC,
+						'sync_finished',
+						array($server, $thisServerId), '', '', $user, \OCA\FilesSharding\Lib::TYPE_SERVER_SYNC,
 						\OCA\UserNotification\Data::PRIORITY_HIGH);
 			}
 		}
