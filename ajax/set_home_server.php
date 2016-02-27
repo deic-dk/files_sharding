@@ -25,7 +25,7 @@ else{
 }
 
 $backup_server_id = isset($_POST['backup_server_id'])?$_POST['backup_server_id']:null;
-if(!OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $backup_server_id, 1)){
+if(!OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $backup_server_id, OCA\FilesSharding\Lib::$USER_SERVER_PRIORITY_BACKUP_1)){
 	$ret['error'] = "Failed setting backup server ".$backup_server_id;
 }
 else{

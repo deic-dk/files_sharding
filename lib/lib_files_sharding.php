@@ -311,10 +311,10 @@ class Lib {
 	
 	public static function addDataFolder($folder, $user_id){
 		if(self::isMaster()){
-			$user_server_id = self::dbLookupServerIdForUser($user_id, 0);
+			$user_server_id = self::dbLookupServerIdForUser($user_id, self::$USER_SERVER_PRIORITY_PRIMARY);
 			if($user_server_id==null){
-				$user_server_id = self::dbChooseServerForUser($user_id, $site, 0, null);
-				self::dbSetServerForUser($user_id, $user_server_id, 0);
+				$user_server_id = self::dbChooseServerForUser($user_id, $site, self::$USER_SERVER_PRIORITY_PRIMARY, null);
+				self::dbSetServerForUser($user_id, $user_server_id, self::$USER_SERVER_PRIORITY_PRIMARY);
 			}
 			return self::dbAddDataFolder($folder, $user_server_id, $user_id);
 		}
@@ -712,7 +712,7 @@ class Lib {
 	 * @throws Exception
 	 * @return boolean true on success, false on failure
 	 */
-	public static function dbSetServerForUser($user_id, $server_id, $priority, $access=null){
+	public static function dbSetServerForUser($user_id, $server_id, $priority, $access=null, $last_sync=0){
 		if(empty($server_id)){
 			$server = $_SERVER['REMOTE_ADDR'];
 			$server_id = self::dbLookupServerId($server);
@@ -741,7 +741,7 @@ class Lib {
 			}
 		}
 		
-		$query = \OC_DB::prepare('SELECT `user_id`, `server_id`, `priority`, `access` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
+		$query = \OC_DB::prepare('SELECT `user_id`, `server_id`, `priority`, `access`, `last_sync` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
 		$result = $query->execute(Array($user_id, $server_id));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
@@ -750,25 +750,36 @@ class Lib {
 		
 		\OCP\Util::writeLog('files_sharding', 'Number of servers for '.$user_id.":".$server_id.":".count($results), \OCP\Util::ERROR);
 		if(count($results)===0){
-			$newAccess = empty($access)?$access=self::$USER_ACCESS_READ_ONLY:$access;
-			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*files_sharding_user_servers` (`user_id`, `server_id`, `priority`, `access`) VALUES (?, ?, ?, ?)');
-			$result = $query->execute( array($user_id, $server_id, $priority, $newAccess));
+			$newAccess = empty($access)?self::$USER_ACCESS_READ_ONLY:$access;
+			$lastSync = empty($last_sync)?0:$last_sync;
+			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*files_sharding_user_servers` (`user_id`, `server_id`, `priority`, `access`, `last_sync`) VALUES (?, ?, ?, ?, ?)');
+			$result = $query->execute( array($user_id, $server_id, $priority, $newAccess, $lastSync));
 			return $result ? true : false;
 		}
 		else{
 			foreach($results as $row){
-				if($row['priority']==$priority && (empty($access) || $row['access']==$access)){
+				if($row['priority']==$priority &&
+						(empty($access) || $row['access']==$access) &&
+						(empty($last_sync) || $row['last_sync']==$last_sync)){
 					return true;
 				}
 			}
 			
-			if(empty($access)){
+			if(empty($access) && empty($last_sync)){
 				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ? WHERE `user_id` = ? AND `server_id` = ?');
 				$result = $query->execute(array($priority, $user_id, $server_id));
 			}
-			else{
+			elseif(empty($last_sync)){
 				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `server_id` = ?');
 				$result = $query->execute(array($priority, $access, $user_id, $server_id));
+			}
+			elseif(empty($access)){
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `last_sync` = ? WHERE `user_id` = ? AND `server_id` = ?');
+				$result = $query->execute(array($priority, $last_sync, $user_id, $server_id));
+			}
+			else{
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ?, `last_sync` = ? WHERE `user_id` = ? AND `server_id` = ?');
+				$result = $query->execute(array($priority, $access, $last_sync, $user_id, $server_id));
 			}
 			return $result ? true : false;
 		}
@@ -1096,7 +1107,8 @@ class Lib {
 			if($priority==self::$USER_SERVER_PRIORITY_PRIMARY){
 				$access = self::$USER_ACCESS_ALL;
 			}
-			self::setServerForUser($user, null, $priority, $access);
+			$now = time();
+			self::setServerForUser($user, null, $priority, $access, $now);
 			return $serverURL;
 		}
 		else{
