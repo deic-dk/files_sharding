@@ -106,7 +106,7 @@ class ServerSync_Activity implements IExtension {
 	 * @return string|false
 	 */
 	public function getTypeIcon($type) {
-		if ($type == self::TYPE_INVOICE) {
+		if ($type == \OCA\FilesSharding\Lib::TYPE_SERVER_SYNC) {
 			return 'icon-chart-area';}
 	}
 	/**
