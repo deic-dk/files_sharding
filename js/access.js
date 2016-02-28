@@ -37,16 +37,21 @@ function disableWrite(){
 		OC.msg.finishedSaving('.access-message', {status: 'success', data: {message: "You only have read access on this server"}});
 		notify = true;
 	}
+	else{
+		return false;
+	}
 	$('.file-actions .action').not('.action-download').prop( "disabled", true );
 	$('.ui-draggable').removeClass('ui-draggable');
 	$('.ui-draggable').remove();
 	/*$('td.filename').draggable('destroy'); */
 	$('body').on('drop', function (e) {
+		e.preventDefault();
 		return false;
 	});
-	/*$('body').on('drag', function (e) {
+	$('#fileList').on('drag', function (e) {
+		e.preventDefault();
 		return false;
-	});*/
+	});
 	var style = $('<style>#controls #upload,  #controls #new, .select-all, .fileselect, .action.delete, .fileactions-wrap, .app-gallery .right, li[data-id="meta_data"], li[data-id="importer_index"] , li[data-id="uploader"] { display: none; }</style>');
 	$('html > head').append(style);
 }
