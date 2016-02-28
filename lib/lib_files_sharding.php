@@ -709,6 +709,8 @@ class Lib {
 	 * @param $user_id user ID
 	 * @param $server_id server ID
 	 * @param $priority server priority: -1: disabled, 0: primary/home (r/w), 1: backup (r/o), >1: unused
+	 * @param $access
+	 * @param $last_sync
 	 * @throws Exception
 	 * @return boolean true on success, false on failure
 	 */
@@ -785,13 +787,14 @@ class Lib {
 		}
 	}
 	
-	public static function setServerForUser($user_id, $server_id, $priority, $access=null){
+	public static function setServerForUser($user_id, $server_id, $priority, $access=null, $last_sync=0){
 		if(self::isMaster()){
-			$ret = self::dbSetServerForUser($user_id, $server_id, $priority, $access);
+			$ret = self::dbSetServerForUser($user_id, $server_id, $priority, $access, $last_sync);
 		}
 		else{
 			$ret = self::ws('set_server_for_user',
-				array('user_id'=>$user_id, 'server_id'=>$server_id, 'priority'=>$priority, 'access'=>$access));
+				array('user_id'=>$user_id, 'server_id'=>$server_id, 'priority'=>$priority,
+						'access'=>$access, 'last_sync'=>$last_sync));
 		}
 		return $ret;
 	}

@@ -33,12 +33,13 @@ include_once("files_sharding/lib/lib_files_sharding.php");
 
 $priority = isset($_GET['priority'])?$_GET['priority']:null;
 $access = isset($_GET['access'])?$_GET['access']:null;
+$last_sync = isset($_GET['last_sync'])?$_GET['last_sync']:0;
 $user_id = isset($_GET['user_id'])?$_GET['user_id']:null;
 $server_id = isset($_GET['server_id'])?$_GET['server_id']:null;
 if(empty($server_id)){
 	$server_id = OCA\FilesSharding\Lib::dbLookupServerId($_SERVER['REMOTE_ADDR']);
 }
 
-$ret = OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $server_id, $priority, $access);
+$ret = OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $server_id, $priority, $access, $last_sync);
 
 OCP\JSON::encodedPrint($ret);
