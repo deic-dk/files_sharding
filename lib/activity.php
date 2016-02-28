@@ -76,7 +76,7 @@ class ServerSync_Activity implements IExtension {
 				if(\OCA\FilesSharding\Lib::isMaster()){
 					$params[1] = \OCA\FilesSharding\Lib::dbLookupServerURL($params[1]);
 				}
-				return (string) $this->l->t('Your files have been synchronized from <b>%1$s</b> to <b>%2$s</b>',
+				return (string) $this->l->t('Your files have been synchronized from <strong>%1$s</strong> to <strong>%2$s</strong>',
 				$params);
 			default:
 				return false;
