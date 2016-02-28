@@ -1076,6 +1076,7 @@ class Lib {
 	}
 	
 	public static function syncUser($user, $priority) {
+		$publicServerURL = self::getServerForUser($user, false);
 		$serverURL = self::getServerForUser($user, true);
 		$parse = parse_url($serverURL);
 		$server = $parse['host'];
@@ -1109,7 +1110,7 @@ class Lib {
 			}
 			$now = time();
 			self::setServerForUser($user, null, $priority, $access, $now);
-			return $serverURL;
+			return $publicServerURL;
 		}
 		else{
 			return null;

@@ -74,10 +74,10 @@ class ServerSync_Activity implements IExtension {
 		switch ($text) {
 			case 'sync_finished':
 				if(\OCA\FilesSharding\Lib::isMaster()){
-					$params[2] = \OCA\FilesSharding\Lib::dbLookupServerURL($params[2]);
+					$params[1] = \OCA\FilesSharding\Lib::dbLookupServerURL($params[1]);
 				}
-				return (string) $this->l->t('Your files have been synchronized from <strong>%1$s</strong> to <strong>%2$s</strong>',
-				array($params));
+				return (string) $this->l->t('Your files have been synchronized from <b>%1$s</b> to <b>%2$s</b>',
+				$params);
 			default:
 				return false;
 		}
