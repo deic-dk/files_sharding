@@ -1147,7 +1147,7 @@ class Lib {
 		}
 		// Send the correction array to master
 		$ret = self::ws('update_share_item_sources', $newIdMap);
-		if($ret==null){
+		if($ret===null){
 			\OCP\Util::writeLog('files_sharding', 'updateUserSharedFiles error', \OC_Log::ERROR);
 		}
 	}
