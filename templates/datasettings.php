@@ -17,9 +17,9 @@
 			<?php
 			print '<option value=""></option>';
 			foreach ($_['sites_list'] as $site){
-				if($site['site']==$_['user_home_site']){
+				/*if($site['site']==$_['user_home_site']){
 					continue;
-				}
+				}*/
 				print '<option value="'.$site['site'].'"'.
 				($site['site']==$_['user_home_site']?'" class="hidden"':'"').
 				(isset($_['user_backup_site'])&&$_['user_backup_site']===$site['site']?'" selected':'"').

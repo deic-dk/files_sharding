@@ -16,8 +16,8 @@ function get_home_server(previous_site, site){
 			  $('#filesShardingPersonalSettings .home_server').text( s.server_url);
 			  $('#filesShardingPersonalSettings .home_server').attr('id',  s.server_id);
 				// When changing - remove current backup site from backup sites list and replace it with current main site (selected)
-			  $('#filesShardingPersonalSettings div select.backup_site option[value='+site+']').hide();
-			  $('#filesShardingPersonalSettings div select.backup_site option[value='+previous_site+']').show().attr('selected', 'selected');
+			  $('#filesShardingPersonalSettings div select.backup_site option[value="'+site+'"]').hide();
+			  $('#filesShardingPersonalSettings div select.backup_site option[value="'+previous_site+'"]').show().attr('selected', 'selected');
 		 },
 		error:function(s){
 			alert("Unexpected error!");
@@ -184,9 +184,9 @@ $(document).ready(function(){
 	  }
 	});
 
-	$('#filesShardingPersonalSettings div select.home_site').on('change', function() {
+	/*$('#filesShardingPersonalSettings div select.home_site').on('change', function() {
 		get_home_server($(this).val());
-	 });
+	 });*/
 	
 	$('#filesShardingPersonalSettings div select.home_site').focus(function () {
 		previous_home_site = $(this).val();

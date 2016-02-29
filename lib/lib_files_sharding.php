@@ -724,7 +724,7 @@ class Lib {
 			}
 		}
 		// If we're not changing anything, just return true
-		if(self::dbLookupServerIdForUser($user_id, $priority)===$server_id){
+		if(empty($access) && empty($last_sync) && self::dbLookupServerIdForUser($user_id, $priority)===$server_id){
 			return true;
 		}
 		// If we're setting a home server, set current home server as backup server
@@ -851,6 +851,7 @@ class Lib {
 	 * @return ID of server
 	 */
 	public static function dbLookupServerIdForUser($user, $priority, $lastSync=-1){
+		\OCP\Util::writeLog('files_sharding', "Looking up server ".$user .":". $priority .":". $lastSync, \OC_Log::DEBUG);
 		// Priorities: -1: disabled, 0: primary/home (r/w), 1: backup (r/o), >1: unused
 		$sql = 'SELECT `server_id` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ?';
 		if($lastSync>0){
@@ -858,7 +859,7 @@ class Lib {
 		}
 		$sql .= ' AND `priority` = ? ORDER BY `priority`';
 		$query = \OC_DB::prepare($sql);
-		$result = $lastSync>0?$query->execute(Array($user, $priority, $lastSync)):
+		$result = $lastSync>0?$query->execute(Array($user, $lastSync, $priority)):
 			$query->execute(Array($user, $priority));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
@@ -868,9 +869,10 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for user:priority '.$user.":".$priority, \OCP\Util::ERROR);
 		}
 		foreach($results as $row){
+			\OCP\Util::writeLog('files_sharding', "--> ".$row['server_id'], \OC_Log::WARN);
 			return $row['server_id'];
 		}
-		\OCP\Util::writeLog('files_sharding', 'No server found via db for user:priority '.$user.":".$priority, \OC_Log::DEBUG);
+		\OCP\Util::writeLog('files_sharding', 'No server found for query '.$sql."-->".$user .":". $priority .":". $lastSync, \OC_Log::DEBUG);
 		return null;
 	}
 	
@@ -882,9 +884,6 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
-		if(count($results)>1){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for user:site '.$user.":".$site, \OCP\Util::ERROR);
-		}
 		foreach($results as $row){
 			foreach($servers as $server){
 				if(isset($servers['site']) && $servers['site']===$site && $row['server_id']===$servers['id']){
