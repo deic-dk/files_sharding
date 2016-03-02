@@ -1,5 +1,70 @@
-function get_home_server(previous_site, site){
-	backup_server_id = $('#filesShardingPersonalSettings .backup_server').attr('id');
+OC.dialogs = _.extend({}, OC.dialogs, {
+	notify:function(text, title, callback, modal, name, password, buttons) {
+		return $.when(this._getMessageTemplate()).then(function ($tmpl) {
+			var mywidth = $(window).width()*0.7;
+			var inputwidth = 0.9*mywidth;
+			var dialogName = 'oc-dialog-' + OCdialogs.dialogsCounter + '-content';
+			var dialogId = '#' + dialogName;
+			var $dlg = $tmpl.octemplate({
+				dialog_name: dialogName,
+				title      : title,
+				message    : text,
+				type       : 'notice'
+			});
+			if(name){
+				var input = $('<input/>');
+				input.attr('type', password ? 'password' : 'text').attr('id', dialogName + '-input');
+				var label = $('<label/>').attr('for', dialogName + '-input').text(name + ': ');
+				$dlg.append(label);
+				$dlg.append(input);
+				input.css('width', inputwidth);
+			}
+			if (modal === undefined) {
+				modal = false;
+			}
+			$('body').append($dlg);
+			var buttonlist = [{
+					text         : t('core', buttons && buttons==OCdialogs.YES_NO_BUTTONS?'Yes':'OK'),
+					click        : function () {
+						if (callback !== 'undefined' && callback !==null) {
+							callback(true, input.val());
+						}
+						$(dialogId).ocdialog('close');
+					},
+					defaultButton: true
+				}
+			];
+			if(buttons && buttons==OCdialogs.YES_NO_BUTTONS){
+				buttonlist.unshift({
+					text : t('core', 'No'),
+					click: function () {
+						if (callback !== undefined) {
+							callback(false, input.val());
+						}
+						$(dialogId).ocdialog('close');
+					}
+				});
+				};
+
+			$(dialogId).ocdialog({
+				closeOnEscape: true,
+				modal        : modal,
+				buttons      : buttonlist,
+				width: mywidth
+			});
+			OCdialogs.dialogsCounter++;
+		});
+	}
+});
+
+
+var changing = false;
+var previous_home_site;
+var saving = false;
+
+function get_home_server(site){
+	changing = true;
+	var backup_server_id = $('#filesShardingPersonalSettings .backup_server').attr('id');
 	$.ajax(OC.linkTo('files_sharding','ajax/get_server.php'), {
 		 type:'POST',
 		  data:{
@@ -17,16 +82,26 @@ function get_home_server(previous_site, site){
 			  $('#filesShardingPersonalSettings .home_server').attr('id',  s.server_id);
 				// When changing - remove current backup site from backup sites list and replace it with current main site (selected)
 			  $('#filesShardingPersonalSettings div select.backup_site option[value="'+site+'"]').hide();
-			  $('#filesShardingPersonalSettings div select.backup_site option[value="'+previous_site+'"]').show().attr('selected', 'selected');
+			  $('#filesShardingPersonalSettings div select.backup_site option[value="'+previous_home_site+'"]').show();
+			  if($('#filesShardingPersonalSettings div select.backup_site').val()!=''){
+				  $('#filesShardingPersonalSettings div select.backup_site option[value="'+previous_home_site+'"]').attr('selected', 'selected');
+				  get_backup_server(previous_home_site)
+			  }
+			  else{
+				  $('#filesShardingPersonalSettings div select.backup_site option').removeAttr('selected');
+			  }
+			  previous_home_site = site;
+			  changing = false;
 		 },
 		error:function(s){
+			changing = false;
 			alert("Unexpected error!");
 		}
 	});
 }
 
 function get_backup_server(site){
-	home_server_id = $('#filesShardingPersonalSettings .home_server').attr('id');
+	var home_server_id = $('#filesShardingPersonalSettings .home_server').attr('id');
 	$.ajax(OC.linkTo('files_sharding','ajax/get_server.php'), {
 		 type:'POST',
 		  data:{
@@ -37,14 +112,12 @@ function get_backup_server(site){
 		 dataType:'json',
 		 success: function(s){
 			 if(s.error){
-				$('#filesShardingPersonalSettings div select.backup_site').val('');
 				 alert(s.error);
 			 }
 			  $('#filesShardingPersonalSettings .backup_server').text( s.server_url);
 			  $('#filesShardingPersonalSettings .backup_server').attr('id',  s.server_id);
 		 },
 		error:function(s){
-			$('#filesShardingPersonalSettings div select.backup_site').val('');
 			alert("Unexpected error!");
 		}
 	});
@@ -63,6 +136,8 @@ function set_home_server(home_server_id, backup_server_id){
 			 OC.msg.finishedSaving('#setHomeServerMsg', {status: 'success', data: {message: "Site selection saved"}});
 			 $('#lastSync').text(s.last_sync);
 			 $('#nextSync').text(s.next_sync);
+			 $('#filesShardingPersonalSettings #current_home_server').attr('site', home_server_id);
+			 $('#filesShardingPersonalSettings #current_home_server').text($('#filesShardingPersonalSettings .home_server').text());
 		 },
 		error:function(s){
 			 OC.msg.finishedSaving('#setHomeServerMsg', {status: 'error', data: {message: "Unexpected error"}});
@@ -158,9 +233,9 @@ function stripTrailingSlash(str) {
 	return str;
 }
 
-var previous_home_site;
-
 $(document).ready(function(){
+	
+	previous_home_site = $('#filesShardingPersonalSettings div select.home_site').val();
 	
 	$("li").click(function(){
 		$(this).css("font-weight", "bold");
@@ -184,15 +259,12 @@ $(document).ready(function(){
 	  }
 	});
 
-	/*$('#filesShardingPersonalSettings div select.home_site').on('change', function() {
+	$('#filesShardingPersonalSettings div select.home_site').on('change', function() {
+		if(changing){
+			return false;
+		}
 		get_home_server($(this).val());
-	 });*/
-	
-	$('#filesShardingPersonalSettings div select.home_site').focus(function () {
-		previous_home_site = $(this).val();
-	}).change(function() {
-		get_home_server(previous_home_site, $(this).val());
-	});
+	 });
 	
 	$('#filesShardingPersonalSettings div select.backup_site').on('change', function() {
 		 $('#lastSync').text('');
@@ -201,9 +273,34 @@ $(document).ready(function(){
 	 });
 	
 	$('#filesShardingPersonalSettings .save_home_server .save').click(function(){
-		home_server_id = $('#filesShardingPersonalSettings .home_server').attr('id');
-		backup_server_id = $('#filesShardingPersonalSettings .backup_server').attr('id');
-		set_home_server(home_server_id, backup_server_id);
+		if(saving){
+			return false;
+		}
+		saving = true;
+		var current_home_server = $('#filesShardingPersonalSettings #current_home_server').text();
+		var new_home_server = $('#filesShardingPersonalSettings .home_server').text();
+		var home_server_id = $('#filesShardingPersonalSettings .home_server').attr('id');
+		var home_site = $('#filesShardingPersonalSettings div select.home_site').val() ;
+		var backup_server_id = $('#filesShardingPersonalSettings .backup_server').attr('id');
+		if(new_home_server!=current_home_server){
+  		OC.dialogs.confirm('Are you sure you want to change site to '+home_site+' ?', 'Change site?',
+          function(res){
+	  				if(res){
+	  		  		OC.dialogs.notify('Your files will now be migrated. Please change your sync clients from\
+	  		  				'+current_home_server+' \
+	  		  				to\
+	  		  				'+new_home_server+'\
+	  		  				Your files will be set read-only until the migration is over. You will be logged out now. Log back in in a few hours.',
+	  		  				'Change server', function(e){set_home_server(home_server_id, backup_server_id);}, false);
+	  				}
+	  				saving = false;
+          }
+       );
+		}
+		else{
+			set_home_server(home_server_id, backup_server_id);
+			saving = false;
+		}
 	});
 
 

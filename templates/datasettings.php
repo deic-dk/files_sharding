@@ -10,6 +10,7 @@
 			}
 			?>
 		</select>
+		<div class="hidden" id="current_home_server" site=$_['user_home_site']><?php print $_['user_server_url']; ?></div>
 	</div>
 	<div>
 		<label class="nowrap">Backup site: </label>
@@ -21,8 +22,8 @@
 					continue;
 				}*/
 				print '<option value="'.$site['site'].'"'.
-				($site['site']==$_['user_home_site']?'" class="hidden"':'"').
-				(isset($_['user_backup_site'])&&$_['user_backup_site']===$site['site']?'" selected':'"').
+				($site['site']==$_['user_home_site']?' style="display:none;"':'').
+				(isset($_['user_backup_site'])&&$_['user_backup_site']===$site['site']?' selected="selected"':'').
 				'>'.$site['site'].'</option>';
 			}
 			?>

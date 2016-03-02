@@ -40,11 +40,19 @@ function disableWrite(){
 	else{
 		return false;
 	}
+    //I'll check prop() vs. attr() here - Ashokaditya
 	$('.file-actions .action').not('.action-download').prop( "disabled", true );
 	$('.ui-draggable').removeClass('ui-draggable');
 	$('.ui-draggable').remove();
 	/*$('td.filename').draggable('destroy'); */
+    // changed to dragstop which is the correct event for end of drag
+    // or dropping the draggable element
+    // We need to catch also files dropped from the desktop - Frederik.
 	$('body').on('drop', function (e) {
+		e.preventDefault();
+		return false;
+	});
+	$('body').on('dragstop', function (e) {
 		e.preventDefault();
 		return false;
 	});
@@ -66,7 +74,15 @@ $(window).load(function(){
 	checkUserServerAccess();
 });
 
+//shorthand for on.('mousedown', handler)
+// works better with all browsers - Ashokaditya
+// It was not on, it was one - Frederik
+/*$(document).mousedown(function(){
+    checkUserServerAccess();
+});*/
+
 $(document).one('mousedown', function(){
 	checkUserServerAccess();
 });
+
 
