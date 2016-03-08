@@ -2,19 +2,27 @@ var USER_ACCESS_ALL = 0;
 var USER_ACCESS_READ_ONLY = 1;
 var USER_ACCESS_NONE = 2;
 
+var isChecking = false;
+
 // Check access (r/o if on a backup server, or if on new main server and migrating)
 function checkUserServerAccess(){
+	$(document).off('mousedown', checkUserServerAccess);
+	if(isChecking){
+		return false;
+	}
+	isChecking = true;
 	var user_id;
 	var server_id;
 	$.ajax({
 		url: OC.filePath('files_sharding', 'ajax', 'get_user_server_access.php'),
-		async: false,
+		async: true,
 		data: {
 			user_id: user_id,
 			server_id: server_id
 		},
 		type: "GET",
 		success: function(result) {
+			isChecking = false;
 			if(result['access']){
 				var res = parseInt(result['access'], 10);
 				switch(res){
@@ -26,14 +34,21 @@ function checkUserServerAccess(){
 						break;
 				}
 			}
+		},
+		error: function(result) {
+			isChecking = false;
 		}
 	});
+	return false;
 }
 
 var notify = false;
 
 function disableWrite(){
 	if(!notify){
+		if(!$('.access-message').length){
+			$('<div class="msg access-message"></div>').insertAfter('.crumb.last');
+		}
 		OC.msg.finishedSaving('.access-message', {status: 'success', data: {message: "You only have read access on this server"}});
 		notify = true;
 	}
@@ -62,6 +77,8 @@ function disableWrite(){
 	});
 	var style = $('<style>#controls #upload,  #controls #new, .select-all, .fileselect, .action.delete, .fileactions-wrap, .app-gallery .right, li[data-id="meta_data"], li[data-id="importer_index"] , li[data-id="uploader"] { display: none; }</style>');
 	$('html > head').append(style);
+  //$("a").draggable('disable');
+  //$(".user-menu").draggable('disable');
 }
 
 function logout(){
@@ -69,20 +86,10 @@ function logout(){
 	window.location = "/index.php?logout=true&blocked=true";
 }
 
-$(window).load(function(){
-	$('<div class="msg access-message"></div>').insertAfter('.crumb.last');
+$(document).ready(function(){
 	checkUserServerAccess();
+	if (-1 !== $.inArray(checkUserServerAccess, $(document).data('events').mousedown)) {
+		$(document).on('mousedown', checkUserServerAccess);
+	}
 });
-
-//shorthand for on.('mousedown', handler)
-// works better with all browsers - Ashokaditya
-// It was not on, it was one - Frederik
-/*$(document).mousedown(function(){
-    checkUserServerAccess();
-});*/
-
-$(document).one('mousedown', function(){
-	checkUserServerAccess();
-});
-
 
