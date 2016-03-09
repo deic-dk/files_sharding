@@ -25,11 +25,12 @@ if(!empty($id)){
 if(!empty($dirId)){
 	$dir = \OC\Files\Filesystem::getPath($dirId);
 }
-if(!empty($user_id)){
+/*if(!empty($user_id)){
 	\OC_User::setUserId($user_id);
 	\OC_Util::setupFS($user_id);
-}
+}*/
 // TODO: Check of user_id is allowed to read files - perhaps already done by get().
+//       --- Well, in general user_id will not exist on the same node as owner.
 
 $files_list = json_decode($files);
 // in case we get only a single file
@@ -39,4 +40,10 @@ if (!is_array($files_list)) {
 
 \OCP\Util::writeLog('files_sharding', 'files: '.$files.', dir: '.$dir.', owner: '.$owner, \OC_Log::WARN);
 
-OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
+if(!empty($path)){
+	OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
+}
+else{
+	\OCP\Util::writeLog('files_sharding', 'ERROR: file(s)  not found '.$id.'-->'.$_GET["files"], \OC_Log::ERROR);
+}
+
