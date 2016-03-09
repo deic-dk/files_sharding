@@ -18,16 +18,16 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 			\OCP\Util::writeLog('files_sharding', 'ERROR: Will not sync with web cron.', \OC_Log::ERROR);
 		}
 		$userArr = \OCA\FilesSharding\Lib::getNextSyncUser();
-		$user = $userArr['user_id'];
-		$priority = $userArr['priority'];
-		\OCP\Util::writeLog('files_sharding', 'Syncing user '.$user, \OC_Log::WARN);
-		if(!empty($user)){
+		if(!empty($userArr['user_id'])){
+			$user = $userArr['user_id'];
+			$priority = $userArr['priority'];
+			\OCP\Util::writeLog('files_sharding', 'Syncing user '.$user, \OC_Log::WARN);
 			$server = \OCA\FilesSharding\Lib::syncUser($user, $priority);
 			$thisServerId = \OCA\FilesSharding\Lib::lookupServerId();
 			// Notify user
 			if(\OCP\App::isEnabled('user_notification')){
 				$primary_server_url = \OCA\FilesSharding\Lib::getServerForUser($user);
-				if($priority==self::$USER_SERVER_PRIORITY_PRIMARY){
+				if($priority==\OCA\FilesSharding\Lib::$USER_SERVER_PRIORITY_PRIMARY){
 					\OCA\UserNotification\Data::send('files_sharding', 'Your files have been backed up.', array(),
 							'sync_finished',
 							array($server, $thisServerId), '', '', $user, \OCA\FilesSharding\Lib::TYPE_SERVER_SYNC,
