@@ -656,19 +656,21 @@ class Lib {
 		$results = $result->fetchAll();
 		\OCP\Util::writeLog('files_sharding', 'Sites: '.count($results), \OC_Log::WARN);
 		
+		$del = array();
+		
 		if(isset($exclude_server_id)){
 			$i = 0;
-			$del = false;
 			foreach($results as $row){
-				if(!empty($exclude_server_id) && $row['id']===$exclude_server_id){
-					$del = true;
+				if(!empty($exclude_server_id) && $row['id']===$exclude_server_id ||
+						$priority>=self::$USER_SERVER_PRIORITY_BACKUP_1 && !empty($row['exclude_as_backup']) && $row['allow_as_backup']==='yes'){
+					$del[] = $i;
 					break;
 				}
 				++$i;
 			}
-			if($del){
-				array_splice($results, $i, 1);
-				array_values($results);
+			foreach($del as $i){
+				$results = array_splice($results, $i, 1);
+				$results = array_values($results);
 			}
 		}
 		
@@ -1100,7 +1102,10 @@ class Lib {
 		// Get list of shared file mappings: ID -> path and update item_source on oc_share table on master with new IDs
 		self::updateUserSharedFiles($user);
 		// Get exported metadata (by path) via remote metadata web API and insert metadata on synced files by using local metadata web API
-		\OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
+		// TODO: abstract this via a hook
+		if(\OCP\App::isEnabled('meta_data')){
+			\OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
+		}
 		// Get and insert the password of the user
 		$pwHash = self::getPasswordHash($user, $serverURL);
 		$pwOk = self::setPasswordHash($user, $pwHash);
@@ -1140,10 +1145,10 @@ class Lib {
 		// Correction array to send to master
 		$newIdMap = array('user_id'=>$user_id);
 		foreach($sharedItems as $share){
-			$path = \OC\Files\Filesystem::getPath($share['file_source']);
+			$path = $share['path'];
 			// Get files/folders owned by user (locally) with the path of $share
-			$file = OCA\FilesSharding\Lib::dbGetUserFile('files'.$path, $user_id);
-			\OCP\Util::writeLog('files_sharding', 'Share: '.$file['path'].'==='.'files'.$path, \OC_Log::WARN);
+			$file = self::dbGetUserFile('files'.$path, $user_id);
+			\OCP\Util::writeLog('files_sharding', 'Share: '.'files'.$path.'-->'.$share['item_source'].'!='.$file['fileid'], \OC_Log::WARN);
 			if($share['item_source']!=$file['fileid']){
 				$newIdMap[$share['item_source']] = $file['fileid'];
 			}
@@ -1233,7 +1238,7 @@ class Lib {
 	
 	/**
 	 * Get all items (yes, bad naming) shared by user.
-	 * @param unknown $user_id
+	 * @param $user_id
 	 * @return array
 	 */
 	public static function getItemSharedByUser($user_id){
@@ -1257,6 +1262,10 @@ class Lib {
 				return null;
 			}
 			$ret = \OCP\Share::getItemShared('file', null);
+			foreach($ret as &$share){
+				$path = \OC\Files\Filesystem::getPath($ret['file_source']);
+				$ret['path'] = $path;
+			}
 			if(isset($old_user) && $old_user){
 				self::restoreUser($old_user);
 			}
