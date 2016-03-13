@@ -27,6 +27,7 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 				\OC_User::createUser($user, $password);
 			}
 			// Update the password and storage ids of the user (in case they have changed)
+			$serverURL = \OCA\FilesSharding\Lib::getServerForUser($user, true);
 			$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($user, $serverURL);
 			$pwOk = \OCA\FilesSharding\Lib::setPasswordHash($user, $pwHash);
 			$storageOk = \OCA\FilesSharding\Lib::setNumericStorageId($user, $numericStorageId);

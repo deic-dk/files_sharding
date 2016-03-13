@@ -275,7 +275,7 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'No user', \OC_Log::ERROR);
 			return null;
 		}
-		$storage = \OC\Files\Filesystem::getStorage($user_id.'/files/');
+		$storage = \OC\Files\Filesystem::getStorage('/'.$user_id.'/');
 		$storageId = $storage->getId();
 		$numericStorageId = \OC\Files\Cache\Storage::getNumericStorageId($storageId);
 		\OCP\Util::writeLog('files_sharding', 'Storage ID for user '.$user_id.': '.$storageId, \OC_Log::WARN);
@@ -740,7 +740,7 @@ class Lib {
 		// If we're setting a new backup server, disable current backup server
 		if($priority==1){
 			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `priority` >= ?');
-			$result = $query->execute( array(self::$USER_SERVER_PRIORITY_DISABLE, self::$USER_ACCESS_NONE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1));
+			$result = $query->execute(array(self::$USER_SERVER_PRIORITY_DISABLE, self::$USER_ACCESS_NONE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1));
 			// Backup server cleared, nothing more to do
 			if(empty($server_id)){
 				return $result ? true : false;
@@ -797,7 +797,7 @@ class Lib {
 		}
 		else{
 			$args = array('user_id'=>$user_id, 'server_id'=>$server_id, 'priority'=>$priority);
-			if($access!==null){
+			if($access===0 || $access==='0' || !empty($access)){
 				$args['access'] = $access;
 			}
 			if($last_sync!==null){
@@ -1054,12 +1054,26 @@ class Lib {
 							$row['access']===self::$USER_ACCESS_READ_ONLY ||
 						$row['priority']>self::$USER_SERVER_PRIORITY_PRIMARY)){
 				// Need to pass the storate ID, so the user gets the same on the backup server
-				$storage = \OC\Files\Filesystem::getStorage($row['user_id'].'/files/');
+				$loggedin_user = \OCP\USER::getUser();
+				if(isset($loggedin_user) && $row['user_id']!=$loggedin_user){
+					$old_user = self::switchUser($row['user_id']);
+				}
+				else{
+					\OC_User::setUserId($row['user_id']);
+					\OC_Util::setupFS($row['user_id']);
+				}
+				$storage = \OC\Files\Filesystem::getStorage('/'.$row['user_id'].'/');
 				$storageId = $storage->getId();
 				$numericStorageId = \OC\Files\Cache\Storage::getNumericStorageId($storageId);
 				$row['numeric_storage_id'] = $numericStorageId;
+				if(isset($old_user) && $old_user){
+					self::restoreUser($old_user);
+				}
 				return($row);
 			}
+		}
+		if(isset($old_user) && $old_user){
+			self::restoreUser($old_user);
 		}
 		return null;
 	}
@@ -1205,20 +1219,20 @@ class Lib {
 			$res = self::dbGetPwHash($user_id);
 		}
 		else{
-			$res = self::ws('get_pw_hash', array('user_id'=>$user_id), true, false, $serverURL);
+			$res = self::ws('get_pw_hash', array('user_id'=>$user_id), true, true, $serverURL);
 		}
-		if(empty($res->{'pw_hash'})){
-			\OC_Log::write('files_sharding',"No password returned. ".$res->{'error'}, \OC_Log::WARN);
+		if(empty($res['pw_hash'])){
+			\OC_Log::write('files_sharding',"No password returned. ".$res['error'], \OC_Log::WARN);
 			return null;
 		}
-		if(!empty($res->{'error'})){
-			\OC_Log::write('files_sharding',"Password error. ".$res->{'error'}, \OC_Log::WARN);
+		if(!empty($res['error'])){
+			\OC_Log::write('files_sharding',"Password error. ".$res['error'], \OC_Log::WARN);
 		}
-		return $res->{'pw_hash'};
+		return $res['pw_hash'];
 	}
 	
 	public static function dbGetPwHash($user_id){
-		$query = OC_DB::prepare( "SELECT `password` FROM `*PREFIX*users` WHERE `uid` = ?" );
+		$query = \OC_DB::prepare( "SELECT `password` FROM `*PREFIX*users` WHERE `uid` = ?" );
 		$result = $query->execute( array($user_id))->fetchRow();
 		return $result['password'];
 	}
