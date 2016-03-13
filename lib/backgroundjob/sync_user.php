@@ -21,6 +21,15 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 		if(!empty($userArr['user_id'])){
 			$user = $userArr['user_id'];
 			$priority = $userArr['priority'];
+			$numericStorageId = $userArr['numeric_storage_id'];
+			if(!\OCP\User::userExists($user)){
+				$password = \OC_Util::generateRandomBytes(20);
+				\OC_User::createUser($user, $password);
+			}
+			// Update the password and storage ids of the user (in case they have changed)
+			$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($user, $serverURL);
+			$pwOk = \OCA\FilesSharding\Lib::setPasswordHash($user, $pwHash);
+			$storageOk = \OCA\FilesSharding\Lib::setNumericStorageId($user, $numericStorageId);
 			\OCP\Util::writeLog('files_sharding', 'Syncing user '.$user, \OC_Log::WARN);
 			$server = \OCA\FilesSharding\Lib::syncUser($user, $priority);
 			$thisServerId = \OCA\FilesSharding\Lib::lookupServerId();

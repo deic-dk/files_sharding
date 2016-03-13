@@ -235,27 +235,9 @@ class Lib {
 	}
 	
 	public static function dbGetUserFiles($user_id=null){
-		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
-		$storage = \OC\Files\Filesystem::getStorage($user_id.'/files/');
-		$storageId = $storage->getId();
-		$numericStorageId = \OC\Files\Cache\Storage::getNumericStorageId($storageId);
-		\OCP\Util::writeLog('files_sharding', 'Storage ID for '.$user_id.': '.$storageId, \OC_Log::WARN);
-		if(empty($numericStorageId) || $numericStorageId==-1){
-			return null;
-		}
-		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*filecache` WHERE storage = ?');
-		$result = $query->execute(Array($numericStorageId));
-		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
-		}
-		$results = $result->fetchAll();
-		return $results;
-	}
-	
-	public static function dbGetUserFile($path, $user_id=null){
 		$loggedin_user = \OCP\USER::getUser();
 		if(isset($user_id)){
-			if(isset($loggedin_user)){
+			if(isset($loggedin_user) && $user_id!=$loggedin_user){
 				$old_user = self::switchUser($user_id);
 			}
 			else{
@@ -266,6 +248,29 @@ class Lib {
 		else{
 			$user_id = getUser();
 		}
+		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
+		$storage = \OC\Files\Filesystem::getStorage('/'.$user_id.'/');
+		$storageId = $storage->getId();
+		//$mount = \OC\Files\Filesystem::getMountByNumericId('8');
+		$numericStorageId = \OC\Files\Cache\Storage::getNumericStorageId($storageId);
+		\OCP\Util::writeLog('files_sharding', 'Storage ID for '.$user_id.': '.$numericStorageId.': '/*.
+				$mount[0]->getMountPoint()*/, \OC_Log::WARN);
+		if(empty($numericStorageId) || $numericStorageId==-1){
+			return null;
+		}
+		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*filecache` WHERE storage = ?');
+		$result = $query->execute(Array($numericStorageId));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$results = $result->fetchAll();
+		if(isset($old_user) && $old_user){
+			self::restoreUser($old_user);
+		}
+		return $results;
+	}
+	
+	private static function dbGetUserFile($path, $user_id){
 		if(empty($user_id)){
 			\OCP\Util::writeLog('files_sharding', 'No user', \OC_Log::ERROR);
 			return null;
@@ -273,7 +278,7 @@ class Lib {
 		$storage = \OC\Files\Filesystem::getStorage($user_id.'/files/');
 		$storageId = $storage->getId();
 		$numericStorageId = \OC\Files\Cache\Storage::getNumericStorageId($storageId);
-		\OCP\Util::writeLog('files_sharding', 'Storage ID for '.$user_id.': '.$storageId, \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'Storage ID for user '.$user_id.': '.$storageId, \OC_Log::WARN);
 		if(empty($numericStorageId) || $numericStorageId==-1){
 			return null;
 		}
@@ -285,9 +290,6 @@ class Lib {
 		$results = $result->fetchAll();
 		\OCP\Util::writeLog('files_sharding','Found file: '.$numericStorageId. ' --> '.$path.' : '.serialize($results),
 				\OC_Log::DEBUG);
-		if(isset($old_user) && $old_user){
-			self::restoreUser($old_user);
-		}
 		if(count($results)>1){
 			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for user/path '.$user_id.'/'.$path, \OCP\Util::ERROR);
 		}
@@ -794,9 +796,14 @@ class Lib {
 			$ret = self::dbSetServerForUser($user_id, $server_id, $priority, $access, $last_sync);
 		}
 		else{
-			$ret = self::ws('set_server_for_user',
-				array('user_id'=>$user_id, 'server_id'=>$server_id, 'priority'=>$priority,
-						'access'=>$access, 'last_sync'=>$last_sync));
+			$args = array('user_id'=>$user_id, 'server_id'=>$server_id, 'priority'=>$priority);
+			if($access!==null){
+				$args['access'] = $access;
+			}
+			if($last_sync!==null){
+				$args['last_sync'] = $last_sync;
+			}
+			$ret = self::ws('set_server_for_user', $args);
 		}
 		return $ret;
 	}
@@ -1046,6 +1053,11 @@ class Lib {
 					($row['priority']===self::$USER_SERVER_PRIORITY_PRIMARY &&
 							$row['access']===self::$USER_ACCESS_READ_ONLY ||
 						$row['priority']>self::$USER_SERVER_PRIORITY_PRIMARY)){
+				// Need to pass the storate ID, so the user gets the same on the backup server
+				$storage = \OC\Files\Filesystem::getStorage($row['user_id'].'/files/');
+				$storageId = $storage->getId();
+				$numericStorageId = \OC\Files\Cache\Storage::getNumericStorageId($storageId);
+				$row['numeric_storage_id'] = $numericStorageId;
 				return($row);
 			}
 		}
@@ -1106,10 +1118,7 @@ class Lib {
 		if(\OCP\App::isEnabled('meta_data')){
 			\OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
 		}
-		// Get and insert the password of the user
-		$pwHash = self::getPasswordHash($user, $serverURL);
-		$pwOk = self::setPasswordHash($user, $pwHash);
-		if($i<=self::$MAX_SYNC_ATTEMPTS && $pwOk){
+		if($i<=self::$MAX_SYNC_ATTEMPTS){
 			// Update last_sync, set r/w if this is a new primary server
 			$access = null;
 			if($priority==self::$USER_SERVER_PRIORITY_PRIMARY){
@@ -1140,6 +1149,19 @@ class Lib {
 	}
 	
 	public static function updateUserSharedFiles($user_id){
+		$loggedin_user = \OCP\USER::getUser();
+		if(isset($user_id)){
+			if(isset($loggedin_user) && $user_id!=$loggedin_user){
+				$old_user = self::switchUser($user_id);
+			}
+			else{
+				\OC_User::setUserId($user_id);
+				\OC_Util::setupFS($user_id);
+			}
+		}
+		else{
+			$user_id = getUser();
+		}
 		// Get all files/folders shared by user
 		$sharedItems = self::getItemSharedByUser($user_id);
 		// Correction array to send to master
@@ -1152,6 +1174,9 @@ class Lib {
 			if($share['item_source']!=$file['fileid']){
 				$newIdMap[$share['item_source']] = $file['fileid'];
 			}
+		}
+		if(isset($old_user) && $old_user){
+			self::restoreUser($old_user);
 		}
 		// Send the correction array to master
 		$ret = self::ws('update_share_item_sources', $newIdMap);
@@ -1166,11 +1191,22 @@ class Lib {
 		return $result ? true : false;
 	}
 	
-	static function getPasswordHash($user_id, $serverURL=null){
+	public static function setNumericStorageID($user_id, $numericId) {
+		$query = \OC_DB::prepare('UPDATE `*PREFIX*storages` SET `numeric_id` = ? WHERE `id` = ?');
+		$result = $query->execute(array($numericId, 'home::'.$user_id));
+		return $result ? true : false;
+	}
+	
+	public static function getPasswordHash($user_id, $serverURL=null){
 		if($serverURL==null){
 			$serverURL = self::getMasterInternalURL();
 		}
-		$res = self::ws('get_pw_hash', array('user_id'=>$user_id), true, false, $serverURL);
+		if(self::isMaster() || self::onServerForUser($user_id)){
+			$res = self::dbGetPwHash($user_id);
+		}
+		else{
+			$res = self::ws('get_pw_hash', array('user_id'=>$user_id), true, false, $serverURL);
+		}
 		if(empty($res->{'pw_hash'})){
 			\OC_Log::write('files_sharding',"No password returned. ".$res->{'error'}, \OC_Log::WARN);
 			return null;
@@ -1179,6 +1215,12 @@ class Lib {
 			\OC_Log::write('files_sharding',"Password error. ".$res->{'error'}, \OC_Log::WARN);
 		}
 		return $res->{'pw_hash'};
+	}
+	
+	public static function dbGetPwHash($user_id){
+		$query = OC_DB::prepare( "SELECT `password` FROM `*PREFIX*users` WHERE `uid` = ?" );
+		$result = $query->execute( array($user_id))->fetchRow();
+		return $result['password'];
 	}
 	
 	/**
@@ -1241,9 +1283,8 @@ class Lib {
 	 * @param $user_id
 	 * @return array
 	 */
-	public static function getItemSharedByUser($user_id){
-		if(!\OCP\App::isEnabled('files_sharding') || self::isMaster()){
-			
+	private static function getItemSharedByUser($user_id){
+		if(self::isMaster()){
 			$loggedin_user = \OCP\USER::getUser();
 			if(isset($user_id)){
 				if(isset($loggedin_user)){
