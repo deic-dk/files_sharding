@@ -300,6 +300,7 @@ class Lib {
 	}
 	
 	public static function updateShareItemSources($user_id, $map){
+		$result = true;
 		foreach($map as $oldItemSource => $newItemSource){
 			$query = \OC_DB::prepare('UPDATE `*PREFIX*share` set `item_source` = ? WHERE item_source` = ? AND `uid_owner` = $user_id');
 			$result = $result && $query->execute(Array($oldItemSource, $newItemSource, $user_id));
@@ -1125,26 +1126,27 @@ class Lib {
 			++$i;
 		}
 		while(!is_numeric($syncedFiles) || is_numeric($syncedFiles) && $syncedFiles!=0);
-		// Get list of shared file mappings: ID -> path and update item_source on oc_share table on master with new IDs
-		self::updateUserSharedFiles($user);
-		// Get exported metadata (by path) via remote metadata web API and insert metadata on synced files by using local metadata web API
-		// TODO: abstract this via a hook
-		if(\OCP\App::isEnabled('meta_data')){
-			\OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
-		}
 		if($i<=self::$MAX_SYNC_ATTEMPTS){
 			// Update last_sync, set r/w if this is a new primary server
 			$access = null;
+			$ok = true;
 			if($priority==self::$USER_SERVER_PRIORITY_PRIMARY){
+				// Get list of shared file mappings: ID -> path and update item_source on oc_share table on master with new IDs
+				$ok = $ok && self::updateUserSharedFiles($user);
+				// Get exported metadata (by path) via remote metadata web API and insert metadata on synced files by using local metadata web API
+				// TODO: abstract this via a hook
+				if(\OCP\App::isEnabled('meta_data')){
+					$ok = $ok && \OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
+				}
 				$access = self::$USER_ACCESS_ALL;
 			}
 			$now = time();
-			self::setServerForUser($user, null, $priority, $access, $now);
-			return $publicServerURL;
+			if($ok){
+				self::setServerForUser($user, null, $priority, $access, $now);
+				return $publicServerURL;
+			}
 		}
-		else{
-			return null;
-		}
+		return null;
 	}
 	
 	public static function deleteUser($user) {
@@ -1195,9 +1197,11 @@ class Lib {
 		}
 		// Send the correction array to master
 		$ret = self::ws('update_share_item_sources', $newIdMap);
-		if($ret===null){
+		if($ret===null || $ret===false){
 			\OCP\Util::writeLog('files_sharding', 'updateUserSharedFiles error', \OC_Log::ERROR);
+			return false;
 		}
+		return true;
 	}
 	
 	public static function setPasswordHash($user_id, $pwHash) {
