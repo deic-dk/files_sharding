@@ -1185,7 +1185,8 @@ class Lib {
 			// Get files/folders owned by user (locally) with the path of $share
 			$file = self::dbGetUserFile('files'.$path, $user_id);
 			\OCP\Util::writeLog('files_sharding', 'Share: '.'files'.$path.'-->'.$share['item_source'].'!='.$file['fileid'], \OC_Log::WARN);
-			if($share['item_source']!=$file['fileid']){
+			// If empty, file syncing probably failed - back off
+			if(!empty($file) && $share['item_source']!=$file['fileid']){
 				$newIdMap[$share['item_source']] = $file['fileid'];
 			}
 		}
