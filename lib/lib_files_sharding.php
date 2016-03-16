@@ -650,30 +650,31 @@ class Lib {
 		// TODO: placing algorithm that takes, quota, available space and even distribution of users into consideration
 		// For now, just take the first server found of the given site.
 		$current_server_id = self::dbLookupServerIdForUser($user_id, $priority);
-		$old_server_id = self::dbLookupOldServerIdForUser($user_id, $site);
+		$old_server_ids = self::dbLookupOldServerIdsForUser($user_id);
+		\OCP\Util::writeLog('files_sharding', 'Current server: '.$current_server_id, \OC_Log::WARN);
 		$query = \OC_DB::prepare('SELECT `id` FROM `*PREFIX*files_sharding_servers` WHERE `site` = ?');
 		$result = $query->execute(Array($site));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
-		\OCP\Util::writeLog('files_sharding', 'Sites: '.count($results), \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'Number of servers for site '.$site.': '.count($results), \OC_Log::WARN);
 		
 		$del = array();
 		
 		if(isset($exclude_server_id)){
-			$i = 0;
-			foreach($results as $row){
+			foreach($results as $i=>$row){
 				if(!empty($exclude_server_id) && $row['id']===$exclude_server_id ||
-						$priority>=self::$USER_SERVER_PRIORITY_BACKUP_1 && !empty($row['exclude_as_backup']) && $row['allow_as_backup']==='yes'){
+						$priority>=self::$USER_SERVER_PRIORITY_BACKUP_1 && !empty($row['exclude_as_backup']) && $row['exclude_as_backup']==='yes'){
 					$del[] = $i;
 					break;
 				}
-				++$i;
 			}
 			foreach($del as $i){
+				\OCP\Util::writeLog('files_sharding', 'Excluding '.implode(':', $results[$i]), \OC_Log::WARN);
 				$results = array_splice($results, $i, 1);
 				$results = array_values($results);
+				\OCP\Util::writeLog('files_sharding', 'Servers now: '.serialize($results), \OC_Log::WARN);
 			}
 		}
 		
@@ -685,13 +686,14 @@ class Lib {
 		}
 		// Give priority to a server used before
 		foreach($results as $row){
-			if(!empty($current_server_id) && $row['id']===$old_server_id){
+			if(!empty($current_server_id) &&
+					in_array($row['id'], array_keys($old_server_ids)) && $old_server_ids[$row['id']]===$site){
 				return($row['id']);
 			}
 		}
 
 		$num_rows = count($results);
-		\OCP\Util::writeLog('files_sharding', 'Sites: '.$num_rows, \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'Number of servers now: '.$num_rows, \OC_Log::WARN);
 		if($num_rows>0){
 			$random_int = rand(0, $num_rows-1);
 			\OCP\Util::writeLog('files_sharding', 'Choosing random site '.$random_int.' out of '.$num_rows, \OC_Log::WARN);
@@ -886,9 +888,12 @@ class Lib {
 		return null;
 	}
 	
-	public static function dbLookupOldServerIdForUser($user, $site){
+	private static function dbLookupOldServerIdsForUser($user){
 		$servers = self::dbGetServersList();
-		$query = \OC_DB::prepare('SELECT `server_id` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? ORDER BY `priority`');
+		$ret = array();
+		// Active servers
+		$query = \OC_DB::prepare(
+				'SELECT `server_id` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `priority` >= 0 ORDER BY `priority` ASC');
 		$result = $query->execute(Array($user));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
@@ -896,13 +901,28 @@ class Lib {
 		$results = $result->fetchAll();
 		foreach($results as $row){
 			foreach($servers as $server){
-				if(isset($servers['site']) && $servers['site']===$site && $row['server_id']===$servers['id']){
-					return $row['server_id'];
+				if($row['server_id']===$server['id']){
+					$ret[$row['server_id']] = $server['site'];
 				}
 			}
 		}
-		\OCP\Util::writeLog('files_sharding', 'No server found via db for user:site '.$user.":".$site, \OC_Log::DEBUG);
-		return null;
+		// Inactive servers
+		$query = \OC_DB::prepare(
+				'SELECT `server_id` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `priority` < 0 ORDER BY `priority` DESC');
+		$result = $query->execute(Array($user));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$results = $result->fetchAll();
+		foreach($results as $row){
+			foreach($servers as $server){
+				if($row['server_id']===$server['id']){
+					$ret[$row['server_id']] = $server['site'];
+				}
+			}
+		}
+		\OCP\Util::writeLog('files_sharding', 'Old servers: '.serialize($ret), \OC_Log::WARN);
+		return $ret;
 	}
 	
 	public static function dbLookupLastSync($server_id, $user_id){
