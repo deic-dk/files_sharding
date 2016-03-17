@@ -662,22 +662,21 @@ class Lib {
 		
 		$del = array();
 		
-		if(isset($exclude_server_id)){
-			foreach($results as $i=>$row){
-				if(!empty($exclude_server_id) && $row['id']===$exclude_server_id ||
-						$priority>=self::$USER_SERVER_PRIORITY_BACKUP_1 && !empty($row['exclude_as_backup']) && $row['exclude_as_backup']==='yes'){
-					$del[] = $i;
-					break;
-				}
-			}
-			foreach($del as $i){
-				\OCP\Util::writeLog('files_sharding', 'Excluding '.implode(':', $results[$i]), \OC_Log::WARN);
-				$results = array_splice($results, $i, 1);
-				$results = array_values($results);
-				\OCP\Util::writeLog('files_sharding', 'Servers now: '.serialize($results), \OC_Log::WARN);
+		foreach($results as $i=>$row){
+			if(!empty($exclude_server_id) && $row['id']===$exclude_server_id ||
+					$priority>=self::$USER_SERVER_PRIORITY_BACKUP_1 && !empty($row['exclude_as_backup']) &&
+					$row['exclude_as_backup']==='yes'){
+				$del[] = $i;
+				break;
 			}
 		}
-		
+		foreach($del as $i){
+			\OCP\Util::writeLog('files_sharding', 'Excluding '.implode(':', $results[$i]), \OC_Log::WARN);
+			$results = array_splice($results, $i, 1);
+			$results = array_values($results);
+			\OCP\Util::writeLog('files_sharding', 'Servers now: '.serialize($results), \OC_Log::WARN);
+		}
+				
 		// First see if the user is just playing around and returning to the same site
 		foreach($results as $row){
 			if(!empty($current_server_id) && $row['id']===$current_server_id){
@@ -881,7 +880,6 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for user:priority '.$user.":".$priority, \OCP\Util::ERROR);
 		}
 		foreach($results as $row){
-			\OCP\Util::writeLog('files_sharding', "--> ".$row['server_id'], \OC_Log::WARN);
 			return $row['server_id'];
 		}
 		\OCP\Util::writeLog('files_sharding', 'No server found for query '.$sql."-->".$user .":". $priority .":". $lastSync, \OC_Log::DEBUG);
