@@ -82,7 +82,8 @@ function disableWrite(){
 }
 
 function logout(){
-	deleteCookie('oc_ok', '/', '.data.deic.dk');
+	$cookieDomain = window.location.hostname.substring(window.location.hostname.indexOf('.'));
+	deleteCookie('oc_ok', '/', $cookieDomain);
 	window.location = "/index.php?logout=true&blocked=true";
 }
 

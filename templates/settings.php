@@ -13,18 +13,19 @@
   		<label>URL:</label>
   		<input class="url" type="text" value="'.$url.'">
   		<label>site:</label>
-  		<input class="site" type="text" value="'.$site.'">
-		<label>Charge/GB (DKK):</label>
-		<input class="charge" type="text" value="'.$charge.'"> 
+  		<input class="site" type="text" value="'.$site.'">'.
+  		(\OCP\App::isEnabled('files_accounting')?
+  				'<label>Charge/GB ('.OCA\Files_Accounting\StorageLib::getBillingCurrency().'):</label>':'').
+  		'<input class="charge" type="text" value="'.$charge.'"> 
   		<label>Allow local login:</label>
   		<input class="allow_local_login" type="checkbox"'.($allow_local_login==='yes' ? ' checked="checked"' : '').'>
   		');
   } ?>
   
   <?php
-		print('<div><label>Servers:</label></div>');
+  	print('<div><label>Servers:</label></div>');
   	foreach ($_['servers_list'] as $server){
-			print('<div class="server" id="'.$server['id'].'">');
+  		print('<div class="server" id="'.$server['id'].'">');
   		print_server($server['id'], $server['url'], $server['site'], $server['charge_per_gb'], $server['allow_local_login']);
   		print('<label class="delete_server btn btn-flat">-</label><div class="dialog" display="none"></div>');
   		print('</div>');
@@ -34,5 +35,5 @@
   	print('<label class="add_server btn btn-flat">+</label>');
   	print('</div>');
   	?>
-	
+
 </fieldset>
