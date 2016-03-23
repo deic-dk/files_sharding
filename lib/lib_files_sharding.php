@@ -1131,7 +1131,7 @@ class Lib {
 		$server = $parse['host'];
 		if(empty($server)){
 			\OCP\Util::writeLog('files_sharding', 'No server for user '.$user, \OC_Log::ERROR);
-			return;
+			return null;
 		}
 		$i = 0;
 		do{
