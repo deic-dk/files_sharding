@@ -33,10 +33,9 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 			$storageOk = \OCA\FilesSharding\Lib::setNumericStorageId($user, $numericStorageId);
 			\OCP\Util::writeLog('files_sharding', 'Syncing user '.$user, \OC_Log::WARN);
 			$server = \OCA\FilesSharding\Lib::syncUser($user, $priority);
-			$thisServerId = \OCA\FilesSharding\Lib::lookupServerId();
 			// Notify user
 			if(!empty($server) && \OCP\App::isEnabled('user_notification')){
-				$primary_server_url = \OCA\FilesSharding\Lib::getServerForUser($user);
+				$thisServerId = \OCA\FilesSharding\Lib::lookupServerId();
 				if($priority==\OCA\FilesSharding\Lib::$USER_SERVER_PRIORITY_PRIMARY){
 					\OCA\UserNotification\Data::send('files_sharding', 'Your files have been migrated.', array(),
 							'migration_finished',
