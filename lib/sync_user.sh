@@ -15,9 +15,9 @@ function usage(){
 	exit -1
 }
 
-// NOTICE: users should be created before calling this script and the correct
-//         numeric storage ID should be set. It must be the same on the two servers
-//         and on the master; otherwise, updating shared files and metadata will not work.
+# NOTICE: users should be created before calling this script and the correct
+#         numeric storage ID should be set. It must be the same on the two servers
+#         and on the master; otherwise, updating shared files and metadata will not work.
 function create_user(){
 	passwd=`echo -n "secret" | openssl dgst -sha1 | awk '{print $NF}'`
 	cd $OC_ROOT
