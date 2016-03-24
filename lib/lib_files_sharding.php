@@ -741,10 +741,12 @@ class Lib {
 		}*/
 		// If we're setting a new backup server, disable current backup server
 		if($priority==1){
-			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `priority` >= ?');
-			$result = $query->execute(array(self::$USER_SERVER_PRIORITY_DISABLE, self::$USER_ACCESS_NONE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1));
+			if(!empty($server_id)){
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `priority` >= ? AND `server_id` != ?');
+				$result = $query->execute(array(self::$USER_SERVER_PRIORITY_DISABLE, self::$USER_ACCESS_NONE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1, $server_id));
+			}
+			else{
 			// Backup server cleared, nothing more to do
-			if(empty($server_id)){
 				return $result ? true : false;
 			}
 		}
