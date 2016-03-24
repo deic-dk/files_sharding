@@ -40,11 +40,11 @@
 			<?php print(isset($_['user_backup_server_url'])?$_['user_backup_server_url']:'');?></label>
 			<label class="nowrap">Last sync:</label><span id="lastSync">
 				<?php print(!empty($_['user_backup_server_lastsync'])?
-						OCP\Util::formatDate($_['user_backup_server_lastsync']):'')?>
+						OCP\Util::formatDate($_['user_backup_server_lastsync']).' '.date_default_timezone_get():'')?>
 			</span>
 			<label class="nowrap">Next sync:</label><span id="nextSync">
 				<?php print(!empty($_['user_backup_server_nextsync'])?
-						OCP\Util::formatDate($_['user_backup_server_nextsync']):'')?>
+						OCP\Util::formatDate($_['user_backup_server_nextsync']).' '.date_default_timezone_get():'')?>
 			</span>
 			</div>
 	<div class="save_home_server">

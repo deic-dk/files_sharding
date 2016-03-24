@@ -33,6 +33,7 @@ else{
 	$nextSync = (empty($lastSync)?time():$lastSync) + OCA\FilesSharding\Lib::$USER_SYNC_INTERVAL_SECONDS;
 	$ret['last_sync'] = empty($lastSync)?'':OCP\Util::formatDate($lastSync);
 	$ret['next_sync'] = OCP\Util::formatDate($nextSync);
+	$ret['timeszone'] = date_default_timezone_get();
 	$ret['msg'] .= ". Set backup server ".$home_server_id;
 }
 
