@@ -494,7 +494,10 @@ class Lib {
 			$serverId = self::lookupServerId($_SERVER['HTTP_HOST']);
 		}
 		if(empty($userId)){
-			$userId = \OCP\USER::getUser();
+			$userId = \OC_User::getUser();
+			if(empty($userId)){
+				$userId = $_SERVER['PHP_AUTH_USER'];
+			}
 		}
 		if(self::isMaster()){
 			return self::dbGetUserServerAccess($serverId, $userId);
