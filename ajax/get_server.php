@@ -26,7 +26,7 @@ else{
 
 if(empty($server_id)){
 	if($priority===0){
-		\OCP\Util::writeLog('files_sharding', 'get_server: No server found via db for user '.$user_id. '. Using default', \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'get_server: No server found via db for user '.$user_id. '. Using default', \OC_Log::DEBUG);
 		$ret['error'] = "Failed getting server for ".$site;
 	}
 	$ret['server_url'] = "";
