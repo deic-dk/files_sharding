@@ -129,7 +129,7 @@ class Lib {
 			'get_user_server'=>10, 'getFileTags'=>10, 'share_fetch'=>10, 'getShareByToken'=>10,
 			'share_fetch'=>10, 'searchTagsByIDs'=>10, 'searchTags'=>10, 'getItemsSharedWithUser'=>10,
 			'get_server_id'=>10, 'get_servers'=>10, 'getTaggedFiles'=>10, 'get_user_server_access'=>20,
-			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, getCharge=>30);
+			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, 'getCharge'=>30);
 	
 	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null,
 			$appName=null, $urlencode=false){
