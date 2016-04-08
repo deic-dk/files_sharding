@@ -129,7 +129,7 @@ class Lib {
 			'get_user_server'=>10, 'getFileTags'=>10, 'share_fetch'=>10, 'getShareByToken'=>10,
 			'share_fetch'=>10, 'searchTagsByIDs'=>10, 'searchTags'=>10, 'getItemsSharedWithUser'=>10,
 			'get_server_id'=>10, 'get_servers'=>10, 'getTaggedFiles'=>10, 'get_user_server_access'=>20,
-			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60);
+			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, getCharge=>30);
 	
 	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null,
 			$appName=null, $urlencode=false){
@@ -495,7 +495,7 @@ class Lib {
 		}
 		if(empty($userId)){
 			$userId = \OC_User::getUser();
-			if(empty($userId)){
+			if(empty($userId) && isset($_SERVER['PHP_AUTH_USER'])){
 				$userId = $_SERVER['PHP_AUTH_USER'];
 			}
 		}
@@ -821,8 +821,8 @@ class Lib {
 	 * @param $user
 	 * @return URL of the server - null if none has been set. Important as user_saml relies on this.
 	 */
-	public static function dbLookupServerUrlForUser($user){
-		$id = self::dbLookupServerIdForUser($user, 0);
+	public static function dbLookupServerUrlForUser($user, $priority=0){
+		$id = self::dbLookupServerIdForUser($user, $priority);
 		if(!empty($id)){
 			return self::dbLookupServerURL($id);
 		}
@@ -835,8 +835,8 @@ class Lib {
 	 * @param $user
 	 * @return URL of the server - null if none has been set. Important as user_saml relies on this.
 	 */
-	public static function dbLookupInternalServerUrlForUser($user){
-		$id = self::dbLookupServerIdForUser($user, 0);
+	public static function dbLookupInternalServerUrlForUser($user, $priority=0){
+		$id = self::dbLookupServerIdForUser($user, $priority);
 		if(!empty($id)){
 			return self::dbLookupInternalServerURL($id);
 		}
@@ -848,13 +848,13 @@ class Lib {
 	 * @param $user
 	 * @return ID of primary server
 	 */
-	public static function lookupServerIdForUser($user){
+	public static function lookupServerIdForUser($user, $priority=0){
 		if(self::isMaster()){
-			$serverId = self::dbLookupServerIdForUser($user, 0);
+			$serverId = self::dbLookupServerIdForUser($user, $priority);
 		}
 		// Otherwise, ask master
 		else{
-			$res = self::ws('get_user_server', Array('user_id' => $user), false, true);
+			$res = self::ws('get_user_server', Array('user_id' => $user, 'priority'=>$priority), false, true);
 			$serverId = $res['id'];
 		}
 		return $serverId;
@@ -970,19 +970,20 @@ class Lib {
 	 * @param internal $internal whether to return the internal URL
 	 * @return the base URL (https://...) of the server that will serve the files
 	 */
-	public static function getServerForUser($user_id, $internal = false){
+	public static function getServerForUser($user_id, $internal = false, $priority=0){
 		// If I'm the master, look up in DB
 		if(self::isMaster()){
 			if($internal){
-				$server = self::dbLookupInternalServerUrlForUser($user_id);
+				$server = self::dbLookupInternalServerUrlForUser($user_id, $priority);
 			}
 			else{
-				$server = self::dbLookupServerUrlForUser($user_id);
+				$server = self::dbLookupServerUrlForUser($user_id, $priority);
 			}
 		}
 		// Otherwise, ask master
 		else{
-			$response = self::ws('get_user_server', Array('user_id' => $user_id, 'internal' => $internal), false, false);
+			$response = self::ws('get_user_server',
+					Array('user_id' => $user_id, 'internal' => $internal, 'priority' => $priority), false, false);
 			$server = $response->url;
 		}
 		return $server;

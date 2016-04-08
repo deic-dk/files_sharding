@@ -38,7 +38,7 @@ class ServerSync_Activity implements IExtension {
 	 */
 	public function getNotificationTypes($languageCode) {
 		$l = $this->getL10N($languageCode);
-		return [\OCA\FilesSharding\Lib::TYPE_SERVER_SYNC => (string) $l->t('Notifications on <strong>Server syncing</strong> app'),];
+		return [\OCA\FilesSharding\Lib::TYPE_SERVER_SYNC => (string) $l->t('Files have been <strong>backed up</strong>'),];
 	}
 	/**
 	 * For a given method additional types to be displayed in the settings can be returned.

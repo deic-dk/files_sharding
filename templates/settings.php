@@ -8,6 +8,9 @@
   </h2>
 
   <?php function print_server($id, $url, $site, $charge, $allow_local_login){
+		if(\OCP\App::isEnabled('files_accounting')){
+			$currency = OCA\Files_Accounting\Storage_Lib::getBillingCurrency();
+		}
   	print('<label><i>ID:</i></label>
   		<input class="id" type="text" value="'.$id.'">
   		<label>URL:</label>
@@ -15,7 +18,7 @@
   		<label>site:</label>
   		<input class="site" type="text" value="'.$site.'">'.
   		(\OCP\App::isEnabled('files_accounting')?
-  				'<label>Charge/GB ('.OCA\Files_Accounting\StorageLib::getBillingCurrency().'):</label>':'').
+  				'<label>Charge/GB ('.$currency.'):</label>':'').
   		'<input class="charge" type="text" value="'.$charge.'"> 
   		<label>Allow local login:</label>
   		<input class="allow_local_login" type="checkbox"'.($allow_local_login==='yes' ? ' checked="checked"' : '').'>

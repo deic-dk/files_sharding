@@ -13,6 +13,9 @@ class FileSessionHandler {
 	private $ocUserDatabase;
 
 	private static $LOGIN_OK_COOKIE = "oc_ok";
+	
+	private $quota;
+	private $freequota;
 
 	function __construct($savePath) {
 		\OC_Log::write('files_sharding',"Constructing session", \OC_Log::WARN);
@@ -115,18 +118,19 @@ class FileSessionHandler {
 			exit;
 		}
 		if(isset($session['user_id']) && !$this->ocUserDatabase->userExists($session['user_id'])) {
-			$this->createUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'], $session['oc_groups'],
-					$session['oc_storage_id'], $session['oc_numeric_storage_id']);
-			$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'], $session['oc_groups']);
+			$this->createUser($session['user_id'], $session['oc_storage_id'], $session['oc_numeric_storage_id']);
+			$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'],
+					$session['oc_groups'], $session['oc_quota'], $session['oc_freequota']);
 		}
 		else{
 			\OC_Log::write('files_sharding',"User already exists, syncing: ".$session['user_id'], \OC_Log::WARN);
-			$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'], $session['oc_groups']);
+			$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'],
+					$session['oc_groups'], $session['oc_quota'], $session['oc_freequota']);
 		}
 		return $res->{'session'};
 	}
 	
-	function createUser($uid, $mail, $displayname, $groups, $storageid, $numericstorageid){
+	function createUser($uid, $storageid, $numericstorageid){
 		\OC_Log::write('files_sharding',"Creating user: ".$uid, \OC_Log::WARN);
 		$password = \OC_Util::generateRandomBytes(20);
     $user_created = $this->ocUserDatabase->createUser($uid, $password);
@@ -136,23 +140,41 @@ class FileSessionHandler {
 		}
 	}
 	
-	function setupUser($uid, $mail, $displayname, $groups){
+	function setupUser($uid, $mail, $displayname, $groups, $quota=null, $freequota=null){
 		if($this->ocUserDatabase->userExists($uid)) {
 			\OC_Log::write('files_sharding',"Setting up user: ".$uid, \OC_Log::WARN);
 			$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($uid);
 			if(!\OCA\FilesSharding\Lib::setPasswordHash($uid, $pwHash)){
 				\OC_Log::write('files_sharding',"Error setting user password for user".$uid, \OC_Log::ERROR);
 			}
-     if (isset($mail)) {
-        self::update_mail($uid, $mail);
-      }
-      if (isset($groups)) {
+			if (isset($mail)) {
+				self::update_mail($uid, $mail);
+			}
+			if (isset($groups)) {
 				$samlBackend = new \OC_USER_SAML();
-        self::update_groups($uid, $groups, $samlBackend->protectedGroups, true);
-      }
-      if (isset($displayname)) {
-        self::update_display_name($uid, $displayname);
-      }
+				self::update_groups($uid, $groups, $samlBackend->protectedGroups, true);
+			}
+			if (isset($displayname)) {
+				self::update_display_name($uid, $displayname);
+			}
+			if (isset($quota)) {
+				self::update_quota($uid, $quota);
+			}
+			// This is for local (non-redirected) logins
+			else{
+				self::update_quota_from_master($uid);
+			}
+			if (isset($freequota)) {
+				self::update_freequota($uid, $freequota);
+			}
+			else{
+				self::update_freequota_from_master($uid);
+			}
+			// Bump up quota if smaller than freequota
+			if(!empty($this->freequota) && isset($this->quota) &&
+					\OCP\Util::computerFileSize($this->quota)<\OCP\Util::computerFileSize($this->freequota)){
+				self::update_quota($uid, $this->freequota);
+			}
 		}
 	}
 	
@@ -225,7 +247,45 @@ class FileSessionHandler {
 		//OC_User::setDisplayName($uid, $displayName);
 	}
 
-//
+	private static function update_quota($uid, $quota) {
+		if (isset($quota)) {
+			\OCP\Config::setUserValue($uid, 'files', 'quota', $quota);
+			$this->quota = $quota;
+		}
+	}
+	
+	private static function update_freequota($uid, $freequota) {
+		if (issets($freequota)) {
+			\OCP\Config::setUserValue($uid, 'files_accounting', 'freequota', $freequota);
+			$this->freequota = $freequota;
+		}
+	}
+	
+	//
+	
+	private static function update_quota_from_master($uid) {
+		if(!\OCP\App::isEnabled('files_accounting') || \OCA\FilesSharding\Lib::isMaster()){
+			return;
+		}
+		$personalStorage = \OCA\FilesSharding\Lib::ws('personalStorage', array('key'=>'quotas', 'userid'=>$uid),
+				false, true, null, 'files_accounting');
+		if (isset($personalStorage['quota'])) {
+			\OCP\Config::setUserValue($uid, 'files', 'quota', $personalStorage['quota']);
+			$this->quota = $personalStorage['quota'];
+		}
+	}
+
+	private static function update_freequota_from_master($uid) {
+		if(!\OCP\App::isEnabled('files_accounting') || \OCA\FilesSharding\Lib::isMaster()){
+			return;
+		}
+		$personalStorage = \OCA\FilesSharding\Lib::ws('personalStorage', array('key'=>'quotas', 'userid'=>$uid),
+				false, true, null, 'files_accounting');
+		if (isset($personalStorage['freequota'])) {
+			\OCP\Config::setUserValue($uid, 'files_accounting', 'freequota', $personalStorage['freequota']);
+			$this->freequota = $personalStorage['freequota'];
+		}
+	}
 	
 	function putSession($id = '', $data = ''){
 	

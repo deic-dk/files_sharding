@@ -33,14 +33,15 @@ include_once("files_sharding/lib/lib_files_sharding.php");
 
 $user_id = $_GET['user_id'];
 $internal = isset($_GET['internal'])?$_GET['internal']:false;
+$priority = isset($_GET['priority'])?$_GET['priority']:0;
 
 if($internal && $internal!=="false" && $internal!=="no"){
-	$url = OCA\FilesSharding\Lib::dbLookupInternalServerUrlForUser($user_id);
+	$url = OCA\FilesSharding\Lib::dbLookupInternalServerUrlForUser($user_id, $priority);
 }
 else{
-	$url = OCA\FilesSharding\Lib::dbLookupServerUrlForUser($user_id);
+	$url = OCA\FilesSharding\Lib::dbLookupServerUrlForUser($user_id, $priority);
 }
-$id = OCA\FilesSharding\Lib::dbLookupServerIdForUser($user_id, 0);
+$id = OCA\FilesSharding\Lib::dbLookupServerIdForUser($user_id, $priority);
 $status = empty($url)?'error: server '.$url.' not found':'success';
 $ret = Array('url' => $url, 'id' => $id, 'status' => $status);
 
