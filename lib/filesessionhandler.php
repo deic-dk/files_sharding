@@ -158,22 +158,22 @@ class FileSessionHandler {
 				self::update_display_name($uid, $displayname);
 			}
 			if (isset($quota)) {
-				self::update_quota($uid, $quota);
+				$this->update_quota($uid, $quota);
 			}
 			// This is for local (non-redirected) logins
 			else{
-				self::update_quota_from_master($uid);
+				$this->update_quota_from_master($uid);
 			}
 			if (isset($freequota)) {
-				self::update_freequota($uid, $freequota);
+				$this->update_freequota($uid, $freequota);
 			}
 			else{
-				self::update_freequota_from_master($uid);
+				$this->update_freequota_from_master($uid);
 			}
 			// Bump up quota if smaller than freequota
 			if(!empty($this->freequota) && isset($this->quota) &&
 					\OCP\Util::computerFileSize($this->quota)<\OCP\Util::computerFileSize($this->freequota)){
-				self::update_quota($uid, $this->freequota);
+				$this->update_quota($uid, $this->freequota);
 			}
 		}
 	}
@@ -247,15 +247,15 @@ class FileSessionHandler {
 		//OC_User::setDisplayName($uid, $displayName);
 	}
 
-	private static function update_quota($uid, $quota) {
+	private function update_quota($uid, $quota) {
 		if (isset($quota)) {
 			\OCP\Config::setUserValue($uid, 'files', 'quota', $quota);
 			$this->quota = $quota;
 		}
 	}
 	
-	private static function update_freequota($uid, $freequota) {
-		if (issets($freequota)) {
+	private function update_freequota($uid, $freequota) {
+		if (isset($freequota)) {
 			\OCP\Config::setUserValue($uid, 'files_accounting', 'freequota', $freequota);
 			$this->freequota = $freequota;
 		}
@@ -263,7 +263,7 @@ class FileSessionHandler {
 	
 	//
 	
-	private static function update_quota_from_master($uid) {
+	private function update_quota_from_master($uid) {
 		if(!\OCP\App::isEnabled('files_accounting') || \OCA\FilesSharding\Lib::isMaster()){
 			return;
 		}
@@ -275,7 +275,7 @@ class FileSessionHandler {
 		}
 	}
 
-	private static function update_freequota_from_master($uid) {
+	private function update_freequota_from_master($uid) {
 		if(!\OCP\App::isEnabled('files_accounting') || \OCA\FilesSharding\Lib::isMaster()){
 			return;
 		}

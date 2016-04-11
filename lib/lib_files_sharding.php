@@ -1133,6 +1133,9 @@ class Lib {
 	public static function syncUser($user, $priority) {
 		$publicServerURL = self::getServerForUser($user, false);
 		$serverURL = self::getServerForUser($user, true);
+		if(empty($serverURL)){
+			$serverURL = self::getMasterInternalURL();
+		}
 		$parse = parse_url($serverURL);
 		$server = $parse['host'];
 		if(empty($server)){
