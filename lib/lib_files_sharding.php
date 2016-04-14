@@ -34,7 +34,7 @@ class Lib {
 	}
 	
 	public static function onServerForUser($user_id=null){
-		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
+		$user_id = empty($user_id)?\OCP\USER::getUser():$user_id;
 		$user_server = self::getServerForUser($user_id);
 		if(!empty($user_server)){
 			$parse = parse_url($user_server);
@@ -43,6 +43,12 @@ class Lib {
 		else{
 			// If no server has been set for the user, he can logically only be on the master
 			return self::isMaster();
+		}
+		if(empty($_SERVER['HTTP_HOST']) && empty($_SERVER['SERVER_NAME'])){
+			// Running off cron
+			$myShortName = php_uname("n");
+			$homeNameArr = explode(".", $user_host);
+			return isset($homeNameArr[0]) && $myShortName == $homeNameArr[0];
 		}
 		return 
 				isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']===$user_host ||
@@ -177,8 +183,8 @@ class Lib {
 		}
 		
 		if(isset(self::$WS_CACHE_CALLS[$script])){
-			\OCP\Util::writeLog('files_sharding', 'Caching response for '.$script.'-->'.$cache_key, \OC_Log::WARN);
-			apc_store($cache_key, $json_response, self::$WS_CACHE_CALLS[$script]);
+			\OCP\Util::writeLog('files_sharding', 'Caching response for '.apc_exists($cache_key).': '.$script.'-->'.$cache_key, \OC_Log::WARN);
+			apc_store($cache_key, $json_response, (int)self::$WS_CACHE_CALLS[$script]);
 		}
 		else{
 			\OCP\Util::writeLog('files_sharding', 'NOT caching response for '.$script.'-->'.$cache_key, \OC_Log::WARN);
