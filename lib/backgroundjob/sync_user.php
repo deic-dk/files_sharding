@@ -46,7 +46,7 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 					\OCA\UserNotification\Data::send('files_sharding', 'Your files have been backed up.', array(),
 							'sync_finished',
 							array($server, $thisServerId), '', '', $user, \OCA\FilesSharding\Lib::TYPE_SERVER_SYNC,
-							\OCA\UserNotification\Data::PRIORITY_LOW, $user);
+							\OCA\UserNotification\Data::PRIORITY_MEDIUM, $user);
 				}
 			}
 		}
