@@ -1070,7 +1070,7 @@ class Lib {
 	
 	public static function dbGetNextSyncUser($server=null){
 		if(empty($server)){
-			$server = getMasterHostName();
+			$server = self::getMasterHostName();
 		};
 		// Get first row in oc_files_sharding_user_servers with server_id matching mine.
 		// Notice: We cannot use methods relying on $_SERVER IP/host variables, as we are run from cron.
@@ -1122,7 +1122,7 @@ class Lib {
 	
 	public static function dbGetNextDeleteUser($server=null){
 		if(empty($server)){
-			$server = getMasterHostName();
+			$server = self::getMasterHostName();
 		};
 		// Get first row in oc_files_sharding_user_servers with server_id matching mine.
 		// Notice: We cannot use methods relying on $_SERVER IP/host variables, as we are run from cron.

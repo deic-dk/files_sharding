@@ -29,8 +29,8 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 }
 
 $search = $_GET['search'];
-$limit = $_GET['limit'];
-$offset = $_GET['offset'];
+$limit = isset($_GET['limit'])?$_GET['limit']:null;
+$offset = isset($_GET['offset'])?$_GET['offset']:null;
 
 $users = OC_User::getDisplayNames($search, $limit, $offset);
 if(\OCP\App::isEnabled('user_alias')){
