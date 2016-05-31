@@ -27,7 +27,7 @@ OC.dialogs = _.extend({}, OC.dialogs, {
 					text         : t('core', buttons && buttons==OCdialogs.YES_NO_BUTTONS?'Yes':'OK'),
 					click        : function () {
 						if (callback !== 'undefined' && callback !==null) {
-							callback(true, input.val());
+							callback(true, typeof input!=='undefined'?input.val():null);
 						}
 						$(dialogId).ocdialog('close');
 					},
@@ -39,7 +39,7 @@ OC.dialogs = _.extend({}, OC.dialogs, {
 					text : t('core', 'No'),
 					click: function () {
 						if (callback !== undefined) {
-							callback(false, input.val());
+							callback(false, typeof input!=='undefined'?input.val():null);
 						}
 						$(dialogId).ocdialog('close');
 					}

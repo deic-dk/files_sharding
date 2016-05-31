@@ -20,14 +20,24 @@ $foldername = isset( $_POST['foldername'] ) ? stripslashes($_POST['foldername'])
 $user_id = isset( $_REQUEST['user_id'] ) ? $_REQUEST['user_id'] : '';
 $owner = isset( $_REQUEST['owner'] ) ? $_REQUEST['owner'] : '';
 $id = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';
+$group = isset($_REQUEST['group']) ? $_REQUEST['group'] : '';
+$group_owner = \OCP\USER::getUser();
 
 if($owner){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
+	$group_owner = $owner;
 }
 elseif($user_id && !\OCP\USER::getUser()){
 	\OC_User::setUserId($user_id);
 	\OC_Util::setupFS($user_id);
+	$group_owner = $user_id;
+}
+
+if(!empty($group) && !empty($group_owner)){
+	\OC\Files\Filesystem::tearDown();
+	$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
+	\OC\Files\Filesystem::init($group_owner, $groupDir);
 }
 
 if($id){

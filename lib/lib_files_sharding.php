@@ -1401,16 +1401,25 @@ class Lib {
 		return $serverUsers;
 	}
 	
-	public static function rename($owner, $id, $dir, $name, $newname){
+	public static function rename($owner, $id, $dir, $name, $newname, $group=''){
 		$user_id = \OCP\USER::getUser();
 		if($owner && $owner!==$user_id){
 			\OC_Util::teardownFS();
+			if(!empty($group)){
+				$groupDir = '/'.$owner.'/user_group_admin/'.$group;
+				\OC\Files\Filesystem::init($owner, $groupDir);
+			}
 			//\OC\Files\Filesystem::initMountPoints($owner);
 			\OC_User::setUserId($owner);
 			\OC_Util::setupFS($owner);
 			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.\OCP\USER::getUser(), \OC_Log::WARN);
 		}
 		else{
+			if(!empty($group)){
+				\OC\Files\Filesystem::tearDown();
+				$groupDir = '/'.$user_id.'/user_group_admin/'.$group;
+				\OC\Files\Filesystem::init($user_id, $groupDir);
+			}
 			unset($user_id);
 		}
 		$view = \OC\Files\Filesystem::getView();

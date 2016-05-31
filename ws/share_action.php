@@ -56,6 +56,15 @@ $user_id = $_POST['user_id'];
 \OC_User::setUserId($user_id);
 \OC_Util::setupFS($user_id);
 
+if(OCP\App::isEnabled('user_group_admin')){
+	$group = empty($_POST['group'])?'':$_POST['group'];
+	if(!empty($group)){
+		\OC\Files\Filesystem::tearDown();
+		$groupDir = '/'.$user_id.'/user_group_admin/'.$group;
+		\OC\Files\Filesystem::init($user_id, $groupDir);
+	}
+}
+
 switch ($_POST['action']) {
 	case 'share':
 		if (isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])) {

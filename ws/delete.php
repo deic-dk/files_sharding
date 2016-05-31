@@ -20,15 +20,25 @@ else{
 
 $owner = isset($_POST['owner']) ? $_POST['owner'] : '';
 $id = isset($_POST['id']) ? $_POST['id'] : '';
+$group = isset($_REQUEST['group']) ? $_REQUEST['group'] : '';
+$group_owner = \OCP\USER::getUser();
 
 if(!empty($owner)){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
+	$group_owner = $owner;
 }
 
 elseif(!empty($user_id)){
 	\OC_User::setUserId($user_id);
 	\OC_Util::setupFS($user_id);
+	$group_owner = $user_id;
+}
+
+if(!empty($group) && !empty($group_owner)){
+	\OC\Files\Filesystem::tearDown();
+	$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
+	\OC\Files\Filesystem::init($group_owner, $groupDir);
 }
 
 if(!empty($id)){

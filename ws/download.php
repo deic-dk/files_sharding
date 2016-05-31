@@ -13,15 +13,21 @@ $user_id = isset($_GET['user_id'])&&$_GET['user_id'] ? $_GET['user_id'] : OCP\US
 $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
 $id = isset($_GET['id']) ? $_GET['id'] : '';
 $dirId = isset($_GET['dir_id']) ? $_GET['dir_id'] : '';
+$group = isset($_REQUEST['group']) ? $_REQUEST['group'] : '';
+$group_owner = \OCP\USER::getUser();
+
 if(!empty($owner)){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
+	$group_owner = $owner;
 }
+
 if(!empty($id)){
 	$path = \OC\Files\Filesystem::getPath($id);
 	$files = basename($path);
 	$dir = dirname($path);
 }
+
 if(!empty($dirId)){
 	$dir = \OC\Files\Filesystem::getPath($dirId);
 }
@@ -31,6 +37,12 @@ if(!empty($dirId)){
 }*/
 // TODO: Check of user_id is allowed to read files - perhaps already done by get().
 //       --- Well, in general user_id will not exist on the same node as owner.
+
+if(!empty($group) && !empty($group_owner)){
+	\OC\Files\Filesystem::tearDown();
+	$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
+	\OC\Files\Filesystem::init($group_owner, $groupDir);
+}
 
 $files_list = json_decode($files);
 // in case we get only a single file
