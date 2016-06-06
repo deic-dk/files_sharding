@@ -6,6 +6,10 @@ var isChecking = false;
 
 // Check access (r/o if on a backup server, or if on new main server and migrating)
 function checkUserServerAccess(){
+	if(window.location.pathname.indexOf('/shared/')===0 ||
+			window.location.pathname.indexOf('/public.php', window.location.pathname.length-'/public.php'.length)!==-1){
+		return false;
+	}
 	$(document).off('mousedown', checkUserServerAccess);
 	if(isChecking){
 		return false;

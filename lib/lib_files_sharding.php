@@ -1672,4 +1672,21 @@ class Lib {
 		return $i;
 	}
 	
+	public static function resolveReShare($linkItem){
+		if(isset($linkItem['parent'])){
+			$parent = $linkItem['parent'];
+			while (isset($parent)){
+				$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*share` WHERE `id` = ?', 1);
+				$item = $query->execute(array($parent))->fetchRow();
+				if(isset($item['parent'])){
+					$parent = $item['parent'];
+				}
+				else{
+					return empty($item)?$linkItem:$item;// This condition is the only difference to \OCP\Share::resolveReShare()
+				}
+			}
+		}
+		return $linkItem;
+	}
+	
 }

@@ -9,7 +9,7 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 
 $linkItem = json_decode($_POST['linkItem'], true);
 
-$rootLinkItem = \OCP\Share::resolveReShare($linkItem);
+$rootLinkItem = \OCA\FilesSharding\Lib::resolveReShare($linkItem);
 
 // Now get the path (for upload.php)
 OCP\JSON::checkUserExists($rootLinkItem['uid_owner']);

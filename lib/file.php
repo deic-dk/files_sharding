@@ -216,7 +216,7 @@ class OC_Shard_Backend_File implements OCP\Share_Backend_File_Dependent {
 		}
 		if($source){
 			if(\OCA\FilesSharding\Lib::isMaster()){
-				$rootLinkItem = \OCP\Share::resolveReShare($source);
+				$rootLinkItem = \OCA\FilesSharding\Lib::resolveReShare($source);
 			}
 			else{
 				$rootLinkItem = \OCA\FilesSharding\Lib::ws('resolveReShare', array('linkItem' => OCP\JSON::encode($source)), true, true);
