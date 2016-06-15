@@ -212,7 +212,7 @@ class FileSessionHandler {
 	
 	static function update_groups($uid, $groups, $protectedGroups=array(), $just_created=false) {
 
-		if(!$just_created) {
+		if(!$just_created && !empty($groups) && !\OCP\App::isEnabled('user_group_admin')) {		
 			$old_groups = \OC_Group::getUserGroups($uid);
 			foreach($old_groups as $group) {
 				if(!in_array($group, $protectedGroups) && !in_array($group, $groups)) {
@@ -230,10 +230,10 @@ class FileSessionHandler {
 				if (!\OC_Group::inGroup($uid, $group)) {
 					if (!\OC_Group::groupExists($group)) {
 						\OC_Group::createGroup($group);
-						\OC_Log::write('files_sharding','New group created: '.$group, \OC_Log::DEBUG);
+						\OC_Log::write('files_sharding','New group created: '.$group, \OC_Log::WARN);
 					}
 					\OC_Group::addToGroup($uid, $group);
-					\OC_Log::write('files_sharding','Added "'.$uid.'" to the group "'.$group.'"', \OC_Log::DEBUG);
+					\OC_Log::write('files_sharding','Added "'.$uid.'" to the group "'.$group.'"', \OC_Log::WARN);
 				}
 			}
 		}
