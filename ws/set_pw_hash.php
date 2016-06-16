@@ -7,6 +7,7 @@ include_once("files_sharding/lib/lib_files_sharding.php");
 
 
 $ret = array();
+$pwOk = false;
 
 if(!OCA\FilesSharding\Lib::checkIP()){
 	$ret['status'] = 'error';
@@ -14,9 +15,10 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 }
 else{
 	$user_id = $_POST['user_id'];
-	$serverURL = \OCA\FilesSharding\Lib::getServerForUser($user_id, true);
-	$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($user_id, $serverURL);
+	// Get pw hash from master
+	$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($user_id);
 	if(!empty($pwHash)){
+		// Set local pw hash
 		$pwOk = \OCA\FilesSharding\Lib::setPasswordHash($user_id, $pwHash);
 	}
 	if($pwOk) {
@@ -25,7 +27,7 @@ else{
 	else{
 		$ret['status'] = 'error';
 	}
-	OC_Log::write('files_sharding', 'Setting password hash', OC_Log::WARN);
+	OC_Log::write('files_sharding', 'Set password hash for '.$user_id, OC_Log::WARN);
 }
 
 OCP\JSON::encodedPrint($ret);

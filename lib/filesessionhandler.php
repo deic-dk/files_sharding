@@ -165,6 +165,7 @@ class FileSessionHandler {
 		}
 		// This is for local (non-redirected) logins (no passed-on session) or empty quota for user on master.
 		else{
+			\OCP\Util::writeLog('Files_Sharding', 'QUOTA: '.$quota, \OCP\Util::WARN);
 			$this->update_quota_from_master($uid);
 		}
 		if (isset($freequota)) {
