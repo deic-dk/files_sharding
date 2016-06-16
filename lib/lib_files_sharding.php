@@ -1255,19 +1255,24 @@ class Lib {
 			$serverURL = self::getMasterInternalURL();
 		}
 		if(self::isMaster() || self::onServerForUser($user_id)){
-			$res = self::dbGetPwHash($user_id);
+			$pw = self::dbGetPwHash($user_id);
 		}
-		else{
+		// If this is a first redirect, get password from master - just in case.
+		// When the user sets the password in his prefs, it is set both here and on the master.
+		if(empty($pw)){
 			$res = self::ws('get_pw_hash', array('user_id'=>$user_id), true, true, $serverURL);
 		}
+		else{
+			$pw = $res['pw_hash'];
+		}
 		if(empty($res['pw_hash'])){
-			\OC_Log::write('files_sharding',"No password returned. ".$res['error'], \OC_Log::WARN);
+			\OC_Log::write('files_sharding',"No password returned. ".serialize($res), \OC_Log::WARN);
 			return null;
 		}
 		if(!empty($res['error'])){
-			\OC_Log::write('files_sharding',"Password error. ".$res['error'], \OC_Log::WARN);
+			\OC_Log::write('files_sharding',"Password error. ".serialize($res), \OC_Log::WARN);
 		}
-		return $res['pw_hash'];
+		return $pw;
 	}
 	
 	public static function dbGetPwHash($user_id){

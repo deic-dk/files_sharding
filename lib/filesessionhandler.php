@@ -277,6 +277,8 @@ class FileSessionHandler {
 		}
 		// Update defaults
 		$localDefaultQuota = \OC_Appconfig::getValue('files', 'default_quota');
+		\OCP\Util::writeLog('Files_Sharding', 'Updating quotas: '.$localDefaultQuota.' --> '.
+				$personalStorage['default_quota'], \OCP\Util::WARN);
 		if((!empty($personalStorage['default_quota']) || $personalStorage['default_quota']==='0') &&
 				$personalStorage['default_quota']!=$localDefaultQuota){
 			\OC_Appconfig::setValue('files', 'default_quota', $personalStorage['default_quota']);
