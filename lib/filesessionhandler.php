@@ -160,7 +160,7 @@ class FileSessionHandler {
 		if (isset($displayname)) {
 			self::update_display_name($uid, $displayname);
 		}
-		if (!empty($quota) || $quota==0) {
+		if (!empty($quota) || $quota==='0') {
 			$this->update_quota($uid, $quota);
 		}
 		// This is for local (non-redirected) logins (no passed-on session) or empty quota for user on master.
@@ -250,7 +250,7 @@ class FileSessionHandler {
 	}
 
 	private function update_quota($uid, $quota) {
-		if (!empty($quota) || $quota==0) {
+		if (!empty($quota) || $quota==='0') {
 			\OCP\Config::setUserValue($uid, 'files', 'quota', $quota);
 			$this->quota = $quota;
 		}
@@ -277,12 +277,12 @@ class FileSessionHandler {
 		}
 		// Update defaults
 		$localDefaultQuota = \OC_Appconfig::getValue('files', 'default_quota');
-		if((!empty($personalStorage['default_quota']) || $personalStorage['default_quota']==0) &&
+		if((!empty($personalStorage['default_quota']) || $personalStorage['default_quota']==='0') &&
 				$personalStorage['default_quota']!=$localDefaultQuota){
 			\OC_Appconfig::setValue('files', 'default_quota', $personalStorage['default_quota']);
 		}
 		$localDefaultFreeQuota = \OC_Appconfig::getValue('files_accounting', 'default_freequota');
-		if((!empty($personalStorage['default_freequota']) || $personalStorage['default_freequota']==0) &&
+		if((!empty($personalStorage['default_freequota']) || $personalStorage['default_freequota']==='0') &&
 				$personalStorage['default_freequota']!=$localDefaultFreeQuota){
 			\OC_Appconfig::setValue('files_accounting', 'default_freequota', $personalStorage['default_freequota']);
 		}
