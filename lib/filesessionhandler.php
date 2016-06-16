@@ -140,41 +140,43 @@ class FileSessionHandler {
 		}
 	}
 	
+	// Notice: we only ever end up here when we're not master (see end of app.php)
 	function setupUser($uid, $mail, $displayname, $groups, $quota=null, $freequota=null){
-		if($this->ocUserDatabase->userExists($uid)) {
-			\OC_Log::write('files_sharding',"Setting up user: ".$uid, \OC_Log::WARN);
-			$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($uid);
-			if(!\OCA\FilesSharding\Lib::setPasswordHash($uid, $pwHash)){
-				\OC_Log::write('files_sharding',"Error setting user password for user".$uid, \OC_Log::ERROR);
-			}
-			if (isset($mail)) {
-				self::update_mail($uid, $mail);
-			}
-			if (isset($groups)) {
-				$samlBackend = new \OC_USER_SAML();
-				self::update_groups($uid, $groups, $samlBackend->protectedGroups, true);
-			}
-			if (isset($displayname)) {
-				self::update_display_name($uid, $displayname);
-			}
-			if (isset($quota)) {
-				$this->update_quota($uid, $quota);
-			}
-			// This is for local (non-redirected) logins
-			else{
-				$this->update_quota_from_master($uid);
-			}
-			if (isset($freequota)) {
-				$this->update_freequota($uid, $freequota);
-			}
-			else{
-				$this->update_freequota_from_master($uid);
-			}
-			// Bump up quota if smaller than freequota
-			if(!empty($this->freequota) && isset($this->quota) &&
-					\OCP\Util::computerFileSize($this->quota)<\OCP\Util::computerFileSize($this->freequota)){
-				$this->update_quota($uid, $this->freequota);
-			}
+		if(!$this->ocUserDatabase->userExists($uid)) {
+			return;
+		}
+		\OC_Log::write('files_sharding',"Setting up user: ".$uid, \OC_Log::WARN);
+		$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($uid);
+		if(!\OCA\FilesSharding\Lib::setPasswordHash($uid, $pwHash)){
+			\OC_Log::write('files_sharding',"Error setting user password for user".$uid, \OC_Log::ERROR);
+		}
+		if (isset($mail)) {
+			self::update_mail($uid, $mail);
+		}
+		if (isset($groups)) {
+			$samlBackend = new \OC_USER_SAML();
+			self::update_groups($uid, $groups, $samlBackend->protectedGroups, true);
+		}
+		if (isset($displayname)) {
+			self::update_display_name($uid, $displayname);
+		}
+		if (!empty($quota) || $quota==0) {
+			$this->update_quota($uid, $quota);
+		}
+		// This is for local (non-redirected) logins (no passed-on session) or empty quota for user on master.
+		else{
+			$this->update_quota_from_master($uid);
+		}
+		if (isset($freequota)) {
+			$this->update_freequota($uid, $freequota);
+		}
+		else{
+			$this->update_freequota_from_master($uid);
+		}
+		// Bump up quota if smaller than freequota
+		if(!empty($this->freequota) && isset($this->quota) &&
+				\OCP\Util::computerFileSize($this->quota)<\OCP\Util::computerFileSize($this->freequota)){
+			$this->update_quota($uid, $this->freequota);
 		}
 	}
 	
@@ -248,7 +250,7 @@ class FileSessionHandler {
 	}
 
 	private function update_quota($uid, $quota) {
-		if (isset($quota)) {
+		if (!empty($quota) || $quota==0) {
 			\OCP\Config::setUserValue($uid, 'files', 'quota', $quota);
 			$this->quota = $quota;
 		}
@@ -272,6 +274,17 @@ class FileSessionHandler {
 		if (isset($personalStorage['quota'])) {
 			\OCP\Config::setUserValue($uid, 'files', 'quota', $personalStorage['quota']);
 			$this->quota = $personalStorage['quota'];
+		}
+		// Update defaults
+		$localDefaultQuota = \OC_Appconfig::getValue('files', 'default_quota');
+		if((!empty($personalStorage['default_quota']) || $personalStorage['default_quota']==0) &&
+				$personalStorage['default_quota']!=$localDefaultQuota){
+			\OC_Appconfig::setValue('files', 'default_quota', $personalStorage['default_quota']);
+		}
+		$localDefaultFreeQuota = \OC_Appconfig::getValue('files_accounting', 'default_freequota');
+		if((!empty($personalStorage['default_freequota']) || $personalStorage['default_freequota']==0) &&
+				$personalStorage['default_freequota']!=$localDefaultFreeQuota){
+			\OC_Appconfig::setValue('files_accounting', 'default_freequota', $personalStorage['default_freequota']);
 		}
 	}
 
