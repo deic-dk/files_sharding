@@ -1138,6 +1138,12 @@ class Lib {
 	}
 	
 	public static function syncUser($user, $priority) {
+		$myServerId = self::lookupServerId();
+		$servers = self::getServersList();
+		$key = array_search($myServerId, array_column($servers, 'id'));
+		if($servers[$key]['exclude_as_backup']==='yes'){
+			return null;
+		}
 		$publicServerURL = self::getServerForUser($user, false);
 		$serverURL = self::getServerForUser($user, true);
 		if(empty($serverURL)){
