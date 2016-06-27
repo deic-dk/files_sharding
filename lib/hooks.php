@@ -142,4 +142,9 @@ class Hooks {
 		return $res;
 	}
 	
+	public static function noSharedSetup(){
+		\OCP\Util::writeLog('files_sharing','Clearing hook', \OCP\Util::DEBUG);
+		\OC_Hook::clear('OC_Filesystem', 'setup');
+	}
+	
 }

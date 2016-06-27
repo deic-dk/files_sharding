@@ -1656,9 +1656,67 @@ class Lib {
 		return true;
 	}
 	
-	public static function buildFileStorageStatistics($dir, $owner, $id){
-		// TODO: Implement and integrate with future placing algorithm
-		return Array('uploadMaxFilesize' => -1);
+	public static function buildFileStorageStatistics($dir, $owner=null, $id=null, $group=null){
+		//return Array('uploadMaxFilesize' => -1);
+		//return \OCA\Files\Helper::buildFileStorageStatistics($dir);
+		
+		if(!empty($owner)){
+			\OC_User::setUserId($owner);
+			\OC_Util::setupFS($owner);
+			$group_owner = $owner;
+		}
+		
+		if(!empty($id)){
+			// Check if this shared dir originates in a group dir
+			$dir = \OC\Files\Filesystem::getPath($id);
+			$glen = count('/user_group_admin/');
+			if(\OCP\App::isEnabled('user_group_admin') &&
+					substr($dir, 0, $glen)==='/user_group_admin/'){
+				$gIndex = strpos($dir, '/', $glen);
+				$group = substr($dir, $glen, $gIndex-$glen);
+			}
+		}
+		
+		if(\OCP\App::isEnabled('user_group_admin') && !empty($group)){
+			$groupInfo = \OC_User_Group_Admin_Util:: getGroupInfo($group);
+			$group_owner = $groupInfo['owner'];
+			$groupUserFreequota = !empty($groupInfo['user_freequota'])?$groupInfo['user_freequota']:0;
+			\OC\Files\Filesystem::tearDown();
+			$groupInfo = OC_User_Group_Admin_Util::getGroupInfo($group);
+			$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
+			\OC\Files\Filesystem::init($group_owner, $groupDir);
+		}
+		
+		// information about storage capacities
+		$storageInfo = \OC_Helper::getStorageInfo($dir);
+		$free = $storageInfo['free'];
+		$l = new \OC_L10N('files');
+		$relative = (int)$storageInfo['relative'];
+
+		if(\OCP\App::isEnabled('user_group_admin') && !empty($group)){
+			$used = (int)$storageInfo['used'];
+			$total = \OCP\Util::computerFileSize($groupUserFreequota);
+			$free = $total - $used;
+			$relative = empty($total)?INF:round(($used / $total) * 10000) / 100;
+		}
+		else{
+			// Just for information - quota will have been adjusted if smaller than freequota
+			if(\OCP\App::isEnabled('files_accounting')){
+				$quotas = \OCA\Files_Accounting\Storage_Lib::dbGetQuotas();
+				$ret['freequota'] = $quotas['freequota'];
+			}
+		}
+		
+		$maxUploadFileSize = \OCP\Util::maxUploadFilesize($dir, $free);
+		$maxHumanFileSize = \OCP\Util::humanFileSize($maxUploadFileSize);
+		$maxHumanFileSize = $l->t('Upload (max. %s)', array($maxHumanFileSize));
+
+		$ret = array('uploadMaxFilesize' => $maxUploadFileSize,
+					 'maxHumanFilesize'  => $maxHumanFileSize,
+					 'freeSpace' => $free,
+					 'usedSpacePercent'  => $relative);
+
+		return $ret;
 	}
 
 	// Inspired by http://stackoverflow.com/questions/16955549/first-segment-of-a-intersection-between-two-string

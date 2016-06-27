@@ -145,7 +145,8 @@ if($source) {
 		$meta = stream_get_meta_data($sourceStream);
 		if (isset($meta['wrapper_data']) && is_array($meta['wrapper_data'])) {
 			//check stream size
-			$storageStats = \OCA\Files\Helper::buildFileStorageStatistics($dir);
+			//$storageStats = \OCA\Files\Helper::buildFileStorageStatistics($dir);
+			$storageStats = \OCA\FilesSharding\Lib::buildFileStorageStatistics($dir, $owner, $id, $group);
 			$freeSpace = $storageStats['freeSpace'];
 
 			foreach($meta['wrapper_data'] as $header) {
@@ -157,7 +158,7 @@ if($source) {
 						$delta = $length - $freeSpace;
 						$humanDelta = OCP\Util::humanFileSize($delta);
 
-						$eventSource->send('error', array('message' => (string)$l10n->t('The file exceeds your quota by %s', array($humanDelta))));
+						$eventSource->send('error', array('message' => (string)$l10n->t('The file exceeds your available space by %s', array($humanDelta))));
 						$eventSource->close();
 						fclose($sourceStream);
 						myexit($user_id, $owner);

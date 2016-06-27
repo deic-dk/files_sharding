@@ -39,6 +39,10 @@ OCP\Util::connectHook('OC_Filesystem', 'post_delete', 'OCA\FilesSharding\Hooks',
 
 OCP\App::registerPersonal('files_sharding', 'personalsettings');
 
+// This is to avoid checking paths of shared files against own files - which triggers infinite (2) renaming when parent is -1
+\OC_Hook::clear('OC_Filesystem', 'setup');
+\OCP\Util::connectHook('OC_Filesystem', 'setup', 'OCA\FilesSharding\Hooks', 'noSharedSetup');
+
 // Cron job for syncing users 
 OC::$CLASSPATH['OCA\FilesSharding\BackgroundJob\SyncUser'] = 'apps/files_sharding/lib/backgroundjob/sync_user.php';
 OC::$CLASSPATH['OCA\FilesSharding\BackgroundJob\DeleteUser'] = 'apps/files_sharding/lib/backgroundjob/sync_user.php';

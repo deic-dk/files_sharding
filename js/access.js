@@ -50,10 +50,10 @@ var notify = false;
 
 function disableWrite(){
 	if(!notify){
-		if(!$('.access-message').length){
-			$('<div class="msg access-message"></div>').insertAfter('.crumb.last');
+		if(!$('.viewcontainer:not(.hidden) .access-message').length){
+			$('<div class="msg access-message"></div>').insertAfter('.viewcontainer:not(.hidden) .crumb.last');
 		}
-		OC.msg.finishedSaving('.access-message', {status: 'success', data: {message: "You only have read access on this server"}});
+		OC.msg.finishedSaving('.viewcontainer:not(.hidden) .access-message', {status: 'success', data: {message: "You only have read access on this server"}});
 		notify = true;
 	}
 	else{

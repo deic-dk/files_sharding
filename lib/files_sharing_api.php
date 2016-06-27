@@ -22,6 +22,9 @@
 
 namespace OCA\Files\Share_files_sharding;
 
+\OC_Hook::clear('OC_Filesystem', 'setup');
+\OCP\Util::connectHook('OC_Filesystem', 'setup', 'OCA\FilesSharding\Hooks', 'noSharedSetup');
+
 class Api {
 	
 	private static function getItemShared($itemType, $itemSource){

@@ -10,7 +10,7 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 $dir = stripslashes($_POST["dir"]);
 $allFiles = isset($_POST["allfiles"]) ? $_POST["allfiles"] : false;
 
-if(isset($_POST['user_id'])&&$_POST['user_id']){
+if(isset($_POST['user_id']) && $_POST['user_id']){
 	$user_id = $_POST['user_id'];
 }
 else{
@@ -21,7 +21,7 @@ else{
 $owner = isset($_POST['owner']) ? $_POST['owner'] : '';
 $id = isset($_POST['id']) ? $_POST['id'] : '';
 $group = isset($_REQUEST['group']) ? $_REQUEST['group'] : '';
-$group_owner = \OCP\USER::getUser();
+$group_owner = '';
 
 if(!empty($owner)){
 	\OC_User::setUserId($owner);
@@ -73,8 +73,8 @@ foreach ($files as $file) {
 	}
 }
 
-// TODO
-$storageStats = \OCA\Files\Helper::buildFileStorageStatistics($dir);
+//$storageStats = \OCA\Files\Helper::buildFileStorageStatistics($dir);
+$storageStats = \OCA\FilesSharding\Lib::buildFileStorageStatistics($dir, $owner, $id, $group);
 
 $ret = array();
 $ret['files'] = $files;
