@@ -20,6 +20,8 @@ class Lib {
 	public static $USER_SERVER_PRIORITY_BACKUP_1 = 1;
 	public static $USER_SERVER_PRIORITY_BACKUP_2 = 2;
 	
+	public static $LOGIN_OK_COOKIE = "oc_ok";
+	
 	const TYPE_SERVER_SYNC = 'server_sync';
 	
 	public static $USER_SYNC_INTERVAL_SECONDS = 86400; // 24 hours
@@ -1682,7 +1684,7 @@ class Lib {
 			$group_owner = $groupInfo['owner'];
 			$groupUserFreequota = !empty($groupInfo['user_freequota'])?$groupInfo['user_freequota']:0;
 			\OC\Files\Filesystem::tearDown();
-			$groupInfo = OC_User_Group_Admin_Util::getGroupInfo($group);
+			$groupInfo = \OC_User_Group_Admin_Util::getGroupInfo($group);
 			$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
 			\OC\Files\Filesystem::init($group_owner, $groupDir);
 		}
@@ -1692,9 +1694,9 @@ class Lib {
 		$free = $storageInfo['free'];
 		$l = new \OC_L10N('files');
 		$relative = (int)$storageInfo['relative'];
-
+		$used = (int)$storageInfo['used'];
+		
 		if(\OCP\App::isEnabled('user_group_admin') && !empty($group)){
-			$used = (int)$storageInfo['used'];
 			$total = \OCP\Util::computerFileSize($groupUserFreequota);
 			$free = $total - $used;
 			$relative = empty($total)?INF:round(($used / $total) * 10000) / 100;
@@ -1702,7 +1704,7 @@ class Lib {
 		else{
 			// Just for information - quota will have been adjusted if smaller than freequota
 			if(\OCP\App::isEnabled('files_accounting')){
-				$quotas = \OCA\Files_Accounting\Storage_Lib::dbGetQuotas();
+				$quotas = \OCA\Files_Accounting\Storage_Lib::dbGetQuotas(\OCP\USER::getUser());
 				$ret['freequota'] = $quotas['freequota'];
 			}
 		}
@@ -1712,9 +1714,10 @@ class Lib {
 		$maxHumanFileSize = $l->t('Upload (max. %s)', array($maxHumanFileSize));
 
 		$ret = array('uploadMaxFilesize' => $maxUploadFileSize,
-					 'maxHumanFilesize'  => $maxHumanFileSize,
-					 'freeSpace' => $free,
-					 'usedSpacePercent'  => $relative);
+				'maxHumanFilesize'  => $maxHumanFileSize,
+				'freeSpace' => $free,
+				'usedSpace' => $used,
+				'usedSpacePercent'  => $relative);
 
 		return $ret;
 	}

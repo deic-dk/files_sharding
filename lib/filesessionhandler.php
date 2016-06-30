@@ -10,10 +10,7 @@ require_once 'files_sharding/lib/lib_files_sharding.php';
 
 class FileSessionHandler {
 	private $savePath;
-	private $ocUserDatabase;
-
-	private static $LOGIN_OK_COOKIE = "oc_ok";
-	
+	private $ocUserDatabase;	
 	private $quota;
 	private $freequota;
 
@@ -42,7 +39,7 @@ class FileSessionHandler {
 			$parsed_data = \Session::unserialize($data);
 		}
 		// If no valid session found locally, try to get one from the master
-		if(empty($parsed_data['user_id']) && isset($_COOKIE[self::$LOGIN_OK_COOKIE])){
+		if(empty($parsed_data['user_id']) && isset($_COOKIE[\OCA\FilesSharding\Lib::$LOGIN_OK_COOKIE])){
 			\OC_Log::write('files_sharding',"Getting session ".$id, \OC_Log::WARN);
 			$data = $this->getSession($id);
 			$parsed_data = \Session::unserialize($data);
