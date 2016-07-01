@@ -55,7 +55,7 @@ OCP\Util::addScript('files_sharding', 'access');
 
 if(OCA\FilesSharding\Lib::isMaster()){
 	OCP\App::registerAdmin('files_sharding', 'settings');
-	OC::$CLASSPATH['ServerSync_Activity']   ='apps/files_sharding/lib/activity.php';
+	OC::$CLASSPATH['ServerSync_Activity'] ='apps/files_sharding/lib/activity.php';
 	\OC::$server->getActivityManager()->registerExtension(function() {
 		return new ServerSync_Activity(
 				\OC::$server->query('L10NFactory'),
@@ -64,6 +64,17 @@ if(OCA\FilesSharding\Lib::isMaster()){
 				\OC::$server->getConfig()
 		);
 	});
+	// Bump up quota if smaller than freequota
+		if(\OCP\App::isEnabled('files_accounting')){
+			$quotas = \OCA\Files_Accounting\Storage_Lib::getQuotas(\OCP\USER::getUser());
+			\OCP\Util::writeLog('files_sharding', 'Quotas: '.$quotas['quota'].'<' .$quotas['freequota'], \OC_Log::ERROR);
+			if(!empty($quotas['quota']) && !empty($quotas['freequota']) &&
+					\OCP\Util::computerFileSize($quotas['quota']) < \OCP\Util::computerFileSize($quotas['freequota']) ||
+					!empty($quotas['default_quota']) && !empty($quotas['freequota']) &&
+					\OCP\Util::computerFileSize($quotas['default_quota']) < \OCP\Util::computerFileSize($quotas['freequota'])){
+				\OCP\Config::setUserValue($uid, 'files', 'quota', $quotas['freequota']);
+			}
+		}
 	return;
 }
 

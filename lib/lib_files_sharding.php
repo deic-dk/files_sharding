@@ -1689,24 +1689,32 @@ class Lib {
 			\OC\Files\Filesystem::init($group_owner, $groupDir);
 		}
 		
-		// information about storage capacities
-		$storageInfo = \OC_Helper::getStorageInfo($dir);
-		$free = $storageInfo['free'];
+		$user = \OCP\USER::getUser();
 		$l = new \OC_L10N('files');
-		$relative = (int)$storageInfo['relative'];
-		$used = (int)$storageInfo['used'];
 		
+		// information about storage capacities
+		//$storageInfo = \OC_Helper::getStorageInfo($dir);
+		if(\OCP\App::isEnabled('files_accounting') && empty($group)){
+			$personalStorage = \OCA\Files_Accounting\Storage_Lib::personalStorage($user);
+			$free = (int)$personalStorage['free_space'];
+			$used = ((int)$personalStorage['files_usage'])+((int)$personalStorage['trash_usage']);
+			$total = $free + $used;
+			$relative = round(($used / $total) * 10000) / 100;
+		}
+		else{
+			// Not sure why $dir was used here. An empty dir will
+			// have size 0 and thus relative 0.
+			$storageInfo = \OC_Helper::getStorageInfo("/");
+			$free = $storageInfo['free'];
+			$relative = (int)$storageInfo['relative'];
+			$used = (int)$storageInfo['used'];
+			$total = (int)$storageInfo['total'];
+		}
+
 		if(\OCP\App::isEnabled('user_group_admin') && !empty($group)){
 			$total = \OCP\Util::computerFileSize($groupUserFreequota);
 			$free = $total - $used;
 			$relative = empty($total)?INF:round(($used / $total) * 10000) / 100;
-		}
-		else{
-			// Just for information - quota will have been adjusted if smaller than freequota
-			if(\OCP\App::isEnabled('files_accounting')){
-				$quotas = \OCA\Files_Accounting\Storage_Lib::dbGetQuotas(\OCP\USER::getUser());
-				$ret['freequota'] = $quotas['freequota'];
-			}
 		}
 		
 		$maxUploadFileSize = \OCP\Util::maxUploadFilesize($dir, $free);
@@ -1717,6 +1725,7 @@ class Lib {
 				'maxHumanFilesize'  => $maxHumanFileSize,
 				'freeSpace' => $free,
 				'usedSpace' => $used,
+				'totalSpace' => $used,
 				'usedSpacePercent'  => $relative);
 
 		return $ret;
