@@ -67,7 +67,7 @@ if(OCA\FilesSharding\Lib::isMaster()){
 	// Bump up quota if smaller than freequota
 		if(\OCP\App::isEnabled('files_accounting')){
 			$quotas = \OCA\Files_Accounting\Storage_Lib::getQuotas(\OCP\USER::getUser());
-			\OCP\Util::writeLog('files_sharding', 'Quotas: '.$quotas['quota'].'<' .$quotas['freequota'], \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'Quotas: '.$quotas['quota'].'<' .$quotas['freequota'], \OC_Log::DEBUG);
 			if(!empty($quotas['quota']) && !empty($quotas['freequota']) &&
 					\OCP\Util::computerFileSize($quotas['quota']) < \OCP\Util::computerFileSize($quotas['freequota']) ||
 					!empty($quotas['default_quota']) && !empty($quotas['freequota']) &&

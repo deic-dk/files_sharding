@@ -1698,7 +1698,7 @@ class Lib {
 			$personalStorage = \OCA\Files_Accounting\Storage_Lib::personalStorage($user);
 			$free = (int)$personalStorage['free_space'];
 			$used = ((int)$personalStorage['files_usage'])+((int)$personalStorage['trash_usage']);
-			$total = $free + $used;
+			$total = (int)$personalStorage['total_space'];
 			$relative = round(($used / $total) * 10000) / 100;
 		}
 		else{
