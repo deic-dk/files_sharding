@@ -22,6 +22,12 @@ if(!empty($owner)){
 	$group_owner = $owner;
 }
 
+if(!empty($group) && !empty($group_owner)){
+	\OC\Files\Filesystem::tearDown();
+	$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
+	\OC\Files\Filesystem::init($group_owner, $groupDir);
+}
+
 if(!empty($id)){
 	$path = \OC\Files\Filesystem::getPath($id);
 	$files = basename($path);
@@ -37,12 +43,6 @@ if(!empty($dirId)){
 }*/
 // TODO: Check of user_id is allowed to read files - perhaps already done by get().
 //       --- Well, in general user_id will not exist on the same node as owner.
-
-if(!empty($group) && !empty($group_owner)){
-	\OC\Files\Filesystem::tearDown();
-	$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
-	\OC\Files\Filesystem::init($group_owner, $groupDir);
-}
 
 $files_list = json_decode($files);
 // in case we get only a single file

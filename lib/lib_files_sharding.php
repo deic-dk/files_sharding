@@ -1535,6 +1535,8 @@ class Lib {
 		\OC_Util::setupFS($user_id);
 	}
 	
+	
+	// TODO: group support
 	public static function getFileInfo($path, $owner, $id, $parentId){
 		$info = null;
 		if(($id || $parentId) && $owner){
@@ -1595,6 +1597,7 @@ class Lib {
 		return $info;
 	}
 	
+	// TODO: group support
 	public static function moveTmpFile($tmpFile, $path, $dirOwner, $dirId){
 		if($dirId){
 			$dirMeta = self::getFileInfo(null, $dirOwner, $dirId, null);
@@ -1618,6 +1621,8 @@ class Lib {
 				}
 			}
 		}
+		// TODO: This triggers writeHook() from files_sharing, which calls correctFolders(), ..., getFileInfo(),
+		// which fails when in group folders. Fix
 		$ret = \OC\Files\Filesystem::fromTmpFile($tmpFile, $path);
 		
 		if(isset($user_id) && $user_id){
@@ -1628,11 +1633,13 @@ class Lib {
 		
 	}
 
+	// TODO: group support
 	public static function putFile($tmpFile, $dataServer, $dirOwner, $path){
 		
-		$url = $dataServer . 'remote.php/mydav' . $path;
+		$url = $dataServer .
+			(\OCP\App::isEnabled('user_group_admin')?'remote.php/mydav':'remote.php/webdav') . $path;
 		
-		\OCP\Util::writeLog('files_sharding', 'PUTTING '.$tmpFile.'-->'.$url, \OC_Log::ERROR);
+		\OCP\Util::writeLog('files_sharding', 'PUTTING '.$tmpFile.'-->'.$url, \OC_Log::WARN);
 		
 		$curl = curl_init($url);
 		curl_setopt($curl, CURLOPT_HEADER, false);
@@ -1694,8 +1701,8 @@ class Lib {
 		
 		// information about storage capacities
 		//$storageInfo = \OC_Helper::getStorageInfo($dir);
-		if(\OCP\App::isEnabled('files_accounting') && empty($group)){
-			$personalStorage = \OCA\Files_Accounting\Storage_Lib::personalStorage($user);
+		if(\OCP\App::isEnabled('files_accounting')){
+			$personalStorage = \OCA\Files_Accounting\Storage_Lib::personalStorage($user, empty($group), $group);
 			$free = (int)$personalStorage['free_space'];
 			$used = ((int)$personalStorage['files_usage'])+((int)$personalStorage['trash_usage']);
 			$total = (int)$personalStorage['total_space'];

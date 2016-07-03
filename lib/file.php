@@ -65,9 +65,14 @@ class OC_Shard_Backend_File implements OCP\Share_Backend_File_Dependent {
 	 */
 	private static function myGenerateUniqueTarget($path, $excludeList, $view) {
 		
-		\OC_Log::write('core', 'GETTING ' .$path, \OC_Log::WARN);
+		\OC_Log::write('core', 'Non-unique path ' .$path, \OC_Log::WARN);
+		return $path;
 	
-		$pathinfo = pathinfo($path);
+		// We don't need this: We only show shared files in the browser under 'Shared with me'
+		// and they are identified by ID, not name. So the same name may appear several times,
+		// which can be confusing, but IMO less confusing than changing the target name.
+		
+		/*$pathinfo = pathinfo($path);
 		$ext = (isset($pathinfo['extension'])) ? '.'.$pathinfo['extension'] : '';
 		$name = $pathinfo['filename'];
 		$dir = $pathinfo['dirname'];
@@ -76,8 +81,10 @@ class OC_Shard_Backend_File implements OCP\Share_Backend_File_Dependent {
 			$path = \OC\Files\Filesystem::normalizePath($dir . '/' . $name . ' ('.$i.')' . $ext);
 			$i++;
 		}
-	
-		return $path;
+		
+		\OC_Log::write('core', 'Unique path ' .$path, \OC_Log::WARN);
+		
+		return $path;*/
 	}
 	
 
@@ -90,7 +97,7 @@ class OC_Shard_Backend_File implements OCP\Share_Backend_File_Dependent {
 	 */
 	public function generateTarget($filePath, $shareWith, $exclude = null) {
 		
-		\OC_Log::write('core', 'GETTING ' .$filePath, \OC_Log::ERROR);
+		\OC_Log::write('core', 'Generating target for ' . $filePath, \OC_Log::WARN);
 		
 		$shareFolder = \OCA\Files_Sharing\Helper::getShareFolder();
 		$target = \OC\Files\Filesystem::normalizePath($shareFolder . '/' . basename($filePath));
