@@ -13,7 +13,7 @@ $user_id = isset($_GET['user_id'])&&$_GET['user_id'] ? $_GET['user_id'] : OCP\US
 $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
 $id = isset($_GET['id']) ? $_GET['id'] : '';
 $dirId = isset($_GET['dir_id']) ? $_GET['dir_id'] : '';
-$group = isset($_REQUEST['group']) ? $_REQUEST['group'] : '';
+$group = isset($_GET['group']) ? $_GET['group'] : '';
 $group_owner = \OCP\USER::getUser();
 
 if(!empty($owner)){
