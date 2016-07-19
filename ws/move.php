@@ -14,7 +14,7 @@ $dir = isset($_POST["dir"])?stripslashes($_POST["dir"]):'';
 $file = isset($_POST["file"])?stripslashes($_POST["file"]):'';
 $target = isset($_POST["target"])?stripslashes(rawurldecode($_POST["target"])):'';
 $group = isset($_REQUEST['group']) ? $_REQUEST['group'] : '';
-$group_owner = \OCP\USER::getUser();
+$group_dir_owner = \OCP\USER::getUser();
 
 if(empty($dir) || empty($target) || empty($file)){
 	http_response_code(400);
@@ -24,18 +24,18 @@ if(empty($dir) || empty($target) || empty($file)){
 if(!empty($owner)){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
-	$group_owner = $owner;
+	$group_dir_owner = $owner;
 }
 elseif(!empty($user_id)){
 	\OC_User::setUserId($user_id);
 	\OC_Util::setupFS($user_id);
-	$group_owner = $user_id;
+	$group_dir_owner = $user_id;
 }
 
-if(!empty($group) && !empty($group_owner)){
+if(!empty($group) && !empty($group_dir_owner)){
 	\OC\Files\Filesystem::tearDown();
-	$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
-	\OC\Files\Filesystem::init($group_owner, $groupDir);
+	$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
+	\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
 }
 
 if(!empty($id)){

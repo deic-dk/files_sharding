@@ -35,12 +35,12 @@ $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
 $user_id = isset($_GET['user_id']) ? $_GET['user_id'] : '';
 $group = isset($_GET['group']) ? $_GET['group'] : '';
 
-$group_owner = $user_id;
+$group_dir_owner = $user_id;
 
 if($owner){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
-	$group_owner = $owner;
+	$group_dir_owner = $owner;
 }
 elseif($user_id){
 	\OC_User::setUserId($user_id);
@@ -48,10 +48,10 @@ elseif($user_id){
 	\OCP\Util::writeLog('files_sharding', 'No id or owner: '.$owner.':'.$id, \OC_Log::WARN);
 }
 
-if(!empty($group) && !empty($group_owner)){
+if(!empty($group) && !empty($group_dir_owner)){
 	\OC\Files\Filesystem::tearDown();
-	$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
-	\OC\Files\Filesystem::init($group_owner, $groupDir);
+	$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
+	\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
 }
 
 if($id){

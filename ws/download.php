@@ -14,18 +14,18 @@ $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
 $id = isset($_GET['id']) ? $_GET['id'] : '';
 $dirId = isset($_GET['dir_id']) ? $_GET['dir_id'] : '';
 $group = isset($_GET['group']) ? $_GET['group'] : '';
-$group_owner = \OCP\USER::getUser();
+$group_dir_owner = \OCP\USER::getUser();
 
 if(!empty($owner)){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
-	$group_owner = $owner;
+	$group_dir_owner = $owner;
 }
 
-if(!empty($group) && !empty($group_owner)){
+if(!empty($group) && !empty($group_dir_owner)){
 	\OC\Files\Filesystem::tearDown();
-	$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
-	\OC\Files\Filesystem::init($group_owner, $groupDir);
+	$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
+	\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
 }
 
 if(!empty($id)){

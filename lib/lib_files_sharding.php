@@ -1520,7 +1520,7 @@ class Lib {
 			//\OC\Files\Filesystem::initMountPoints($owner);
 			\OC_User::setUserId($owner);
 			\OC_Util::setupFS($owner);
-			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.\OCP\USER::getUser(), \OC_Log::WARN);
+			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.\OCP\USER::getUser(), \OC_Log::INFO);
 			return $user_id;
 		}
 		else{
@@ -1534,8 +1534,7 @@ class Lib {
 		\OC_User::setUserId($user_id);
 		\OC_Util::setupFS($user_id);
 	}
-	
-	
+
 	// TODO: group support
 	public static function getFileInfo($path, $owner, $id, $parentId){
 		$info = null;
@@ -1568,17 +1567,17 @@ class Lib {
 				}
 			}
 			else{
-				if($owner!=\OCP\USER::getUser()){
+				if(!empty($owner) && $owner!=\OCP\USER::getUser()){
 					$user_id = self::switchUser($owner);
 				}
-				if($id){
+				if(!empty($id)){
 					$path = \OC\Files\Filesystem::getPath($id);
 				}
-				elseif($parentId){
+				elseif(!empty($parentId)){
 					$parentPath = \OC\Files\Filesystem::getPath($parentId);
 					$path = $parentPath . '/' . basename($path);
 				}
-				\OCP\Util::writeLog('files_sharding', 'Getting info for '.$path, \OC_Log::WARN);
+				\OCP\Util::writeLog('files_sharding', 'Getting info for '.$parentId.':'.$id.':'.$path.':'.$owner, \OC_Log::WARN);
 				$info = \OC\Files\Filesystem::getFileInfo($path);
 			}
 		}
@@ -1602,8 +1601,10 @@ class Lib {
 		if($dirId){
 			$dirMeta = self::getFileInfo(null, $dirOwner, $dirId, null);
 			$dirPath = preg_replace('|^files/|','/', $dirMeta->getInternalPath());
+			$dirPath = preg_replace('|^user_group_admin/[^/]*/|','/', $dirPath);
 			$pathinfo = pathinfo($path);
-			$path = $dirPath.'/'.$pathinfo['basename'];
+			$endPath = $dirPath.'/'.$pathinfo['basename'];
+			\OCP\Util::writeLog('files_sharding', 'dirMeta: '.$dirId.':'.$dirMeta->getInternalPath().':'.$endPath.':'.$path.':'.\OCP\USER::getUser().':'.$dirOwner.':'.$dirId, \OC_Log::WARN);
 		}
 		
 		if($dirOwner){
@@ -1613,7 +1614,7 @@ class Lib {
 				if(!$dataServer){
 					$dataServer = self::getMasterInternalURL();
 				}
-				return self::putFile($tmpFile, $dataServer, $dirOwner, $path);
+				return self::putFile($tmpFile, $dataServer, $dirOwner, $endPath);
 			}
 			else{
 				if($dirOwner!=\OCP\USER::getUser()){
@@ -1623,7 +1624,7 @@ class Lib {
 		}
 		// TODO: This triggers writeHook() from files_sharing, which calls correctFolders(), ..., getFileInfo(),
 		// which fails when in group folders. Fix
-		$ret = \OC\Files\Filesystem::fromTmpFile($tmpFile, $path);
+		$ret = \OC\Files\Filesystem::fromTmpFile($tmpFile, $endPath);
 		
 		if(isset($user_id) && $user_id){
 			self::restoreUser($user_id);
@@ -1669,10 +1670,13 @@ class Lib {
 		//return Array('uploadMaxFilesize' => -1);
 		//return \OCA\Files\Helper::buildFileStorageStatistics($dir);
 		
+		$user = \OCP\USER::getUser();
+		$group_dir_owner = $user;
+		
 		if(!empty($owner)){
 			\OC_User::setUserId($owner);
 			\OC_Util::setupFS($owner);
-			$group_owner = $owner;
+			$group_dir_owner = $owner;
 		}
 		
 		if(!empty($id)){
@@ -1688,15 +1692,14 @@ class Lib {
 		
 		if(\OCP\App::isEnabled('user_group_admin') && !empty($group)){
 			$groupInfo = \OC_User_Group_Admin_Util:: getGroupInfo($group);
-			$group_owner = $groupInfo['owner'];
+			//$group_dir_owner = $groupInfo['owner'];
 			$groupUserFreequota = !empty($groupInfo['user_freequota'])?$groupInfo['user_freequota']:0;
 			\OC\Files\Filesystem::tearDown();
 			$groupInfo = \OC_User_Group_Admin_Util::getGroupInfo($group);
-			$groupDir = '/'.$group_owner.'/user_group_admin/'.$group;
-			\OC\Files\Filesystem::init($group_owner, $groupDir);
+			$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
+			\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
 		}
 		
-		$user = \OCP\USER::getUser();
 		$l = new \OC_L10N('files');
 		
 		// information about storage capacities
