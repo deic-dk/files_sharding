@@ -26,6 +26,7 @@ require_once 'files_sharding/lib/Normalizer.php';
 
 OC_Log::write('files_sharding','Remote access',OC_Log::DEBUG);
 OCP\App::checkAppEnabled('files_sharding');
+OCP\App::checkAppEnabled('chooser');
 
 $FILES_BASE = "/files";
 $PUBLIC_BASE = "/public";
@@ -69,8 +70,8 @@ $parsedMaster = parse_url($masterUrl);
 $master = isset($parsedMaster['host']) ? $parsedMaster['host'] : null;
 
 // Serve
-if($redirected_from===$master){
-	\OCP\Util::writeLog('files_sharding', 'Serving, '.$server, \OC_Log::WARN);
+if($redirected_from===$master || empty($redirected_from)){
+	\OCP\Util::writeLog('files_sharding', 'Serving', \OC_Log::INFO);
 	include('chooser/appinfo/remote.php');
 }
 else{
@@ -82,7 +83,7 @@ else{
 	$server = isset($parsedUrl['host']) ? $parsedUrl['host'] : null;
 	if(isset($_SERVER['HTTP_HOST']) && $server===$_SERVER['HTTP_HOST'] ||
 			isset($_SERVER['SERVER_NAME']) && $server===$_SERVER['SERVER_NAME']){
-		\OCP\Util::writeLog('files_sharding', 'Serving, '.$server, \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'Serving, '.$server, \OC_Log::INFO);
 		include('chooser/appinfo/remote.php');
 	}
 	// Redirect

@@ -21,3 +21,6 @@ div.server {
   white-space: nowrap;
 }
 
+textarea.description {
+	width: 192px;
+}

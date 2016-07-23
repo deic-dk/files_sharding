@@ -24,7 +24,8 @@
 				<type>text</type>
 				<notnull>true</notnull>
 				<length>64</length>
-			</field>			<field>
+			</field>
+			<field>
 				<name>site</name>
 				<type>text</type>
 				<notnull>true</notnull>
@@ -38,9 +39,14 @@
 			</field>
 			<field>
 				<name>charge_per_gb</name>
-                                <type>text</type>
-                                <notnull>true</notnull>
-                                <length>64</length>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>64</length>
+			</field>
+			<field>
+				<name>description</name>
+				<type>text</type>
+				<notnull>true</notnull>
 			</field>
 		</declaration>
 	</table>

@@ -11,7 +11,8 @@ OC_REMOTE_BASE_DIR="/remote.php/webdav/"
 #
 
 function usage(){
-	echo "Usage: sync_user.sh [-u user] [-s server] [-p password] [folder URL]"
+	echo "Usage: sync_user.sh [-u user] [-s server] [-p password] [folder] [URL]"
+	echo "server and  URL are mutually exclusive. If both are given, server has priority"
 	exit -1
 }
 

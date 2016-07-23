@@ -9,3 +9,13 @@
 .add_data_folder.btn, .data_folder.btn{
 	padding: 7px 12px 4px 12px;
 }
+
+#sharding-info {
+	float: right;
+	margin-right: 8px;
+	margin-top: 24px;
+}
+
+.home_site {
+	margin-top: 12px;
+}

@@ -98,6 +98,21 @@ class Lib {
 		}
 		return self::$masterinternalurl;
 	}
+	
+	public static function getMasterSite(){
+		if(!empty(self::$mastersite)){
+			return self::$mastersite;
+		}
+		$servers = self::getServersList();
+		$masterUrl = self::getMasterURL();
+		foreach($servers as $server){
+			if($server['url']===$masterUrl){
+				return($server['site']);
+			}
+		}
+		\OCP\Util::writeLog('files_sharding', 'ERROR: Could not find master site', \OC_Log::ERROR);
+		return null;
+	}
 
 	public static function getAllowLocalLogin($node){
 		if(self::isMaster()){
@@ -128,6 +143,39 @@ class Lib {
 		$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_servers` set `allow_local_login` = ? WHERE `id` = ?');
 		$result = $query->execute( array($value, $id));
 		return $result ? true : false;
+	}
+	
+	/**
+	 * Not used - just here for reference.
+	 * @param unknown $user
+	 * @param unknown $url
+	 * @param unknown $destDir
+	 * @return NULL|unknown
+	 */
+	public static function getFile($user, $url, $destBaseDir, $target){
+
+		\OC_Util::teardownFS();
+		\OC\Files\Filesystem::init($user, $destBaseDir);
+
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_HEADER, false);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, TRUE);
+		curl_setopt($curl, CURLOPT_UNRESTRICTED_AUTH, TRUE);
+			
+		$data = curl_exec($curl);
+		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+		if($status===0 || $status>=300 || $json_response===null || $json_response===false){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response. '.$json_response, \OC_Log::ERROR);
+			return null;
+		}
+		
+		$success = \OC\Files\Filesystem::file_put_contents($target, $data);
+		
+		return $status;
 	}
 	
 	/*
@@ -578,9 +626,12 @@ class Lib {
 		return null;
 	}
 	
-	public static function dbAddServer($url, $site, $charge, $allow_local_login){
+	public static function dbAddServer($url, $internal_url, $site, $charge,
+			$allow_local_login, $id=null){
 		
-		$id = md5(uniqid(rand(), true));
+		if(empty($id)){
+			$id = md5(uniqid(rand(), true));
+		}
 		
 		$query = \OC_DB::prepare('SELECT `id` FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?');
 		$result = $query->execute(Array($id));
@@ -588,14 +639,19 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
-		if(count($results)>0){
+		if(count($results)===0){
+			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*files_sharding_servers` (`id`, `url`, `internal_url`, `site`, `allow_local_login`, `charge_per_gb`) VALUES (?, ?, ?, ?, ?, ?)');
+			$result = $query->execute( array($id, $url, $site, $allow_local_login, $charge));
+		}
+		elseif(count($results)===1){
+			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_servers` SET `url` = ?, `internal_url` = ?, `site` = ?, `allow_local_login` = ?, `charge_per_gb` = ? WHERE `ID` = ?');
+			$result = $query->execute( array($url, $internal_url, $site, $allow_local_login, $charge, $id));
+		}
+		if(count($results)>1){
 			$error = 'ERROR: Duplicate entries found for server '.$id.' : '.$server_id;
 			\OCP\Util::writeLog('files_sharding', $error, \OCP\Util::ERROR);
 			throw new Exception($error);
 		}
-		
-		$query = \OC_DB::prepare('INSERT INTO `*PREFIX*files_sharding_servers` (`id`, `url`, `site`, `allow_local_login`, `charge_per_gb`) VALUES (?, ?, ?, ?, ?)');
-		$result = $query->execute( array($id, $url, $site, $allow_local_login, $charge));
 		return $result ? true : false;
 	}
 	
@@ -648,6 +704,31 @@ class Lib {
 		}
 		\OCP\Util::writeLog('files_sharding', 'ERROR, dbLookupFolderServerPriority: server not found for folder: '.$folder.' : '.$server_id, \OC_Log::ERROR);
 		return -1;
+	}
+	
+	/**
+	 * Choose site for user on very first login.
+	 * @param $mail
+	 * @param $schacHomeOrganization - e.g. "dtu.dk"
+	 * @param $organizationName - e.g. "Danmarks Tekniske Universitet"
+	 * @param $entitlement
+	 */
+	// TODO: refine this - taking into account availble servers and their space
+	public static function dbChooseSiteForUser($mail, $schacHomeOrganization, $organizationName, $entitlement){
+		$servers = self::dbGetServersList();
+		$shortest = INF;
+		$closestSite = null;
+		foreach($servers as $server){
+			$l = levenshtein(strtolower($server['site']), strtolower($schacHomeOrganization));
+			if($l>=0 && $l<$shortest){
+				$shortest = $l;
+				$closestSite = $server['site'];
+			}
+		}
+		if(!empty($closestSite)){
+			return $closestSite;
+		}
+		return elf::getMasterSite();
 	}
 	
 	/**
@@ -1139,6 +1220,37 @@ class Lib {
 		return null;
 	}
 	
+	/**
+	 * 
+	 * @param unknown $user
+	 * @param unknown $url
+	 * @param unknown $dir path of synced directory, absolute or relative to owncloud data root
+	 * @return boolean
+	 */
+	private static function syncDir($user, $url, $dir){
+		$i = 0;
+		do{
+			if($i>self::$MAX_SYNC_ATTEMPTS){
+				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
+				break;
+			}
+			$syncedFiles = shell_exec(__DIR__."/sync_user.sh -u \"".$user."\" \"".$dir."\" \"".$url."\" | grep 'Synced files:' | awk -F ':' '{printf \$NF}'");
+			\OCP\Util::writeLog('files_sharding', 'Synced '.$syncedFiles.' files for '.$user.' from '.$server, \OC_Log::ERROR);
+			++$i;
+		}
+		while(!is_numeric($syncedFiles) || is_numeric($syncedFiles) && $syncedFiles!=0);
+		return $syncedFiles===0 && $i<=self::$MAX_SYNC_ATTEMPTS;
+	}
+	
+	/**
+	 * syncUser - sync user files to the current server.
+	 * That is either from his primary server to his secondary (backup server)
+	 * or vice versa.
+	 * The last case is indicated by $priority = $USER_SERVER_PRIORITY_PRIMARY.
+	 * @param unknown $user
+	 * @param unknown $priority
+	 * @return URL of primary server of the user
+	 */
 	public static function syncUser($user, $priority) {
 		$myServerId = self::lookupServerId();
 		$servers = self::getServersList();
@@ -1168,7 +1280,7 @@ class Lib {
 			++$i;
 		}
 		while(!is_numeric($syncedFiles) || is_numeric($syncedFiles) && $syncedFiles!=0);
-		if($i<=self::$MAX_SYNC_ATTEMPTS){
+		if($syncedFiles===0 && $i<=self::$MAX_SYNC_ATTEMPTS){
 			// Update last_sync, set r/w if this is a new primary server
 			$access = null;
 			$ok = true;
@@ -1181,6 +1293,16 @@ class Lib {
 					$ok = $ok && \OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
 				}
 				$access = self::$USER_ACCESS_ALL;
+				// Get group folders in files_accounting from previous primary server
+				if(\OCP\App::isEnabled('user_group_admin')){
+					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/groupdirs',
+							$user.'/user_group_admin');
+				}
+				// Get bills from previous primary server
+				if(\OCP\App::isEnabled('files_accounting')){
+					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/bills',
+							$user.'/files_accounting');
+				}
 			}
 			$now = time();
 			if($ok){

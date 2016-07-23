@@ -55,7 +55,7 @@ function delete_server(id){
 	});
 }
 
-function add_server(url, site, charge, allow_local_login){
+function add_server(url, internal_url, site, charge, allow_local_login, id){
 	if(!url){
 		alert("You need to provide a URL");
 		return;
@@ -71,7 +71,9 @@ function add_server(url, site, charge, allow_local_login){
 	$.ajax(OC.linkTo('files_sharding','ajax/add_server.php'), {
 		 type:'POST',
 		  data:{
+		  	id: id,
 			  url: url,
+			  internal_url: internal_url,
 			  site: site,
 			  charge: charge,
 			  allow_local_login: allow_local_login
@@ -83,6 +85,13 @@ function add_server(url, site, charge, allow_local_login){
 		error:function(s){
 			alert("Unexpected error!");
 		}
+	});
+}
+
+function addEditLink($id){
+	$('a.edit_description'+($id?'[id='+$id+']':'')).click(function(event){
+		var id = $(event.target).attr('id');
+		$('textarea.description[id="'+id+'"]').toggleClass('hidden');
 	});
 }
 
@@ -98,10 +107,13 @@ $(document).ready(function(){
 		delete_dialogs[id].dialog( "open" );
 	});
 	$('#filesShardingSettings div .add_server').live('click', function(){
+			id = $(this).parent().find('input.id').first().val();
 			url = $(this).parent().find('input.url').first().val();
+			internal_url = $(this).parent().find('input.internal_url').first().val();
 			site = $(this).parent().find('input.site').first().val();
 			charge = $(this).parent().find('input.charge').first().val();
 			allow_local_login =  $(this).parent().find('input.allow_local_login').first().is(':checked')?'yes':'no';
-			add_server(url, site, charge, allow_local_login);
+			add_server(url, internal_url, site, charge, allow_local_login, id);
 	});
+	addEditLink();
 });

@@ -3,14 +3,16 @@
 OCP\JSON::checkAppEnabled('files_sharding');
 OCP\JSON::checkLoggedIn();
 
+$id = $_POST['id'];
 $url = $_POST['url'];
+$internal_url = $_POST['internal_url'];
 $site = $_POST['site'];
 $charge = $_POST['charge'];
 $allow_local_login = $_POST['allow_local_login'];
 
 OC_Log::write('files_sharding',"Adding server: ".$url.", ".$allow_local_login, OC_Log::WARN);
 
-if(!OCA\FilesSharding\Lib::dbAddServer($url, $site, $charge, $allow_local_login)){
+if(!OCA\FilesSharding\Lib::dbAddServer($url, $internal_url, $site, $charge, $allow_local_login, $id)){
 	$ret['error'] = "Failed adding server ".$url;
 }
 else{

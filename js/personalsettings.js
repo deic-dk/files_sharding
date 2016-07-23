@@ -337,5 +337,58 @@ $(document).ready(function(){
 		});
 	});
 
+	$("#filesShardingPersonalSettings #sharding-info").on("click", function () {
+		if($('.sharding-help').length){
+			return false;
+		};
+		var html = "<div><h3>Choosing home and backup site</h3>\
+				<a class='oc-dialog-close close svg'></a>\
+				<div class='sharding-help'></div></div>";
+		$(html).dialog({
+			  dialogClass: "oc-dialog",
+			  resizeable: true,
+			  draggable: true,
+			  modal: false,
+			  height: 600,
+			  width: 720,
+				buttons: [{
+					"id": "sharing_info",
+					"text": "OK",
+					"click": function() {
+						$( this ).dialog( "close" );
+					}
+				}]
+			});
+
+		//$('body').append('<div class="modalOverlay"></div>');
+
+		$('.oc-dialog-close').live('click', function() {
+			$(".oc-dialog").remove();
+			$('.modalOverlay').remove();
+		});
+
+		$('.ui-helper-clearfix').css("display", "none");
+
+		$.ajax(OC.linkTo('files_sharding', 'ajax/get_help.php'), {
+			type: 'GET',
+			success: function(jsondata){
+				if(jsondata) {
+					$('.sharding-help').html(jsondata.data.page);
+				}
+			},
+			error: function(data) {
+				alert("Unexpected error!");
+			}
+		});
+		
+		/*$(document).click(function(e){
+			if (!$(e.target).parents().filter('.oc-dialog').length && !$(e.target).filter('#sharding-info').length ) {
+				$(".oc-dialog").remove();
+				$('.modalOverlay').remove();
+			}
+		});*/
+		
+	}); 
+
 
 });
