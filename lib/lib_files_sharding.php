@@ -1651,6 +1651,9 @@ class Lib {
 	}
 	
 	public static function restoreUser($user_id){
+		if(empty($user_id)){
+			return;
+		}
 		// If not done, the user shared with will now be logged in as $owner
 		\OC_Util::teardownFS();
 		\OC_User::setUserId($user_id);
@@ -1795,7 +1798,9 @@ class Lib {
 		$user = \OCP\USER::getUser();
 		$group_dir_owner = $user;
 		
-		if(!empty($owner)){
+		if(!empty($owner)&& $owner!=$user){
+			$old_user = $user;
+			$user = $owner;
 			\OC_User::setUserId($owner);
 			\OC_Util::setupFS($owner);
 			$group_dir_owner = $owner;
@@ -1857,8 +1862,11 @@ class Lib {
 				'maxHumanFilesize'  => $maxHumanFileSize,
 				'freeSpace' => $free,
 				'usedSpace' => $used,
+				'usedSpaceHuman' => \OCP\Util::humanFileSize($used),
 				'totalSpace' => $used,
 				'usedSpacePercent'  => $relative);
+		
+		self::restoreUser($old_user);
 
 		return $ret;
 	}
