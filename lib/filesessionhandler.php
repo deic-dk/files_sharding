@@ -171,10 +171,16 @@ class FileSessionHandler {
 		else{
 			$this->update_freequota_from_master($uid);
 		}
+		
+		$valid_quota = empty($this->quota) || $this->quota==="default"?
+			\OC_Appconfig::getValue('files', 'default_quota'):$this->quota;
+		$valid_freequota = empty($this->freequota) || $this->freequota==="default"?
+			\OC_Appconfig::getValue('files', 'default_freequota'):$this->freequota;
 		// Bump up quota if smaller than freequota
-		if(!empty($this->freequota) && isset($this->quota) &&
-				\OCP\Util::computerFileSize($this->quota)<\OCP\Util::computerFileSize($this->freequota)){
-			$this->update_quota($uid, $this->freequota);
+		if(!empty($valid_quota) && !empty($valid_freequota) &&
+				\OCP\Util::computerFileSize($valid_quota)<\OCP\Util::computerFileSize($valid_freequota)){
+			\OC_Log::write('saml','Bumping up quota '.$this->quota." to match freequota ".$this->freequota, \OC_Log::WARN);
+			$this->update_quota($uid, $valid_freequota);
 		}
 	}
 	

@@ -64,10 +64,12 @@ if(OCA\FilesSharding\Lib::isMaster()){
 				\OC::$server->getConfig()
 		);
 	});
-	// Bump up quota if smaller than freequota
-		if(\OCP\App::isEnabled('files_accounting')){
-			$quotas = \OCA\Files_Accounting\Storage_Lib::getQuotas(\OCP\USER::getUser());
-			\OCP\Util::writeLog('files_sharding', 'Quotas: '.$quotas['quota'].'<' .$quotas['freequota'], \OC_Log::DEBUG);
+	// Bump up quota if smaller than freequota.
+	// TODO: move to somewhere user is set. Or drop. Drop from filesessionhandler too...
+		$user = \OCP\USER::getUser();
+		if(!empty($user) && \OCP\App::isEnabled('files_accounting')){
+			$quotas = \OCA\Files_Accounting\Storage_Lib::getQuotas($user);
+			\OCP\Util::writeLog('files_sharding', 'Quotas: '.$user.':'.$quotas['quota'].'<' .$quotas['freequota'], \OC_Log::INFO);
 			if(!empty($quotas['quota']) && !empty($quotas['freequota']) &&
 					\OCP\Util::computerFileSize($quotas['quota']) < \OCP\Util::computerFileSize($quotas['freequota']) ||
 					!empty($quotas['default_quota']) && !empty($quotas['freequota']) &&

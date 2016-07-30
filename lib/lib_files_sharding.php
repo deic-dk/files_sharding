@@ -303,7 +303,7 @@ class Lib {
 			}
 		}
 		else{
-			$user_id = getUser();
+			$user_id = $loggedin_user;
 		}
 		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
 		$storage = \OC\Files\Filesystem::getStorage('/'.$user_id.'/');
@@ -1866,7 +1866,9 @@ class Lib {
 				'totalSpace' => $used,
 				'usedSpacePercent'  => $relative);
 		
-		self::restoreUser($old_user);
+		if(isset($old_user)){
+			self::restoreUser($old_user);
+		}
 
 		return $ret;
 	}
@@ -1893,19 +1895,25 @@ class Lib {
 	}
 	
 	public static function resolveReShare($linkItem){
+		\OCP\Util::writeLog('files_sharding', 'Resolving '.serialize($linkItem), \OC_Log::WARN);
 		if(isset($linkItem['parent'])){
 			$parent = $linkItem['parent'];
-			while (isset($parent)){
+			while(isset($parent)){
 				$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*share` WHERE `id` = ?', 1);
 				$item = $query->execute(array($parent))->fetchRow();
-				if(isset($item['parent'])){
+				if(isset($item['parent']) && $item['parent']!=-1){// These conditions are the only difference to \OCP\Share::resolveReShare()
 					$parent = $item['parent'];
 				}
 				else{
-					return empty($item)?$linkItem:$item;// This condition is the only difference to \OCP\Share::resolveReShare()
+					if(!empty($item['id']) && $item['id']!=-1){
+						\OCP\Util::writeLog('files_sharding', 'Returning parent '.serialize($item), \OC_Log::WARN);
+						return $item;
+					}
+					break;
 				}
 			}
 		}
+		\OCP\Util::writeLog('files_sharding', 'Returning original item', \OC_Log::WARN);
 		return $linkItem;
 	}
 	

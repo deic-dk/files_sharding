@@ -77,14 +77,15 @@ switch ($_POST['action']) {
 						if($_POST['itemType']==='file'){
 							$parent_path = dirname($file_path);
 							if(!OC\Files\Filesystem::file_exists($parent_path)){
-								mkdir($parent_path, '0770', true);
+								\OCP\Util::writeLog('files_sharding', 'Creating '.$parent_path, \OC_Log::WARN);
+								OC\Files\Filesystem::mkdir($parent_path, '0770', true);
 							}
 							OC\Files\Filesystem::touch($file_path);
 						}
 						if($_POST['itemType']==='folder'){
-							//OC\Files\Filesystem::mkdir($file_path);
-							mkdir($file_path, '0770', true);
-							\OCP\Util::writeLog('files_sharding', 'Created '.$file_path, \OC_Log::WARN);
+							\OCP\Util::writeLog('files_sharding', 'Creating '.$file_path, \OC_Log::WARN);
+							OC\Files\Filesystem::mkdir($file_path);
+							//mkdir($file_path, '0770', true);
 						}
 					}
 				}
