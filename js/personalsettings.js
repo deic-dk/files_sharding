@@ -352,7 +352,7 @@ $(document).ready(function(){
 			  height: 600,
 			  width: 720,
 				buttons: [{
-					"id": "sharing_info",
+					"id": "sharding_info",
 					"text": "OK",
 					"click": function() {
 						$( this ).dialog( "close" );
