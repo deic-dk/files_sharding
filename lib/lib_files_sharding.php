@@ -149,10 +149,14 @@ class Lib {
 	 * Not used - just here for reference.
 	 * @param unknown $user
 	 * @param unknown $url
-	 * @param unknown $destDir
+	 * @param unknown $destBaseDir
+	 * @param unknown $target
+	 * @param unknown $username optional remote login username
+	 * @param unknown $password optional remote login password
 	 * @return NULL|unknown
 	 */
-	public static function getFile($user, $url, $destBaseDir, $target){
+	public static function getFile($user, $url, $destBaseDir, $target,
+			$username='', $password=''){
 
 		\OC_Util::teardownFS();
 		\OC\Files\Filesystem::init($user, $destBaseDir);
@@ -164,7 +168,10 @@ class Lib {
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
 		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, TRUE);
 		curl_setopt($curl, CURLOPT_UNRESTRICTED_AUTH, TRUE);
-			
+		if(!empty($username)){
+			curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+			curl_setopt($curl, CURLOPT_USERPWD, "$username:$password");
+		}
 		$data = curl_exec($curl);
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
@@ -473,18 +480,25 @@ class Lib {
 	 * get file ID from a given path
 	 * @param string $path
 	 * @param string $user_id
+	 * @param string $group
 	 * @return string fileID or null
 	 */
-	public static function getFileId($path, $user_id=null) {
+	public static function getFileId($path, $user_id=null, $group=null) {
 		if(!isset($user_id)){
 			$user_id = \OCP\User::getUser();
 		}
-		$view = new \OC\Files\View('/'.$user_id.'/files');
+		if(!empty($group)){
+			$view = new \OC\Files\View('/'.$user_id.'/user_group_admin/'.$group);
+		}
+		else{
+			$view = new \OC\Files\View('/'.$user_id.'/files');
+		}
 		$fileId = null;
 		$fileInfo = $view->getFileInfo($path);
 		if ($fileInfo) {
 			$fileId = $fileInfo['fileid'];
 		}
+		\OCP\Util::writeLog('files_sharding', 'Got ID '.$fileId.' for path '.$path, \OC_Log::WARN);
 		return $fileId;
 	}
 
@@ -1863,7 +1877,7 @@ class Lib {
 				'freeSpace' => $free,
 				'usedSpace' => $used,
 				'usedSpaceHuman' => \OCP\Util::humanFileSize($used),
-				'totalSpace' => $used,
+				'totalSpace' => $total,
 				'usedSpacePercent'  => $relative);
 		
 		if(isset($old_user)){

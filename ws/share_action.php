@@ -90,7 +90,7 @@ switch ($_POST['action']) {
 					}
 				}
 				// We need to set the itemSource to a file/folder that exists on the server, otherwise shareItem will complain
-				$itemMasterSource = OCA\FilesSharding\Lib::getFileId($file_path, $user_id);
+				$itemMasterSource = OCA\FilesSharding\Lib::getFileId($file_path, $user_id, $group);
 				
 				$shareType = (int)$_POST['shareType'];
 				$shareWith = $_POST['shareWith'];

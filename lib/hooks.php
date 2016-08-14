@@ -102,13 +102,16 @@ class Hooks {
 		}
 	}
 	
-	public static function renameHook($params){
+	// When called properly by \OC_Hook::emit, $group is not set.
+	// We need to call manually from rename.php when in a group folder, because
+	// $params['oldpath] is relative to /user/files/
+	public static function renameHook($params, $group=null){
 		\OCP\Util::writeLog('files_sharing','RENAME '.serialize($params), \OCP\Util::WARN);
 		if(!\OCP\App::isEnabled('files_sharding')){
 			return true;
 		}
 		$user_id = \OCP\User::getUser();
-		$id = \OCA\FilesSharding\Lib::getFileId($params['newpath']);
+		$id = \OCA\FilesSharding\Lib::getFileId($params['newpath'], $user_id, $group);
 		$matchlen = \OCA\FilesSharding\Lib::stripleft($params['oldpath'], $params['newpath']);
 		$oldname = substr($params['oldpath'], $matchlen);
 		$newname = substr($params['newpath'], $matchlen);
@@ -118,19 +121,19 @@ class Hooks {
 		}
 		else{
 			$res = \OCA\FilesSharding\Lib::ws('rename_share_file_target',
-					array('owner' => $user_id, 'id' => $id, 'oldname' => $oldname, 'newname' => $newname));
+				array('owner' => $user_id, 'id' => $id, 'oldname' => $oldname, 'newname' => $newname));
 		}
 		return $res;
 	}
 	
-	public static function deleteHook($params){
+	public static function deleteHook($params, $group=null){
 		\OCP\Util::writeLog('files_sharing','DELETE '.serialize($params), \OCP\Util::WARN);
 		if(!\OCP\App::isEnabled('files_sharding')){
 			return true;
 		}
 		$user_id = \OCP\User::getUser();
 		$path = $params['path'];
-		$id = \OCA\FilesSharding\Lib::getFileId($path);
+		$id = \OCA\FilesSharding\Lib::getFileId($path, $user_id, $group);
 		
 		if(\OCA\FilesSharding\Lib::isMaster()){
 			$res = \OCA\FilesSharding\Lib::deleteShareFileTarget($user_id, $id, $path);

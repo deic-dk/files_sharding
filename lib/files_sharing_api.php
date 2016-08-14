@@ -47,7 +47,7 @@ class Api {
 		}
 	}
 	
-	private static function shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions){
+	public static function shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions){
 		if(!\OCP\App::isEnabled('files_sharding') || \OCA\FilesSharding\Lib::isMaster()){
 			return \OCP\Share::shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions);
 		}

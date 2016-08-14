@@ -242,21 +242,21 @@ $(document).ready(function(){
 	});
 
 	choose_data_folder_dialog = $("#filesShardingDataFolders div.addDataFolder div.dialog").dialog({//create dialog, but keep it closed
-	  title: "Choose new data folder to exclude from syncing",
-	  autoOpen: false,
-	  height: 440,
-	  width: 620,
-	  modal: true,
-	  buttons: {
-	   	"Choose": function() {
-	   		folder = stripTrailingSlash($('#chosen_folder').text());
-	   		addDataFolder(folder);
+		title: "Choose new data folder to exclude from syncing",
+		autoOpen: false,
+		height: 440,
+		width: 620,
+		modal: true,
+		buttons: {
+			"Choose": function() {
+				folder = stripTrailingSlash($('#chosen_folder').text());
+				addDataFolder(folder);
 			choose_data_folder_dialog.dialog("close");
-	   	},
-	   	"Cancel": function() {
-	   		choose_data_folder_dialog.dialog("close");
+			},
+			"Cancel": function() {
+				choose_data_folder_dialog.dialog("close");
 			}
-	  }
+		}
 	});
 
 	$('#filesShardingPersonalSettings div select.home_site').on('change', function() {
@@ -314,7 +314,7 @@ $(document).ready(function(){
 	  choose_data_folder_dialog.dialog('open');
 	  //choose_data_folder_dialog.load("/apps/chooser/");
 	  choose_data_folder_dialog.show();
-		$('#loadFolderTree').fileTree({
+		$('#loadDataFolderTree').fileTree({
 			//root: '/',
 			script: '../../apps/chooser/jqueryFileTree.php',
 			//script: '../../apps/files_sharding/jqueryFileTree.php',

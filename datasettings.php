@@ -3,8 +3,8 @@
 OCP\JSON::checkAppEnabled('files_sharding');
 OCP\User::checkLoggedIn();
 
-OCP\Util::addscript('files_sharding', 'personalsettings');
-OCP\Util::addStyle('files_sharding', 'personalsettings');
+//OCP\Util::addscript('files_sharding', 'personalsettings');
+//OCP\Util::addStyle('files_sharding', 'personalsettings');
 
 $errors = Array();
 

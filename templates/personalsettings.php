@@ -19,7 +19,7 @@
 		<span style="float:left;width:92%;"><label></label></span><label class="add_data_folder btn btn-flat">+</label>
 		<div id="chosen_folder" style="visibility:hidden;display:none;"></div>
 		<div class="dialog" display="none">
-			<div id="loadFolderTree"></div>
+			<div id="loadDataFolderTree"></div>
 			<div id="file" style="visibility: hidden; display:inline;"></div>
 		</div>
 	</div>
