@@ -1,6 +1,6 @@
 <fieldset id="filesShardingPersonalSettings" class="section">
 	<h2>Data location</h2>
-	<a id="sharding-info">What's this?</a>
+	<a id="sharding-info" class="custom-popup">What's this?</a>
 	<div class="home_site">
 		<label class="nowrap">Home site: </label>
 		<select class="home_site">

@@ -150,7 +150,7 @@ class FileSessionHandler {
 		if (isset($mail)) {
 			self::update_mail($uid, $mail);
 		}
-		if (isset($groups)) {
+		if (isset($groups) && \OCP\App::isEnabled('user_saml')) {
 			$samlBackend = new \OC_USER_SAML();
 			self::update_groups($uid, $groups, $samlBackend->protectedGroups, true);
 		}
