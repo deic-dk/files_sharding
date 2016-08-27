@@ -728,12 +728,15 @@ class Lib {
 	 * @param $entitlement
 	 */
 	// TODO: refine this - taking into account availble servers and their space
-	public static function dbChooseSiteForUser($mail, $schacHomeOrganization, $organizationName, $entitlement){
+	public static function dbChooseSiteForUser($mail, $schacHomeOrganization, $organizationName,
+			$entitlement){
 		$servers = self::dbGetServersList();
 		$shortest = INF;
 		$closestSite = null;
 		foreach($servers as $server){
 			$l = levenshtein(strtolower($server['site']), strtolower($schacHomeOrganization));
+			\OC_Log::write('files_sharding','Levenshtein for '.$server['site'].' for user '.$mail.":".$schacHomeOrganization.
+					":".$entitlement.":".$l, \OC_Log::WARN);
 			if($l>=0 && $l<$shortest){
 				$shortest = $l;
 				$closestSite = $server['site'];
@@ -742,7 +745,7 @@ class Lib {
 		if(!empty($closestSite)){
 			return $closestSite;
 		}
-		return elf::getMasterSite();
+		return self::getMasterSite();
 	}
 	
 	/**
@@ -1357,7 +1360,7 @@ class Lib {
 			$user_id = getUser();
 		}
 		// Get all files/folders shared by user
-		$sharedItems = self::getItemSharedByUser($user_id);
+		$sharedItems = self::getItemsSharedByUser($user_id);
 		// Correction array to send to master
 		$newIdMap = array('user_id'=>$user_id);
 		foreach($sharedItems as $share){
@@ -1457,16 +1460,72 @@ class Lib {
 		return $itemSource;
 	}
 	
-	public static function getItemsSharedWithUser($user_id){
+	/**
+	 * 
+	 * @param unknown $user_id
+	 * @param unknown $itemSource - The file ID on the home/slave server hosting
+	 *                               the physical file
+	 * @param string $itemType
+	 * @return boolean true if the user has read access to the file
+	 */
+	public static function checkReadAccess($user_id, $itemSource, $itemType=null){
+		if(empty($user_id) || empty($itemSource)){
+			return false;
+		}
+		$itemsSharedWithUser = self::getItemsSharedWithUser($user_id);
+		// TODO: consider using \OCP\Share::getUsersSharingFile instead
+		foreach($itemsSharedWithUser as $data){
+			\OCP\Util::writeLog('files_sharding', 'Checking access of '.$user_id. ' to '.
+					$itemSource.'<->'.$data['fileid'], \OC_Log::WARN);
+			if((int)$data['fileid'] === (int)$itemSource){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public static function checkReadAccessRecursively($user_id, $itemSource, $owner){
+		$user = self::switchUser($owner);
+		$ret = false;
+		while(!empty($itemSource) && $itemSource!=-1){
+			$fileInfo = self::getFileInfo(null, $owner, $itemSource, null);
+			$fileType = $fileInfo->getType()===\OCP\Files\FileInfo::TYPE_FOLDER?'folder':'file';
+			if(self::checkReadAccess($user_id, $fileInfo->getId(), $fileType)){
+				$ret = true;
+				break;
+			}
+			if(empty($fileInfo['parent']) || $itemSource == $fileInfo['parent']){
+				break;
+			}
+			$itemSource = $fileInfo['parent'];
+		}
+		self::restoreUser($user);
+		return $ret;
+	}
+	
+	public static function getItemsSharedWithUser($user_id, $itemType=null){
 		if(self::isMaster()){
-			$sharedFiles = \OCP\Share::getItemsSharedWithUser('file', $user_id, \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS);
-			$sharedFolders = \OCP\Share::getItemsSharedWithUser('folder', $user_id, \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS);
+			if(empty($itemType)){
+				$sharedFiles = \OCP\Share::getItemsSharedWithUser('file', $user_id, \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS);
+				$sharedFolders = \OCP\Share::getItemsSharedWithUser('folder', $user_id, \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS);
+			}
+			else{
+				$sharedFiles = \OCP\Share::getItemsSharedWithUser($itemType, $user_id, \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS);
+				$sharedFolders = array();
+			}
 		}
 		else{
-			$sharedFiles =  self::ws('getItemsSharedWithUser',
-					array('itemType' => 'file', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS));
-			$sharedFolders =  self::ws('getItemsSharedWithUser',
-					array('itemType' => 'folder', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS));
+			if(empty($itemType)){
+				$sharedFiles =  self::ws('getItemsSharedWithUser',
+						array('itemType' => 'file', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS));
+				$sharedFolders =  self::ws('getItemsSharedWithUser',
+						array('itemType' => 'folder', 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS));
+			}
+			else{
+				$sharedFiles =  self::ws('getItemsSharedWithUser',
+						array('itemType' => $itemType, 'user_id' => $user_id, 'shareWith' => $user_id, 'format' => \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS));
+				$sharedFolders = array();
+			}
 		}
 		$result = array();
 		if(!empty($sharedFiles)){
@@ -1479,11 +1538,11 @@ class Lib {
 	}
 	
 	/**
-	 * Get all items (yes, bad naming) shared by user.
+	 * Get all items shared by user.
 	 * @param $user_id
 	 * @return array
 	 */
-	private static function getItemSharedByUser($user_id){
+	private static function getItemsSharedByUser($user_id){
 		if(self::isMaster()){
 			$loggedin_user = \OCP\USER::getUser();
 			if(isset($user_id)){
@@ -1665,7 +1724,7 @@ class Lib {
 	}
 	
 	public static function restoreUser($user_id){
-		if(empty($user_id)){
+		if(empty($user_id) || $user_id==\OCP\USER::getUser()){
 			return;
 		}
 		// If not done, the user shared with will now be logged in as $owner
