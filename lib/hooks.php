@@ -150,4 +150,49 @@ class Hooks {
 		\OC_Hook::clear('OC_Filesystem', 'setup');
 	}
 	
+	///// All this is here to avoid the double entries in oc_filecache, caused by 
+	///// index jobs running without 'mounted' /username/files.
+	public static function indexFile(array $param) {
+		if (isset($param['path'])) {
+			$param['user'] = \OCP\User::getUser();
+			//Add Background Job:
+			\OCP\BackgroundJob::addQueuedTask(
+			'search_lucene',
+			'OCA\FilesSharding\Hooks',
+			'doIndexFile',
+			json_encode($param) );
+		} else {
+			\OCP\Util::writeLog('search_lucene',
+			'missing path parameter',
+			\OCP\Util::WARN);
+		}
+	}
+	static public function doIndexFile($param) {
+		$data = json_decode($param);
+		if ( ! isset($data->path) ) {
+			\OCP\Util::writeLog('search_lucene',
+			'missing path parameter',
+			\OCP\Util::WARN);
+			return false;
+		}
+		if ( ! isset($data->user) ) {
+			\OCP\Util::writeLog('search_lucene',
+			'missing user parameter',
+			\OCP\Util::WARN);
+			return false;
+		}
+		\OCP\Util::writeLog('files_sharding', 'USER: '.$data->user, \OC_Log::WARN);
+		\OC\Files\Filesystem::initMountPoints($data->user);
+		\OCA\Search_Lucene\Indexer::indexFile($data->path, $data->user);
+	}
+	
+	public static function renameFile(array $param) {
+		if (isset($param['newpath'])) {
+			self::indexFile(array('path'=>$param['newpath']));
+		}
+		if (isset($param['oldpath'])) {
+			\OCA\Search_Lucene\Hooks::deleteFile(array('path'=>$param['oldpath']));
+		}
+	}
+	/////
 }
