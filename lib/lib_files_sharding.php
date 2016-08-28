@@ -1796,13 +1796,15 @@ class Lib {
 	
 	// TODO: group support
 	public static function moveTmpFile($tmpFile, $path, $dirOwner, $dirId){
+		$endPath = $path;
 		if($dirId){
 			$dirMeta = self::getFileInfo(null, $dirOwner, $dirId, null);
 			$dirPath = preg_replace('|^files/|','/', $dirMeta->getInternalPath());
 			$dirPath = preg_replace('|^user_group_admin/[^/]*/|','/', $dirPath);
 			$pathinfo = pathinfo($path);
 			$endPath = $dirPath.'/'.$pathinfo['basename'];
-			\OCP\Util::writeLog('files_sharding', 'dirMeta: '.$dirId.':'.$dirMeta->getInternalPath().':'.$endPath.':'.$path.':'.\OCP\USER::getUser().':'.$dirOwner.':'.$dirId, \OC_Log::WARN);
+			\OCP\Util::writeLog('files_sharding', 'dirMeta: '.$dirId.':'.$dirMeta->getInternalPath().':'.
+					$endPath.':'.$path.':'.\OCP\USER::getUser().':'.$dirOwner.':'.$dirId, \OC_Log::WARN);
 		}
 		
 		if($dirOwner){
