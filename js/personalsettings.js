@@ -114,6 +114,7 @@ function get_backup_server(site){
 			 if(s.error){
 				 alert(s.error);
 			 }
+			 $('#filesShardingPersonalSettings .backup_server').parent().show();
 			  $('#filesShardingPersonalSettings .backup_server').text( s.server_url);
 			  $('#filesShardingPersonalSettings .backup_server').attr('id',  s.server_id);
 		 },
@@ -303,7 +304,6 @@ $(document).ready(function(){
 		}
 	});
 
-
 	$('#filesShardingDataFolders div#filesShardingDataFoldersList div.dataFolder .remove_data_folder').live('click', function(e){
 		path = $(this).parent().attr('path');
 		create_remove_dialog(path);
@@ -389,6 +389,9 @@ $(document).ready(function(){
 		});*/
 		
 	}); 
-
-
+	
+	if(!$('.backup_server').text().trim().length){
+		$('.backup_server').parent().hide();
+	}
+	
 });
