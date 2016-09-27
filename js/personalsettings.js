@@ -76,7 +76,7 @@ function get_home_server(site){
 		 success: function(s){
 			 if(s.error){
 				$('#filesShardingPersonalSettings div select.home_site').val('');
-				 alert(s.error);
+				 alert('Could not get home server. '+s.error);
 			 }
 			  $('#filesShardingPersonalSettings .home_server').text( s.server_url);
 			  $('#filesShardingPersonalSettings .home_server').attr('id',  s.server_id);
@@ -112,7 +112,7 @@ function get_backup_server(site){
 		 dataType:'json',
 		 success: function(s){
 			 if(s.error){
-				 alert(s.error);
+				 alert('Could not get backup server. '+s.error);
 			 }
 			 $('#filesShardingPersonalSettings .backup_server').parent().show();
 			  $('#filesShardingPersonalSettings .backup_server').text( s.server_url);
@@ -212,7 +212,7 @@ function removeDataFolder(folder){
 		 dataType:'json',
 		 success: function(s){
 				if(s.error){
-					alert(s.error);
+					alert('Could not remove data folder. '+s.error);
 				}
 				else{
 					$("#filesShardingDataFolders div#filesShardingDataFoldersList div.dataFolder[path='"+folder+"']").remove();
