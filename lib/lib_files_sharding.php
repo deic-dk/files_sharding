@@ -1077,7 +1077,7 @@ class Lib {
 	 * @param internal $internal whether to return the internal URL
 	 * @return the base URL (https://...) of the server that will serve the files
 	 */
-	public static function getServerForUser($user_id, $internal = false, $priority=0){
+	public static function getServerForUser($user_id, $internal=false, $priority=0){
 		// If I'm the master, look up in DB
 		if(self::isMaster()){
 			if($internal){
@@ -1090,7 +1090,7 @@ class Lib {
 		// Otherwise, ask master
 		else{
 			$response = self::ws('get_user_server',
-					Array('user_id' => $user_id, 'internal' => $internal, 'priority' => $priority), false, false);
+					Array('user_id' => $user_id, 'internal' => ($internal?'yes':'no'), 'priority' => $priority), false, false);
 			$server = $response->url;
 		}
 		return $server;

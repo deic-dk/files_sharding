@@ -25,7 +25,7 @@
  * This file is meant to be included from either an ajax or a we script.
  */
 
-$user = isset($_GET['user']) ? $_GET['user'] : '';
+$user = \OCP\User::getUser();
 $dir = isset($_GET['dir']) ? $_GET['dir'] : '';
 $filename = isset($_GET['file']) ? $_GET['file'] : '';
 
@@ -45,18 +45,7 @@ if(!empty($owner) && $owner!=$user){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
 }
-else{
-	$currentUser = \OCP\User::getUser();
-	if(empty($user) && !empty($currentUser)){
-		\OC_Util::setupFS();
-	}
-	else{
-		$group_dir_owner = $user;
-		\OC_Util::tearDownFS();
-		\OC_User::setUserId($user);
-		\OC_Util::setupFS($user);
-	}
-}
+
 if(!empty($group) && !empty($group_dir_owner)){
 	\OC\Files\Filesystem::tearDown();
 	$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
@@ -86,6 +75,7 @@ OCP\JSON::success(array('data' => array(
 	'mtime' => $mtime))
 );
 if(!empty($owner) && $owner!=$user){
+	\OC_Util::tearDownFS();
 	\OC_User::setUserId($user);
 	\OC_Util::setupFS($user);
 }

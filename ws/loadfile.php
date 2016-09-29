@@ -30,4 +30,12 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	exit;
 }
 
+$user = isset($_GET['user']) ? $_GET['user'] : '';
+// Should be empty
+$currentUser = \OCP\User::getUser();
+if(!empty($user) && $user!=$currentUser){
+	\OC_Util::tearDownFS();
+	\OC_User::setUserId($user);
+	\OC_Util::setupFS($user);
+}
 include_once("files_sharding/lib/loadfile.php");
