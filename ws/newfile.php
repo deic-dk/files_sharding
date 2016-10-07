@@ -9,11 +9,13 @@ $dir = isset( $_REQUEST['dir'] ) ? '/'.trim($_REQUEST['dir'], '/\\') : '';
 $filename = isset( $_REQUEST['filename'] ) ? trim($_REQUEST['filename'], '/\\') : '';
 $content = isset( $_REQUEST['content'] ) ? $_REQUEST['content'] : '';
 $source = isset( $_REQUEST['source'] ) ? trim($_REQUEST['source'], '/\\') : '';
-$user_id = isset( $_REQUEST['user_id'] ) ? $_REQUEST['user_id'] : '';
+$user_id = isset( $_REQUEST['user_id'] ) ? $_REQUEST['user_id'] : \OCP\USER::getUser();
 $owner = isset( $_REQUEST['owner'] ) ? $_REQUEST['owner'] : '';
 $id = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';
 $group = isset($_REQUEST['group']) ? $_REQUEST['group'] : '';
 $group_dir_owner = \OCP\USER::getUser();
+// Can be 'overwrite', 'append' or 'backoff'
+$overwrite = isset($_REQUEST['overwrite']) ? $_REQUEST['overwrite'] : 'overwrite';
 
 if(!OCA\FilesSharding\Lib::checkIP()){
 	if(!OC_User::isLoggedIn()) {
@@ -23,6 +25,7 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 }
 
 if($owner){
+	\OC_Util::teardownFS();
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
 	$group_dir_owner = $owner;
@@ -44,7 +47,6 @@ if($id){
 	\OCP\Util::writeLog('files_sharding', 'DIR: '.$dir.', PATH: '.$path.', ID: '.$id, \OC_Log::WARN);
 }
 
-// Init owncloud
 global $eventSource;
 
 if($source) {
@@ -90,52 +92,65 @@ $trimmedFileName = trim($filename);
 
 if($trimmedFileName === '') {
 	$result['data'] = array('message' => (string)$l10n->t('File name cannot be empty.'));
+	restoreUser($user_id, $owner);
 	OCP\JSON::error($result);
-	myexit($user_id, $owner);
+	exit();
 }
 if($trimmedFileName === '.' || $trimmedFileName === '..') {
 	$result['data'] = array('message' => (string)$l10n->t('"%s" is an invalid file name.', $trimmedFileName));
+	restoreUser($user_id, $owner);
 	OCP\JSON::error($result);
-	myexit($user_id, $owner);
+	exit();
 }
 
 if(!OCP\Util::isValidFileName($filename)) {
 	$result['data'] = array('message' => (string)$l10n->t("Invalid name, '\\', '/', '<', '>', ':', '\"', '|', '?' and '*' are not allowed."));
+	restoreUser($user_id, $owner);
 	OCP\JSON::error($result);
-	myexit($user_id, $owner);
+	exit();\OC_Util::teardownFS();
 }
 
 if (!\OC\Files\Filesystem::file_exists($dir . '/')) {
 	$result['data'] = array('message' => (string)$l10n->t(
-			'The target folder has been moved or deleted.'),
+			'The target folder '.\OCP\USER::getUser().': '.$dir.'/ has been moved or deleted.'),
 			'code' => 'targetnotfound'
 		);
+	restoreUser($user_id, $owner);
 	OCP\JSON::error($result);
-	myexit($user_id, $owner);
+	exit();
 }
 
 //TODO why is stripslashes used on foldername in newfolder.php but not here?
 $target = $dir.'/'.$filename;
 
+$append = false;
 if (\OC\Files\Filesystem::file_exists($target)) {
-	$result['data'] = array('message' => (string)$l10n->t(
-			'The name %s is already used in the folder %s. Please choose a different name.',
-			array($filename, $dir))
+	if(empty($overwrite) || $overwrite==='backoff'){
+		$result['data'] = array('message' => (string)$l10n->t(
+				'The name %s is already used in the folder %s. Please choose a different name.',
+				array($filename, $dir))
 		);
-	OCP\JSON::error($result);
-	myexit($user_id, $owner);
+		restoreUser($user_id, $owner);
+		OCP\JSON::error($result);
+		exit();
+	}
+	elseif($overwrite==='append'){
+		$append = true;
+	}
 }
 
 if($source) {
 	if(substr($source, 0, 8)!='https://' and substr($source, 0, 7)!='http://') {
+		restoreUser($user_id, $owner);
 		OCP\JSON::error(array('data' => array('message' => $l10n->t('Not a valid source'))));
-		myexit($user_id, $owner);
+		exit();
 	}
 
 	if (!ini_get('allow_url_fopen')) {
 		$eventSource->send('error', array('message' => $l10n->t('Server is not allowed to open URLs, please check the server configuration')));
 		$eventSource->close();
-		myexit($user_id, $owner);
+		restoreUser($user_id, $owner);
+		exit();
 	}
 
 	$ctx = stream_context_create(null, array('notification' =>'progress'));
@@ -161,7 +176,8 @@ if($source) {
 						$eventSource->send('error', array('message' => (string)$l10n->t('The file exceeds your available space by %s', array($humanDelta))));
 						$eventSource->close();
 						fclose($sourceStream);
-						myexit($user_id, $owner);
+						restoreUser($user_id, $owner);
+						exit();
 					}
 				}
 			}
@@ -176,10 +192,11 @@ if($source) {
 		$eventSource->send('error', array('message' => $l10n->t('Error while downloading %s to %s', array($source, $target))));
 	}
 	if (is_resource($sourceStream)) {
-		fclose($sourceStream);
+		fclose($sourceStream);\OC_Util::teardownFS();
 	}
 	$eventSource->close();
-	myexit($user_id, $owner);
+	restoreUser($user_id, $owner);
+	exit();
 } else {
 	$success = false;
 	if (!$content) {
@@ -189,6 +206,10 @@ if($source) {
 	}
 
 	if($content) {
+		if($append){
+			$origContent = \OC\Files\Filesystem::file_get_contents($target);
+			$content = $origContent . $content;
+		}
 		$success = \OC\Files\Filesystem::file_put_contents($target, $content);
 	} else {
 		$success = \OC\Files\Filesystem::touch($target);
@@ -196,19 +217,19 @@ if($source) {
 
 	if($success) {
 		$meta = \OC\Files\Filesystem::getFileInfo($target);
+		restoreUser($user_id, $owner);
 		OCP\JSON::success(array('data' => \OCA\Files\Helper::formatFileInfo($meta)));
-		myexit($user_id, $owner);
+		exit();
 	}
 }
 
-function myexit($user_id, $owner){
+function restoreUser($user_id, $owner){
 	if($user_id && $owner && $user_id != $owner){
 		// If not done, the user shared with will now be logged in as $owner
 		\OC_Util::teardownFS();
 		\OC_User::setUserId($user_id);
 		\OC_Util::setupFS($user_id);
 	}
-	exit();
 }
 
 OCP\JSON::error(array('data' => array( 'message' => $l10n->t('Error when creating the file') )));

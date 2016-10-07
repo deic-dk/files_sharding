@@ -42,8 +42,8 @@ if(!empty($group) && !empty($group_dir_owner)){
 }
 
 if(!empty($id)){
-	$path = \OC\Files\Filesystem::getPath($id);
-	$dir = substr($path, 0, strrpos($path, '/'));
+	$dir = \OC\Files\Filesystem::getPath($id);
+	//$dir = substr($path, 0, strrpos($dir, '/'));
 }
 
 // TODO: Check permissions.
@@ -54,7 +54,8 @@ if ($allFiles === 'true') {
 	foreach ($fileList as $fileInfo) {
 		$files[] = $fileInfo['name'];
 	}
-} else {
+}
+else {
 	$files = isset($_POST["file"]) ? $_POST["file"] : $_POST["files"];
 	$files = json_decode($files);
 }
@@ -64,6 +65,7 @@ $success = true;
 
 //Now delete
 foreach ($files as $file) {
+	\OCP\Util::writeLog('files_sharding', 'deleting file '.$dir . '/' . $file, \OC_Log::WARN);
 	if(\OC\Files\Filesystem::file_exists($dir . '/' . $file) &&
 			!\OC\Files\Filesystem::unlink($dir . '/' . $file)) {
 		\OCP\Util::writeLog('files_sharding', 'Could not delete file '.$dir . '/' . $file.' --> '.
