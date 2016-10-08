@@ -82,6 +82,18 @@ function progress($notification_code, $severity, $message, $message_code, $bytes
 	}
 }
 
+function read_file_header($target, $header){
+	$content = \OC\Files\Filesystem::file_get_contents($target);
+	$contentArray = explode("\n", $content);
+	$pattern = '/^'.$header.':(.*)$/';
+	foreach($contentArray as $line){
+		if(preg_match($pattern, $line, $matches) && isset($matches[1])){
+			return trim($matches[1]);
+		}
+	}
+	return null;
+}
+
 $l10n = \OC_L10n::get('files');
 
 $result = array(
@@ -107,7 +119,7 @@ if(!OCP\Util::isValidFileName($filename)) {
 	$result['data'] = array('message' => (string)$l10n->t("Invalid name, '\\', '/', '<', '>', ':', '\"', '|', '?' and '*' are not allowed."));
 	restoreUser($user_id, $owner);
 	OCP\JSON::error($result);
-	exit();\OC_Util::teardownFS();
+	exit();
 }
 
 if (!\OC\Files\Filesystem::file_exists($dir . '/')) {
@@ -135,8 +147,23 @@ if (\OC\Files\Filesystem::file_exists($target)) {
 		exit();
 	}
 	elseif($overwrite==='append'){
+		// Check if the file has header 'Comments: on'.
+		if(empty($user_id) && read_file_header($target, 'Comments')!=='on'){
+			$result['data'] = array('message' => (string)$l10n->t("Forbidden, '\\', '/', '<', '>', ':', '\"', '|', '?' and '*' are not allowed."));
+			restoreUser($user_id, $owner);
+			OCP\JSON::error($result);
+			exit();
+		}
 		$append = true;
 	}
+}
+elseif(empty($user_id)){
+	// Empty user_id is only allowed for appending comments to blog md file, which has this
+	// allowed in the header with 'Comments: on'.
+	$result['data'] = array('message' => (string)$l10n->t("Forbidden, '\\', '/', '<', '>', ':', '\"', '|', '?' and '*' are not allowed."));
+	restoreUser($user_id, $owner);
+	OCP\JSON::error($result);
+	exit();
 }
 
 if($source) {
