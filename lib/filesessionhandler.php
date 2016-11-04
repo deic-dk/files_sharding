@@ -180,7 +180,10 @@ class FileSessionHandler {
 		if(!empty($valid_quota) && !empty($valid_freequota) &&
 				\OCP\Util::computerFileSize($valid_quota)<\OCP\Util::computerFileSize($valid_freequota)){
 			\OC_Log::write('saml','Bumping up quota '.$this->quota." to match freequota ".$this->freequota, \OC_Log::WARN);
-			$this->update_quota($uid, $valid_freequota);
+			// We don't modify quota in DB, just the effective value for this session.
+			// See also hooks.php.
+			//$this->update_quota($uid, $valid_freequota);
+			$this->quota = $valid_freequota;
 		}
 	}
 	

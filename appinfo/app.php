@@ -77,19 +77,7 @@ if(OCA\FilesSharding\Lib::isMaster()){
 				\OC::$server->getConfig()
 		);
 	});
-	// Bump up quota if smaller than freequota.
-	// TODO: move to somewhere user is set. Or drop. Drop from filesessionhandler too...
-		$user = \OCP\USER::getUser();
-		if(!empty($user) && \OCP\App::isEnabled('files_accounting')){
-			$quotas = \OCA\Files_Accounting\Storage_Lib::getQuotas($user);
-			\OCP\Util::writeLog('files_sharding', 'Quotas: '.$user.':'.$quotas['quota'].'<' .$quotas['freequota'], \OC_Log::INFO);
-			if(!empty($quotas['quota']) && !empty($quotas['freequota']) &&
-					\OCP\Util::computerFileSize($quotas['quota']) < \OCP\Util::computerFileSize($quotas['freequota']) ||
-					!empty($quotas['default_quota']) && !empty($quotas['freequota']) &&
-					\OCP\Util::computerFileSize($quotas['default_quota']) < \OCP\Util::computerFileSize($quotas['freequota'])){
-				\OCP\Config::setUserValue($uid, 'files', 'quota', $quotas['freequota']);
-			}
-		}
+	OCP\Util::connectHook('OC_User', 'post_login', 'OCA\FilesSharding\Hooks', 'post_login');
 	return;
 }
 

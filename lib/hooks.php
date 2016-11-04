@@ -40,6 +40,26 @@ class Hooks {
 		return true;
 	}
 	
+	public static function post_login($parameters) {
+		// Bump up quota if smaller than freequota.
+		// Notice: Done in filesessionhandler too.
+		
+		$user = \OCP\USER::getUser();
+		if(!empty($user) && \OCP\App::isEnabled('files_accounting')){
+			$quotas = \OCA\Files_Accounting\Storage_Lib::getQuotas($user);
+			if(!empty($quotas['quota']) && !empty($quotas['freequota']) &&
+					\OCP\Util::computerFileSize($quotas['quota']) <
+						\OCP\Util::computerFileSize($quotas['freequota']) ||
+					!empty($quotas['default_quota']) && !empty($quotas['freequota']) &&
+					\OCP\Util::computerFileSize($quotas['default_quota']) <
+						\OCP\Util::computerFileSize($quotas['freequota'])){
+				\OCP\Util::writeLog('files_sharding', 'Updating quota to freequota for user: '.
+						$user.':'.$quotas['quota'].'-->' .$quotas['freequota'], \OC_Log::WARN);
+				\OCP\Config::setUserValue($user, 'files', 'quota', $quotas['freequota']);
+			}
+		}
+	}
+	
 	public static function logout($params){
 		self::initHandler();
 		$session = \OC::$server->getUserSession();
