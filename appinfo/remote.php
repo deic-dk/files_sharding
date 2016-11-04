@@ -89,8 +89,14 @@ else{
 	// Redirect
 	elseif(isset($server)){
 		OC_Log::write('files_sharding','Redirecting to: ' . $server .' :: '. $_SERVER['REQUEST_URI'], OC_Log::WARN);
+		// In the case of a move request, a header will contain the destination
+		// with hard-wired host name. Change this host name on redirect.
+		if(!empty($_SERVER['HTTP_DESTINATION'])){
+			$destination = preg_replace('|^'.$masterUrl.'|', $serverUrl, $_SERVER['HTTP_DESTINATION']);
+			header("Destination: " . $destination);
+		}
 		header("HTTP/1.1 301 Moved Permanently");
-		header('Location: ' . $serverUrl . $_SERVER['REQUEST_URI']);
+		header("Location: " . $serverUrl . $_SERVER['REQUEST_URI']);
 	}
 	else{
 		// Don't give a not found - sync clients will start deleting local files.
