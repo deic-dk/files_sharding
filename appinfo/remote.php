@@ -34,7 +34,7 @@ $PUBLIC_BASE = "/public";
 $requestFix = new URL\Normalizer($_SERVER['REQUEST_URI']);
 $requestUri = $requestFix->normalize();
 
-$baseUri = "/remote.php/davs";
+$baseUri = OC::$WEBROOT."/remote.php/davs";
 // Known aliases
 if(strpos($requestUri, $FILES_BASE."/")===0){
 	$baseuri = $FILES_BASE;

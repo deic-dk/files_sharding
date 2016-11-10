@@ -39,14 +39,14 @@ OC_Search::registerProvider('OCA\FilesSharding\SearchShared');
 // under storage 2 with path /files/user_name/dir/file, duplicating the already existing entry
 // under the user's storage with path /dir/file.
 // We fix this by adding initMountPoints() to the hook.
-OC_Hook::clear(OC\Files\Filesystem::CLASSNAME, OC\Files\Filesystem::signal_post_write);
-OC_Hook::clear(OC\Files\Filesystem::CLASSNAME, OC\Files\Filesystem::signal_post_rename);
-OCP\Util::connectHook(OC\Files\Filesystem::CLASSNAME, OC\Files\Filesystem::signal_post_write,
-		'OCA\FilesSharding\Hooks', 'indexFile');
-OCP\Util::connectHook(OC\Files\Filesystem::CLASSNAME, OC\Files\Filesystem::signal_post_rename,
-'OCA\FilesSharding\Hooks', 'renameFile');
-
 OC::$CLASSPATH['OCA\FilesSharding\Hooks'] = 'files_sharding/lib/hooks.php';
+
+OC_Hook::clear('OC_Filesystem', 'post_write');
+OC_Hook::clear('OC_Filesystem', 'post_rename');
+
+OCP\Util::connectHook('OC_Filesystem', 'post_write', 'OCA\FilesSharding\Hooks', 'indexFile');
+OCP\Util::connectHook('OC_Filesystem', 'post_rename', 'OCA\FilesSharding\Hooks', 'renameFile');
+
 OCP\Util::connectHook('OC_Filesystem', 'post_rename', 'OCA\FilesSharding\Hooks', 'renameHook');
 OCP\Util::connectHook('OC_Filesystem', 'post_delete', 'OCA\FilesSharding\Hooks', 'deleteHook');
 
