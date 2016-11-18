@@ -1484,27 +1484,21 @@ class Lib {
 	 */
 	public static function checkIP(){
 		
-		if(!empty(self::getWSCert()) && !empty($_SERVER['PHP_AUTH_USER']) &&
+		if(!empty(self::getWSCert()) &&
 				!empty($_SERVER['SSL_CLIENT_VERIFY']) &&
 				($_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS' || $_SERVER['SSL_CLIENT_VERIFY']=='NONE')){
 			
-			\OC_Log::write('files_sharding','Checking cert '.$_SERVER['PHP_AUTH_USER'].':'.
+			\OC_Log::write('files_sharding','Checking cert '.
 					$_SERVER['SSL_CLIENT_VERIFY'].':'.$_SERVER['REDIRECT_SSL_CLIENT_I_DN'].':'.
 					$_SERVER['REDIRECT_SSL_CLIENT_S_DN'], \OC_Log::WARN);
 			
-			$user = $_SERVER['PHP_AUTH_USER'];
 			$issuerDN = $_SERVER['REDIRECT_SSL_CLIENT_I_DN'];
 			$clientDN = $_SERVER['REDIRECT_SSL_CLIENT_S_DN'];
-			// Check that client DN starts with the issuer DN
-			$issuerCheckStr = preg_replace('|CN=[^,]*,|', '', $issuerDN);
-			if(strpos($clientDN, $issuerCheckStr)==false){
-				return "";
-			}
 			$clientDNArr = explode(',', $clientDN);
 			$clientDNwSlashes = '/'.implode('/', array_reverse($clientDNArr));
 			\OC_Log::write('files_sharding','Checking subject '.self::$wsCertSubject.'<->'.$clientDNwSlashes, \OC_Log::WARN);
-			$servers = OCA\FilesSharding\Lib::dbGetServersList();
-			foreach($serves as $server){
+			$servers = self::dbGetServersList();
+			foreach($servers as $server){
 				if($server['x509_dn']===$clientDNwSlashes){
 					\OC_Log::write('files_sharding','Subject OK', \OC_Log::WARN);
 					return true;
