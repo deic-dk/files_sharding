@@ -232,8 +232,8 @@ class Lib {
 				self::$wsCACert = apc_fetch(self::$WS_CACERT_CACHE_KEY);
 			}
 		}
-		return array('certificate_file'=>self::$wsCert, 'key_file'=>self::$wsKey,
-				'subject'=>self::$wsCertSubject, 'cacert'=>self::$wsCACert);
+		return empty(self::$wsCert)?null:array('certificate_file'=>self::$wsCert, 'key_file'=>self::$wsKey,
+				'subject'=>self::$wsCertSubject, 'ca_file'=>self::$wsCACert);
 	}
 	
 	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null,
@@ -274,8 +274,9 @@ class Lib {
 		curl_setopt($curl, CURLOPT_UNRESTRICTED_AUTH, TRUE);
 		
 		if(!empty(self::getWSCert())){
-			\OCP\Util::writeLog('files_sharding', 'Authenticating '.$url.' with cert '.self::$wsCert, \OC_Log::WARN);
-			//curl_setopt($curl, CURLOPT_CAINFO, self::getWSCert());
+			\OCP\Util::writeLog('files_sharding', 'Authenticating '.$url.' with cert '.self::$wsCert.
+					' and key '.self::$wsKey, \OC_Log::INFO);
+			curl_setopt($curl, CURLOPT_CAINFO, self::$wsCACert);
 			curl_setopt($curl, CURLOPT_SSLCERT, self::$wsCert);
 			curl_setopt($curl, CURLOPT_SSLKEY, self::$wsKey);
 			//curl_setopt($curl, CURLOPT_SSLCERTPASSWD, '');
@@ -1487,20 +1488,16 @@ class Lib {
 		if(!empty(self::getWSCert()) &&
 				!empty($_SERVER['SSL_CLIENT_VERIFY']) &&
 				($_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS' || $_SERVER['SSL_CLIENT_VERIFY']=='NONE')){
-			
-			\OC_Log::write('files_sharding','Checking cert '.
-					$_SERVER['SSL_CLIENT_VERIFY'].':'.$_SERVER['REDIRECT_SSL_CLIENT_I_DN'].':'.
-					$_SERVER['REDIRECT_SSL_CLIENT_S_DN'], \OC_Log::WARN);
-			
-			$issuerDN = $_SERVER['REDIRECT_SSL_CLIENT_I_DN'];
-			$clientDN = $_SERVER['REDIRECT_SSL_CLIENT_S_DN'];
+			$issuerDN = !empty($_SERVER['SSL_CLIENT_I_DN'])?$_SERVER['SSL_CLIENT_I_DN']:$_SERVER['REDIRECT_SSL_CLIENT_I_DN'];
+			$clientDN = !empty($_SERVER['SSL_CLIENT_S_DN'])?$_SERVER['SSL_CLIENT_S_DN']:$_SERVER['REDIRECT_SSL_CLIENT_S_DN'];
 			$clientDNArr = explode(',', $clientDN);
 			$clientDNwSlashes = '/'.implode('/', array_reverse($clientDNArr));
-			\OC_Log::write('files_sharding','Checking subject '.self::$wsCertSubject.'<->'.$clientDNwSlashes, \OC_Log::WARN);
 			$servers = self::dbGetServersList();
 			foreach($servers as $server){
+				\OC_Log::write('files_sharding','Checking subject '.$server['x509_dn'].
+						'<->'.$clientDNwSlashes, \OC_Log::INFO);
 				if($server['x509_dn']===$clientDNwSlashes){
-					\OC_Log::write('files_sharding','Subject OK', \OC_Log::WARN);
+					\OC_Log::write('files_sharding','Subject OK', \OC_Log::INFO);
 					return true;
 				}
 			}

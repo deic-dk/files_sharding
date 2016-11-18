@@ -98,11 +98,21 @@ class FileSessionHandler {
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id));
+		$certArr = \OCA\FilesSharding\Lib::getWSCert();
+		if(!empty($certArr)){
+			\OCP\Util::writeLog('files_sharding', 'Using cert '.$certArr['certificate_file'].
+					' and key '.$certArr['key_file'], \OC_Log::WARN);
+			curl_setopt($ch, CURLOPT_CAINFO, $certArr['ca_file']);
+			curl_setopt($ch, CURLOPT_SSLCERT, $certArr['certificate_file']);
+			curl_setopt($ch, CURLOPT_SSLKEY, $certArr['key_file']);
+			//curl_setopt($ch, CURLOPT_SSLCERTPASSWD, '');
+			//curl_setopt($ch, CURLOPT_SSLKEYPASSWD, '');
+		}
 		$ret = curl_exec($ch);
 		curl_close($ch);
 		$res = json_decode($ret);
 		if(empty($res->{'session'}) || !empty($res->{'error'})){
-			\OC_Log::write('files_sharding',"NO session from ".$url.":".serialize($ret), \OC_Log::WARN);
+			\OC_Log::write('files_sharding',"NO session from ".$url." for ID ".$id.":".serialize($ret), \OC_Log::WARN);
 			return null;
 		}
 		$session = \Session::unserialize($res->{'session'});
@@ -325,6 +335,16 @@ class FileSessionHandler {
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_POST, 1);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, array('id'=>$id, 'session'=>$data));
+		$certArr = \OCA\FilesSharding\Lib::getWSCert();
+		if(!empty($certArr)){
+			\OCP\Util::writeLog('files_sharding', 'Using cert '.$certArr['certificate_file'].
+					' and key '.$certArr['key_file'], \OC_Log::WARN);
+			curl_setopt($ch, CURLOPT_CAINFO, $certArr['ca_file']);
+			curl_setopt($ch, CURLOPT_SSLCERT, $certArr['certificate_file']);
+			curl_setopt($ch, CURLOPT_SSLKEY, $certArr['key_file']);
+			//curl_setopt($ch, CURLOPT_SSLCERTPASSWD, '');
+			//curl_setopt($ch, CURLOPT_SSLKEYPASSWD, '');
+		}
 		$ret = curl_exec($ch);
 		curl_close ($ch);
 		$res = json_decode($ret);
