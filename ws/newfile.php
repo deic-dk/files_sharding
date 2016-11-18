@@ -44,7 +44,7 @@ if(!empty($group) && !empty($group_dir_owner)){
 
 if($id){
 	$dir = \OC\Files\Filesystem::getPath($id);
-	\OCP\Util::writeLog('files_sharding', 'DIR: '.$dir.', PATH: '.$path.', ID: '.$id, \OC_Log::WARN);
+	\OCP\Util::writeLog('files_sharding', 'DIR: '.$dir.', NAME: '.$filename.', ID: '.$id, \OC_Log::WARN);
 }
 
 global $eventSource;

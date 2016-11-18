@@ -20,12 +20,26 @@ class Lib {
 	public static $USER_SERVER_PRIORITY_BACKUP_1 = 1;
 	public static $USER_SERVER_PRIORITY_BACKUP_2 = 2;
 	
-	public static $LOGIN_OK_COOKIE = "oc_ok";
+	public static $LOGIN_OK_COOKIE = 'oc_ok';
 	
 	const TYPE_SERVER_SYNC = 'server_sync';
 	
 	public static $USER_SYNC_INTERVAL_SECONDS = 86400; // 24 hours
 	private static $MAX_SYNC_ATTEMPTS = 3;
+	
+	// To use X.509 authentification for trusted WS calls, set the following paths
+	// in the config file: wscertificate, wsprivatekey, wscacertificate
+	// NOTICE that Apache must also use the file wscacertificate.
+	private static $WS_CERT_CACHE_KEY = 'oc_ws_cert';
+	private static $WS_CERT_SUBJECT_CACHE_KEY = 'oc_ws_cert_subject';
+	private static $WS_KEY_CACHE_KEY = 'oc_ws_private_key';
+	private static $WS_CACERT_CACHE_KEY = 'oc_ws_cacert';
+	// Full path of the certificate/key files used for trusted WS requests if the
+	// above attributes are set in the config file.
+	private static $wsCert = '';
+	private static $wsKey = '';
+	private static $wsCACert = '';
+	private static $wsCertSubject = '';
 	
 	public static function getCookieDomain(){
 		if(self::$cookiedomain===''){
@@ -195,6 +209,33 @@ class Lib {
 			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, 'getCharge'=>30,
 			'accountedYears'=>60, 'getUserGroups'=>10);
 	
+	public static function getWSCert(){
+		if(empty(self::$wsCert)){
+			if(!apc_exists(self::$WS_CERT_CACHE_KEY)){
+				self::$wsCert = \OCP\Config::getSystemValue('wscertificate', '');
+				apc_store(self::$WS_CERT_CACHE_KEY, self::$wsCert);
+				
+				$parsedCert = openssl_x509_parse(file_get_contents(self::$wsCert));
+				self::$wsCertSubject = $parsedCert['name'];
+				apc_store(self::$WS_CERT_SUBJECT_CACHE_KEY, self::$wsCertSubject);
+				
+				self::$wsKey = \OCP\Config::getSystemValue('wsprivatekey', '');
+				apc_store(self::$WS_KEY_CACHE_KEY, self::$wsKey);
+				
+				self::$wsCACert = \OCP\Config::getSystemValue('wscacertificate', '');
+				apc_store(self::$WS_CACERT_CACHE_KEY, self::$wsCACert);
+			}
+			else{
+				self::$wsCert = apc_fetch(self::$WS_CERT_CACHE_KEY);
+				self::$wsCertSubject = apc_fetch(self::$WS_CERT_SUBJECT_CACHE_KEY);
+				self::$wsKey = apc_fetch(self::$WS_KEY_CACHE_KEY);
+				self::$wsCACert = apc_fetch(self::$WS_CACERT_CACHE_KEY);
+			}
+		}
+		return array('certificate_file'=>self::$wsCert, 'key_file'=>self::$wsKey,
+				'subject'=>self::$wsCertSubject, 'cacert'=>self::$wsCACert);
+	}
+	
 	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null,
 			$appName=null, $urlencode=false){
 		$content = "";
@@ -231,6 +272,15 @@ class Lib {
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
 		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, TRUE);
 		curl_setopt($curl, CURLOPT_UNRESTRICTED_AUTH, TRUE);
+		
+		if(!empty(self::getWSCert())){
+			\OCP\Util::writeLog('files_sharding', 'Authenticating '.$url.' with cert '.self::$wsCert, \OC_Log::WARN);
+			//curl_setopt($curl, CURLOPT_CAINFO, self::getWSCert());
+			curl_setopt($curl, CURLOPT_SSLCERT, self::$wsCert);
+			curl_setopt($curl, CURLOPT_SSLKEY, self::$wsKey);
+			//curl_setopt($curl, CURLOPT_SSLCERTPASSWD, '');
+			//curl_setopt($curl, CURLOPT_SSLKEYPASSWD, '');
+		}
 			
 		$json_response = curl_exec($curl);
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
@@ -1429,8 +1479,38 @@ class Lib {
 	/**
 	 * Check that the requesting IP address is allowed to get confidential
 	 * information.
+	 * UPDATE: now alternatively checks client certificate instead.
 	 */
 	public static function checkIP(){
+		
+		if(!empty(self::getWSCert()) && !empty($_SERVER['PHP_AUTH_USER']) &&
+				!empty($_SERVER['SSL_CLIENT_VERIFY']) &&
+				($_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS' || $_SERVER['SSL_CLIENT_VERIFY']=='NONE')){
+			
+			\OC_Log::write('files_sharding','Checking cert '.$_SERVER['PHP_AUTH_USER'].':'.
+					$_SERVER['SSL_CLIENT_VERIFY'].':'.$_SERVER['REDIRECT_SSL_CLIENT_I_DN'].':'.
+					$_SERVER['REDIRECT_SSL_CLIENT_S_DN'], \OC_Log::WARN);
+			
+			$user = $_SERVER['PHP_AUTH_USER'];
+			$issuerDN = $_SERVER['REDIRECT_SSL_CLIENT_I_DN'];
+			$clientDN = $_SERVER['REDIRECT_SSL_CLIENT_S_DN'];
+			// Check that client DN starts with the issuer DN
+			$issuerCheckStr = preg_replace('|CN=[^,]*,|', '', $issuerDN);
+			if(strpos($clientDN, $issuerCheckStr)==false){
+				return "";
+			}
+			$clientDNArr = explode(',', $clientDN);
+			$clientDNwSlashes = '/'.implode('/', array_reverse($clientDNArr));
+			\OC_Log::write('files_sharding','Checking subject '.self::$wsCertSubject.'<->'.$clientDNwSlashes, \OC_Log::WARN);
+			$servers = OCA\FilesSharding\Lib::dbGetServersList();
+			foreach($serves as $server){
+				if($server['x509_dn']===$clientDNwSlashes){
+					\OC_Log::write('files_sharding','Subject OK', \OC_Log::WARN);
+					return true;
+				}
+			}
+		}
+		
 		if(self::$trustednet===''){
 			self::$trustednet = \OCP\Config::getSystemValue('trustednet', '');
 			self::$trustednet = (substr(self::$trustednet, 0, 8)==='TRUSTED_'?null:self::$trustednet);

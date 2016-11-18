@@ -55,7 +55,7 @@ function delete_server(id){
 	});
 }
 
-function add_server(url, internal_url, site, charge, allow_local_login, id){
+function add_server(url, internal_url, x509_dn, site, charge, allow_local_login, id){
 	if(!url){
 		alert("You need to provide a URL");
 		return;
@@ -74,6 +74,7 @@ function add_server(url, internal_url, site, charge, allow_local_login, id){
 		  	id: id,
 			  url: url,
 			  internal_url: internal_url,
+			  x509_dn: x509_dn,
 			  site: site,
 			  charge: charge,
 			  allow_local_login: allow_local_login
@@ -95,6 +96,11 @@ function addEditLink($id){
 	});
 }
 
+function addScrollbar(){
+	$('#filesShardingSettings').width($(window).innerWidth()*0.85);
+	$('#filesShardingSettings .server').width($(window).innerWidth()*0.85);
+}
+
 $(document).ready(function(){
 	$('#filesShardingSettings div.server input.allow_local_login').each(function(){
 	  $(this).change(function(){
@@ -113,7 +119,13 @@ $(document).ready(function(){
 			site = $(this).parent().find('input.site').first().val();
 			charge = $(this).parent().find('input.charge').first().val();
 			allow_local_login =  $(this).parent().find('input.allow_local_login').first().is(':checked')?'yes':'no';
-			add_server(url, internal_url, site, charge, allow_local_login, id);
+			x509_dn =  $(this).parent().find('input.x509_dn').first().val();
+			add_server(url, internal_url, x509_dn, site, charge, allow_local_login, id);
 	});
 	addEditLink();
+	addScrollbar()
+});
+
+$(window).resize(function(){
+	addScrollbar();
 });

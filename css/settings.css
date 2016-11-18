@@ -24,3 +24,8 @@ div.server {
 textarea.description {
 	width: 192px;
 }
+
+#filesShardingSettings {
+	overflow-x: auto;
+	display: inline-block;
+}

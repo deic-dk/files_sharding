@@ -26,6 +26,12 @@
 				<length>64</length>
 			</field>
 			<field>
+				<name>x509_dn</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>64</length>
+			</field>
+			<field>
 				<name>site</name>
 				<type>text</type>
 				<notnull>true</notnull>
