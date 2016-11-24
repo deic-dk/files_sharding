@@ -1488,8 +1488,10 @@ class Lib {
 		if(!empty(self::getWSCert()) &&
 				!empty($_SERVER['SSL_CLIENT_VERIFY']) &&
 				($_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS' || $_SERVER['SSL_CLIENT_VERIFY']=='NONE')){
-			$issuerDN = !empty($_SERVER['SSL_CLIENT_I_DN'])?$_SERVER['SSL_CLIENT_I_DN']:$_SERVER['REDIRECT_SSL_CLIENT_I_DN'];
-			$clientDN = !empty($_SERVER['SSL_CLIENT_S_DN'])?$_SERVER['SSL_CLIENT_S_DN']:$_SERVER['REDIRECT_SSL_CLIENT_S_DN'];
+			$issuerDN = !empty($_SERVER['SSL_CLIENT_I_DN'])?$_SERVER['SSL_CLIENT_I_DN']:
+				(!empty($_SERVER['REDIRECT_SSL_CLIENT_I_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_I_DN']:'');
+			$clientDN = !empty($_SERVER['SSL_CLIENT_S_DN'])?$_SERVER['SSL_CLIENT_S_DN']:
+				(!empty($_SERVER['REDIRECT_SSL_CLIENT_S_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_S_DN']:'');
 			$clientDNArr = explode(',', $clientDN);
 			$clientDNwSlashes = '/'.implode('/', array_reverse($clientDNArr));
 			$servers = self::dbGetServersList();
