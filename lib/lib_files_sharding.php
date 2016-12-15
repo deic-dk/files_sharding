@@ -1494,7 +1494,7 @@ class Lib {
 				(!empty($_SERVER['REDIRECT_SSL_CLIENT_S_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_S_DN']:'');
 			$clientDNArr = explode(',', $clientDN);
 			$clientDNwSlashes = '/'.implode('/', array_reverse($clientDNArr));
-			$servers = self::dbGetServersList();
+			$servers = self::getServersList();
 			foreach($servers as $server){
 				\OC_Log::write('files_sharding','Checking subject '.$server['x509_dn'].
 						'<->'.$clientDNwSlashes, \OC_Log::INFO);
