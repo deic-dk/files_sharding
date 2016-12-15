@@ -31,7 +31,7 @@
 		</select>
 	</div>
 	<div>
-		<label class="nowrap">Server for sync clients: </label>
+		<label class="nowrap">URL for sync and file-transfer clients: </label>
 		<label class="nowrap home_server" id="<?php print($_['user_server_id']);?>"><?php print($_['user_server_url']);?></label>
 	</div>
 	<div>

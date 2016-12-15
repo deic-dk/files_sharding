@@ -1564,11 +1564,11 @@ class Lib {
 		while(!empty($itemSource) && $itemSource!=-1){
 			$fileInfo = self::getFileInfo(null, $owner, $itemSource, null);
 			$fileType = $fileInfo->getType()===\OCP\Files\FileInfo::TYPE_FOLDER?'folder':'file';
-			if(self::checkReadAccess($user_id, $fileInfo->getId(), $fileType)){
-				$ret = true;
+			if(empty($fileInfo['parent']) || $itemSource==$fileInfo['parent'] || empty($fileInfo['path'])){
 				break;
 			}
-			if(empty($fileInfo['parent']) || $itemSource == $fileInfo['parent']){
+			if(self::checkReadAccess($user_id, $itemSource/*$fileInfo->getId()*/, $fileType)){
+				$ret = true;
 				break;
 			}
 			$itemSource = $fileInfo['parent'];

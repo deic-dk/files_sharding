@@ -7,7 +7,7 @@
 				\OCA\FilesSharding\Lib::$USER_SERVER_PRIORITY_BACKUP_1);
 		$servers = OCA\FilesSharding\Lib::dbGetServersList();
 	?>
-	<p>The infrastructure behind data.deic.dk covers multiple sites and servers.
+	<p>The infrastructure behind this service covers multiple sites and servers.
 	When you logged in for the first time, you were automatically assigned a home site
 	with serves in geographical proximity of your home institution.</p>
 
