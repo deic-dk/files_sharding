@@ -129,7 +129,7 @@ class Api {
 				//$share['file_source'] = $share['item_source'];
 				// Since I'm listing files shared by me, I'm on my home server.
 				// Set path accordingly
-				if(\OCP\App::isEnabled('files_sharding') && $share['item_source']){
+				if($share['item_source']){
 					$share['path'] = \OCA\FilesSharding\Lib::getFilePath($share['item_source']);
 				}
 				//
@@ -137,6 +137,17 @@ class Api {
 					$share['mimetype'] = \OC_Helper::getFileNameMimeType($share['path']);
 					if (\OC::$server->getPreviewManager()->isMimeSupported($share['mimetype'])) {
 						$share['isPreviewAvailable'] = true;
+					}
+				}
+				// Set group if in a group folder
+				$fileInfo = \OCA\FilesSharding\Lib::getFileInfo($share['path'], null, $share['item_source'], null);
+				if($fileInfo['path']=='files' && \OCP\App::isEnabled('user_group_admin')){
+					\OCP\Util::writeLog('files_sharding', 'Getting group for '.$share['item_source'].
+						':'.$fileInfo['path'], \OC_Log::WARN);
+					$group = \OC_User_Group_Admin_Util::getGroup($share['item_source']);
+					if(!empty($group)){
+						$share['group'] = $group['group'];
+						$share['path'] = $group['path'];
 					}
 				}
 			}
@@ -616,7 +627,7 @@ class Api {
 		if ($return) {
 			return new \OC_OCS_Result();
 		} else {
-			$msg = "Unshare Failed";
+			$msg = "Unshare Failed, ".$itemType.":".$fileSource.":".$shareType.":".$shareWith;
 			return new \OC_OCS_Result(null, 404, $msg);
 		}
 	}

@@ -1546,23 +1546,28 @@ class Lib {
 		if(empty($user_id) || empty($itemSource)){
 			return false;
 		}
+		$ret = false;
+		\OCP\Util::writeLog('files_sharding', 'Getting shared items for '.$user_id, \OC_Log::WARN);
+		$user = self::switchUser($user_id);
 		$itemsSharedWithUser = self::getItemsSharedWithUser($user_id);
 		// TODO: consider using \OCP\Share::getUsersSharingFile instead
 		foreach($itemsSharedWithUser as $data){
 			\OCP\Util::writeLog('files_sharding', 'Checking access of '.$user_id. ' to '.
 					$itemSource.'<->'.$data['fileid'], \OC_Log::WARN);
 			if((int)$data['fileid'] === (int)$itemSource){
-				return true;
+				$ret = true;
+				break;
 			}
 		}
-		return false;
+		self::restoreUser($user);
+		return $ret;
 	}
 	
 	public static function checkReadAccessRecursively($user_id, $itemSource, $owner){
 		$user = self::switchUser($owner);
 		$ret = false;
 		while(!empty($itemSource) && $itemSource!=-1){
-			$fileInfo = self::getFileInfo(null, $owner, $itemSource, null);
+			$fileInfo = self::getFileInfo(null, $owner, $itemSource, null, $user_id);
 			$fileType = $fileInfo->getType()===\OCP\Files\FileInfo::TYPE_FOLDER?'folder':'file';
 			if(empty($fileInfo['parent']) || $itemSource==$fileInfo['parent'] || empty($fileInfo['path'])){
 				break;
@@ -1572,6 +1577,7 @@ class Lib {
 				break;
 			}
 			$itemSource = $fileInfo['parent'];
+			\OC_Log::write('files_sharding', 'Parent: '.$itemSource, \OC_Log::WARN);
 		}
 		self::restoreUser($user);
 		return $ret;
@@ -1603,10 +1609,10 @@ class Lib {
 		}
 		$result = array();
 		if(!empty($sharedFiles)){
-			$result = array_merge($result, $sharedFiles);
+			$result = array_unique(array_merge($result, $sharedFiles), SORT_REGULAR);
 		}
 		if(!empty($sharedFolders)){
-			$result = array_merge($result, $sharedFolders);
+			$result = array_unique(array_merge($result, $sharedFolders), SORT_REGULAR);
 		}
 		return $result;
 	}
@@ -1807,9 +1813,11 @@ class Lib {
 		\OC_Util::setupFS($user_id);
 	}
 
-	// TODO: group support
-	public static function getFileInfo($path, $owner, $id, $parentId){
+	public static function getFileInfo($path, $owner, $id, $parentId, $user = ''){
 		$info = null;
+		
+		$user = empty($user)?\OC_User::getUser():$user;
+		
 		if(($id || $parentId) && $owner){
 			// For a shared directory get info from server holding the data
 			if(!self::onServerForUser($owner)){
@@ -1819,17 +1827,17 @@ class Lib {
 				}
 				if($id){
 					$data = self::ws('getFileInfoData',
-							array('user_id' => \OC_User::getUser(), 'path'=>urlencode($path), 'id'=>$id, 'owner'=>$owner),
+							array('user_id' => $user, 'path'=>urlencode($path), 'id'=>$id, 'owner'=>$owner),
 							false, true, $dataServer);
 				}
 				elseif($parentId){
 					$parentData = self::ws('getFileInfoData',
-							array('user_id' => \OC_User::getUser(), 'id'=>$parentId, 'owner'=>$owner),
+							array('user_id' => $user, 'id'=>$parentId, 'owner'=>$owner),
 							false, true, $dataServer);
 					$dirPath = preg_replace('|^files/|','/', $parentData['internalPath']);
 					$pathinfo = pathinfo($path);
 					$data = self::ws('getFileInfoData',
-							array('user_id' => \OC_User::getUser(), 'path'=>urlencode($dirPath.'/'.$pathinfo['basename']), 'owner'=>$owner),
+							array('user_id' => $user, 'path'=>urlencode($dirPath.'/'.$pathinfo['basename']), 'owner'=>$owner),
 							false, true, $dataServer);
 				}
 				if($data){
@@ -1839,9 +1847,10 @@ class Lib {
 				}
 			}
 			else{
-				if(!empty($owner) && $owner!=\OCP\USER::getUser()){
+				if(!empty($owner)){
 					$user_id = self::switchUser($owner);
 				}
+				
 				if(!empty($id)){
 					$path = \OC\Files\Filesystem::getPath($id);
 				}
@@ -1851,6 +1860,7 @@ class Lib {
 				}
 				\OCP\Util::writeLog('files_sharding', 'Getting info for '.$parentId.':'.$id.':'.$path.':'.$owner, \OC_Log::WARN);
 				$info = \OC\Files\Filesystem::getFileInfo($path);
+				\OCP\Util::writeLog('files_sharding', 'Got info: '.$info['path'].':'.$info['parent'], \OC_Log::WARN);
 			}
 		}
 		else{
@@ -1865,10 +1875,11 @@ class Lib {
 			self::restoreUser($user_id);
 		}
 		
+		\OCP\Util::writeLog('files_sharding', 'User now '.\OC_User::getUser().':'.$user.':'.':'.$owner, \OC_Log::DEBUG);
+		
 		return $info;
 	}
 	
-	// TODO: group support
 	public static function moveTmpFile($tmpFile, $path, $dirOwner, $dirId){
 		$endPath = $path;
 		if($dirId){
@@ -1967,11 +1978,10 @@ class Lib {
 		}
 		
 		if(\OCP\App::isEnabled('user_group_admin') && !empty($group)){
-			$groupInfo = \OC_User_Group_Admin_Util:: getGroupInfo($group);
+			$groupInfo = \OC_User_Group_Admin_Util::getGroupInfo($group);
 			//$group_dir_owner = $groupInfo['owner'];
 			$groupUserFreequota = !empty($groupInfo['user_freequota'])?$groupInfo['user_freequota']:0;
 			\OC\Files\Filesystem::tearDown();
-			$groupInfo = \OC_User_Group_Admin_Util::getGroupInfo($group);
 			$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
 			\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
 		}
