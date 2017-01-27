@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU Affero General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- *
+ *f
  */
 
 namespace OCA\Files\Share_files_sharding;
@@ -27,7 +27,7 @@ namespace OCA\Files\Share_files_sharding;
 
 class Api {
 	
-	private static function getItemShared($itemType, $itemSource){
+	public static function getItemShared($itemType, $itemSource){
 		if(!\OCP\App::isEnabled('files_sharding') || \OCA\FilesSharding\Lib::isMaster()){
 			return \OCP\Share::getItemShared($itemType, $itemSource);
 		}
@@ -38,7 +38,7 @@ class Api {
 		}
 	}
 
-	private static function getItemSharedWithBySource($itemType, $itemSource){
+	public static function getItemSharedWithBySource($itemType, $itemSource){
 		if(!\OCP\App::isEnabled('files_sharding') || \OCA\FilesSharding\Lib::isMaster()){
 			return \OCP\Share::getItemSharedWithBySource($itemType, $itemSource);
 		}

@@ -123,7 +123,7 @@ $(document).ready(function(){
 			add_server(url, internal_url, x509_dn, site, charge, allow_local_login, id);
 	});
 	addEditLink();
-	addScrollbar()
+	addScrollbar();
 });
 
 $(window).resize(function(){

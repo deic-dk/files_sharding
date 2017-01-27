@@ -120,11 +120,14 @@ class Lib {
 		$servers = self::getServersList();
 		$masterUrl = self::getMasterURL();
 		foreach($servers as $server){
-			if($server['url']===$masterUrl){
+			if($server['url']===$masterUrl ||
+					$server['url'].'/'===$masterUrl ||
+					$server['url']===$masterUrl.'/'){
 				return($server['site']);
 			}
 		}
-		\OCP\Util::writeLog('files_sharding', 'ERROR: Could not find master site', \OC_Log::ERROR);
+		\OCP\Util::writeLog('files_sharding', 'ERROR: Could not find master site '.$masterUrl.
+				', '.serialize($servers), \OC_Log::ERROR);
 		return null;
 	}
 
@@ -204,7 +207,7 @@ class Lib {
 	 */
 	private static $WS_CACHE_CALLS = array('getItemsSharedWith'=>10, 'get_data_folders'=>10,
 			'get_user_server'=>10, 'getFileTags'=>10, 'share_fetch'=>10, 'getShareByToken'=>10,
-			'share_fetch'=>10, 'searchTagsByIDs'=>10, 'searchTags'=>10, 'getItemsSharedWithUser'=>10,
+			'searchTagsByIDs'=>10, 'searchTags'=>10, 'getItemsSharedWithUser'=>10,
 			'get_server_id'=>10, 'get_servers'=>10, 'getTaggedFiles'=>10, 'get_user_server_access'=>20,
 			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, 'getCharge'=>30,
 			'accountedYears'=>60, 'getUserGroups'=>10);
@@ -337,6 +340,19 @@ class Lib {
 		}
 		$results = $result->fetchAll();
 		return $results;
+	}
+
+	public static function dbGetServer($id){
+		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?');
+		$result = $query->execute(Array($id));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$results = $result->fetchAll();
+		if(count($results)===0){
+			return null;
+		}
+		return $results[0];
 	}
 	
 	public static function dbGetSitesList(){
@@ -1007,7 +1023,10 @@ class Lib {
 	 * @param $user
 	 * @return ID of primary server
 	 */
-	public static function lookupServerIdForUser($user, $priority=0){
+	public static function lookupServerIdForUser($user, $priority=null){
+		if($priority===null){
+			$priority = self::$USER_SERVER_PRIORITY_PRIMARY;
+		}
 		if(self::isMaster()){
 			$serverId = self::dbLookupServerIdForUser($user, $priority);
 		}
@@ -1017,6 +1036,28 @@ class Lib {
 			$serverId = $res['id'];
 		}
 		return $serverId;
+	}
+	
+	public static function dbGetUserServerInfo($user, $priority=null){
+		if($priority===null){
+			$priority = self::$USER_SERVER_PRIORITY_PRIMARY;
+		}
+		$serverId = self::dbLookupServerIdForUser($user, $priority);
+		$server = self::dbGetServer($serverId);
+		return $server;
+	}
+	
+	public static function getUserServerInfo($user, $priority=null){
+		if($priority===null){
+			$priority = self::$USER_SERVER_PRIORITY_PRIMARY;
+		}
+		if(self::isMaster()){
+			return self::dbGetUserServerInfo($user, $priority);
+		}
+		else{
+			return self::ws('get_user_server_info',
+					Array('user'=>urlencode($user), 'priority'=>$priority), true, false);
+		}
 	}
 	
 	/**
@@ -1119,7 +1160,7 @@ class Lib {
 				$master_site = $server['site'];
 			}
 		}
-		\OCP\Util::writeLog('files_sharding', 'dbLookupHomeSiteForUser: site not found for server: '.$server_id.' Using master '.$master_site, \OC_Log::ERROR);
+		\OCP\Util::writeLog('files_sharding', 'dbGetSite: site not found for server: '.$server_id.' Using master '.$master_site, \OC_Log::ERROR);
 		return $master_site;
 	}
 
