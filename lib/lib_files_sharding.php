@@ -1555,7 +1555,7 @@ class Lib {
 			\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' OK', \OC_Log::DEBUG);
 			return true;
 		}
-		\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' not trusted', \OC_Log::WARN);
+		\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' ('.$clientDNwSlashes.') not trusted', \OC_Log::WARN);
 		return false;
 	}
 	
