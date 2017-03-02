@@ -1,9 +1,12 @@
 <?php
 
 require_once('apps/files_sharding/lib/lib_files_sharding.php');
-
 require_once('apps/files_sharding/lib/myshare.php');
 
+if(isset($_SERVER['REQUEST_URI']) && ($_SERVER['REQUEST_URI']=='/' ||
+		strpos($_SERVER['REQUEST_URI'], "/js/")>0)){
+	return;
+}
 
 // This does not work: The sharing backend registers 'file' first and the present
 // registration is ignored.
