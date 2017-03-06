@@ -210,7 +210,7 @@ class Lib {
 			'searchTagsByIDs'=>10, 'searchTags'=>10, 'getItemsSharedWithUser'=>10,
 			'get_server_id'=>10, 'get_servers'=>10, 'getTaggedFiles'=>10, 'get_user_server_access'=>20,
 			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, 'getCharge'=>30,
-			'accountedYears'=>60, 'getUserGroups'=>10);
+			'accountedYears'=>60, 'getUserGroups'=>10, 'lookupServerId'=>60);
 	
 	public static function getWSCert(){
 		if(empty(self::$wsCert)){
@@ -690,20 +690,95 @@ class Lib {
 		}
 	}
 	
+	private static function is_ip($str) {
+		$ret = filter_var($str, FILTER_VALIDATE_IP);
+	
+		return $ret;
+	}
+	
+	private static function is_ipv4($str) {
+		$ret = filter_var($str, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
+	
+		return $ret;
+	}
+	
+	private static function is_ipv6($str) {
+		$ret = filter_var($str, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
+	
+		return $ret;
+	}
+	
 	public static function dbLookupServerId($hostname){
-		$query = \OC_DB::prepare('SELECT `id` FROM `*PREFIX*files_sharding_servers` WHERE `url` LIKE ? OR `internal_url` LIKE ?');
-		$result = $query->execute(Array("http%://$hostname%", "http%://$hostname%"));
-		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		$servers = self::dbGetServersList();
+		foreach($servers as $server){
+			if($server['url'] == $hostname){
+				return $server['id'];
+			}
 		}
-		$results = $result->fetchAll();
-		if(count($results)>1){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for server '.$hostname, \OCP\Util::ERROR);
+		\OCP\Util::writeLog('files_sharding', 'WARNING, dbLookupServerId: '.$hostname.
+				': Trying DNS lookup. This takes time, so consider changing your DB entry.', \OC_Log::WARN);
+		if(self::is_ip($hostname)){
+			$checkHostName = gethostbyaddr($hostname);
 		}
-		foreach($results as $row){
-			return($row['id']);
+		else{
+			$checkHostIPs = gethostbynamel($hostname);
 		}
-		\OCP\Util::writeLog('files_sharding', 'WARNING, dbLookupServerId: server not found: '.$hostname, \OC_Log::ERROR);
+		foreach($servers as $server){
+			$urlParts = parse_url($server['url']);
+			$dbHost = $urlParts['host'];
+			// Two IPs - one (the one in the DB) may not be the primary
+			if(self::is_ip($hostname)){
+				if(self::is_ip($dbHost)){
+					$dbHostName = gethostbyaddr($dbHost);
+					if($checkHostName==$dbHostName){
+						return $server['id'];
+					}
+				}
+				// DB entry is a hostname, checked host is and IP
+				else{
+					// First check DNS lookup of checked host IP
+					if($checkHostName==$dbHost){
+						return $server['id'];
+					}
+					// Then check IPs the DB entry resolves to
+					$dbHostIPs = gethostbynamel($dbHost);
+					foreach($dbHostIPs as $dbHostIP){
+						if($hostname==$dbHostIP){
+							return $server['id'];
+						}
+					}
+				}
+			}
+			else{
+				// Checked host is  a hostname, DB entry an IP
+				if(self::is_ip($dbHost)){
+					// First check DNS lookup of DB entry
+					$dbHostName = gethostbyaddr($dbHost);
+					if($hostname==$dbHostName){
+						return $server['id'];
+					}
+					// Then check IPs the checked hostname resolves to
+					foreach($checkHostIPs as $checkHostIP){
+						if($checkHostIP==$dbHost){
+							return $server['id'];
+						}
+					}
+				}
+				// Two hostnames
+				else{
+					$dbHostIPs = gethostbynamel($dbHost);
+					foreach($checkHostIPs as $checkHostIP){
+						foreach($dbHostIPs as $dbHostIP){
+							if($checkHostIP==$dbHostIP){
+								return $server['id'];
+							}
+						}
+					}
+				}
+			}
+		}
+		\OCP\Util::writeLog('files_sharding', 'WARNING, dbLookupServerId: server not found: '.$hostname,
+				\OC_Log::ERROR);
 		return null;
 	}
 	
