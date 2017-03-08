@@ -1569,12 +1569,10 @@ class Lib {
 		if($serverURL==null){
 			$serverURL = self::getMasterInternalURL();
 		}
-		if(self::isMaster() || self::onServerForUser($user_id)){
+		if(self::isMaster()/* || self::onServerForUser($user_id)*/){
 			$pw = self::dbGetPwHash($user_id);
 		}
-		// If this is a first redirect, get password from master - just in case.
-		// When the user sets the password in his prefs, it is set both here and on the master.
-		if(empty($pw)){
+		else{
 			$res = self::ws('get_pw_hash', array('user_id'=>$user_id), true, true, $serverURL);
 			$pw = $res['pw_hash'];
 		}

@@ -27,7 +27,7 @@ else{
 	else{
 		$ret['status'] = 'error';
 	}
-	OC_Log::write('files_sharding', 'Set password hash for '.$user_id, OC_Log::WARN);
+	OC_Log::write('files_sharding', 'Set password hash '.$pwHash.' for '.$user_id, OC_Log::WARN);
 }
 
 OCP\JSON::encodedPrint($ret);
