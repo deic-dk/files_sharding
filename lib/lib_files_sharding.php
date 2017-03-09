@@ -870,9 +870,14 @@ class Lib {
 	 * @param $organizationName - e.g. "Danmarks Tekniske Universitet"
 	 * @param $entitlement
 	 */
-	// TODO: refine this - taking into account availble servers and their space
+	// TODO: refine this - taking into account available servers and their space
 	public static function dbChooseSiteForUser($mail, $schacHomeOrganization, $organizationName,
 			$entitlement){
+		// Keep non-nationals on master (they will be harder to support on sharding issues)
+		$masterfq = self::getMasterHostName();
+		if(substr($mail,-3)!==substr($masterfq,-3)){
+			return self::getMasterSite();
+		}
 		$servers = self::dbGetServersList();
 		$shortest = INF;
 		$closestSite = null;
@@ -888,6 +893,7 @@ class Lib {
 		if(!empty($closestSite)){
 			return $closestSite;
 		}
+		// Default to master
 		return self::getMasterSite();
 	}
 	
