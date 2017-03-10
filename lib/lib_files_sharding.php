@@ -797,7 +797,7 @@ class Lib {
 		$results = $result->fetchAll();
 		if(count($results)===0){
 			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*files_sharding_servers` (`id`, `url`, `internal_url`, `site`, `allow_local_login`, `charge_per_gb`, `x509_dn`) VALUES (?, ?, ?, ?, ?, ?, ?)');
-			$result = $query->execute( array($id, $url, $site, $allow_local_login, $charge, $x509_dn));
+			$result = $query->execute( array($id, $url, $internal_url, $site, $allow_local_login, $charge, $x509_dn) );
 		}
 		elseif(count($results)===1){
 			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_servers` SET `url` = ?, `internal_url` = ?, `site` = ?, `allow_local_login` = ?, `charge_per_gb` = ? , `x509_dn` = ? WHERE `ID` = ?');
