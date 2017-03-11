@@ -15,6 +15,23 @@ function allow_local_login(id, allow_local_login){
 	});
 }
 
+function exclude_as_backup(id, exclude_as_backup){
+	$.ajax(OC.linkTo('files_sharding','ajax/set_exclude_as_backup.php'), {
+		 type:'POST',
+		  data:{
+			  id: id,
+			  exclude_as_backup: exclude_as_backup
+		 },
+		 dataType:'json',
+		 success: function(s){
+			 // TODO: notify 
+		 },
+		error:function(s){
+			alert("Unexpected error!");
+		}
+	});
+}
+
 var delete_dialogs = [];
 
 function create_delete_dialog(id){
@@ -55,7 +72,8 @@ function delete_server(id){
 	});
 }
 
-function add_server(url, internal_url, x509_dn, site, charge, allow_local_login, id){
+function add_server(url, internal_url, x509_dn, site, charge,
+		allow_local_login, exclude_as_backup, id){
 	if(!url){
 		alert("You need to provide a URL");
 		return;
@@ -77,7 +95,8 @@ function add_server(url, internal_url, x509_dn, site, charge, allow_local_login,
 			  x509_dn: x509_dn,
 			  site: site,
 			  charge: charge,
-			  allow_local_login: allow_local_login
+			  allow_local_login: allow_local_login,
+			  exclude_as_backup: exclude_as_backup
 		 },
 		 dataType:'json',
 		 success: function(s){
@@ -107,6 +126,11 @@ $(document).ready(function(){
 		  allow_local_login($(this).parent().attr('id'), $(this).is(':checked')?'yes':'no');
 	  });
 	});
+	$('#filesShardingSettings div.server input.exclude_as_backup').each(function(){
+	  $(this).change(function(){
+	  	exclude_as_backup($(this).parent().attr('id'), $(this).is(':checked')?'yes':'no');
+	  });
+	});
 	$('#filesShardingSettings div.server .delete_server').live('click', function(e){
 		 id = $(this).parent().attr('id');
 		create_delete_dialog(id);
@@ -119,8 +143,9 @@ $(document).ready(function(){
 			site = $(this).parent().find('input.site').first().val();
 			charge = $(this).parent().find('input.charge').first().val();
 			allow_local_login =  $(this).parent().find('input.allow_local_login').first().is(':checked')?'yes':'no';
+			exclude_as_backup =  $(this).parent().find('input.exclude_as_backup').first().is(':checked')?'yes':'no';
 			x509_dn =  $(this).parent().find('input.x509_dn').first().val();
-			add_server(url, internal_url, x509_dn, site, charge, allow_local_login, id);
+			add_server(url, internal_url, x509_dn, site, charge, allow_local_login, exclude_as_backup, id);
 	});
 	addEditLink();
 	addScrollbar();

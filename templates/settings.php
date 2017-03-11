@@ -8,7 +8,7 @@
   </h2>
 
   <?php function print_server($id, $url, $internal_url, $x509_dn, $site, $charge,
-  		$allow_local_login, $description){
+  		$allow_local_login, $exclude_as_backup, $description){
 		if(\OCP\App::isEnabled('files_accounting')){
 			$currency = OCA\Files_Accounting\Storage_Lib::getBillingCurrency();
 		}
@@ -19,7 +19,8 @@
   		<input class="site" type="text" value="'.$site.'" placeholder="Site"> /'.
   		'<input class="charge" type="text" value="'.$charge.'" placeholder="Charge/GB">'.
   		(\OCP\App::isEnabled('files_accounting')?'<label>'.$currency.'</label>':'').' / '.
-  		'<input class="allow_local_login" type="checkbox"'.($allow_local_login==='yes'?' checked="checked"' : '').'>
+  		'<input class="allow_local_login" type="checkbox"'.($allow_local_login==='yes'?' checked="checked"' : '').'> / '.
+  		'<input class="exclude_as_backup" type="checkbox"'.($exclude_as_backup==='yes'?' checked="checked"' : '').'>
   		/ <a class="edit_description" id="'.$id.'" href="#">Description</a>
   			<textarea class="description hidden" rows="3" cols="92" id="'.$id.'">'.$description.'</textarea>');
   } ?>
@@ -33,17 +34,19 @@
   		<label>Site</label> /
   		<label>Charge per GB</label> /
   		<label>Allow local login</label> /
+  		<label>Exclude as backup destination</label> /
 			<label>Description</label>');
   	foreach ($_['servers_list'] as $server){
   		print('<div class="server" id="'.$server['id'].'">');
   		print_server($server['id'], $server['url'], $server['internal_url'], $server['x509_dn'],
-  		$server['site'], $server['charge_per_gb'], $server['allow_local_login'], $server['description']);
+  		$server['site'], $server['charge_per_gb'], $server['allow_local_login'], $server['exclude_as_backup'],
+  		$server['description']);
   		print('<label class="add_server btn btn-flat">Save</label>');
   		print('<label class="delete_server btn btn-flat">Delete</label><div class="dialog" display="none"></div>');
   		print('</div>');
   	}
   	print('<div><label>Add server:</label></div><div class="server">');
-  	print_server("", "", "", "", "", "", "", "");
+  	print_server("", "", "", "", "", "", "", "", "");
   	print('<label class="add_server btn btn-flat">Add</label>');
   	print('</div>');
   	?>

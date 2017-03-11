@@ -162,6 +162,12 @@ class Lib {
 		return $result ? true : false;
 	}
 	
+	public static function dbExcludeAsBackup($id, $value){
+		$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_servers` set `exclude_as_backup` = ? WHERE `id` = ?');
+		$result = $query->execute( array($value, $id));
+		return $result ? true : false;
+	}
+	
 	/**
 	 * Not used - just here for reference.
 	 * @param unknown $user
