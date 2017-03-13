@@ -453,7 +453,8 @@ class Lib {
 		if(self::isMaster()){
 			$user_server_id = self::dbLookupServerIdForUser($user_id, self::$USER_SERVER_PRIORITY_PRIMARY);
 			if($user_server_id==null){
-				$user_server_id = self::dbChooseServerForUser($user_id, $site, self::$USER_SERVER_PRIORITY_PRIMARY, null);
+				$user_email = \OCP\Config::getUserValue($user_id, 'settings', 'email');
+				$user_server_id = self::dbChooseServerForUser($user_id, $user_email, $site, self::$USER_SERVER_PRIORITY_PRIMARY, null);
 				self::dbSetServerForUser($user_id, $user_server_id, self::$USER_SERVER_PRIORITY_PRIMARY);
 			}
 			return self::dbAddDataFolder($folder, $user_server_id, $user_id);
@@ -717,7 +718,8 @@ class Lib {
 	public static function dbLookupServerId($hostname){
 		$servers = self::dbGetServersList();
 		foreach($servers as $server){
-			if($server['url'] == $hostname){
+			$urlParts = parse_url($server['url']);
+			if($server['url'] == $hostname || $urlParts['host'] == $hostname){
 				return $server['id'];
 			}
 		}
@@ -906,12 +908,25 @@ class Lib {
 	/**
 	 * Choose server for user, given a chosen site.
 	 * @param $user_id
+	 * @param $email
 	 * @param $site
 	 * @param $priority
 	 * @param $exclude_server_id can be null
 	 * @return Server ID
 	 */
-	public static function dbChooseServerForUser($user_id, $site, $priority, $exclude_server_id){
+	public static function dbChooseServerForUser($user_id, $user_email, $site, $priority, $exclude_server_id){
+		
+		// Keep non-nationals on master (they will be harder to support on sharding issues)
+		if(!empty($user_email)){
+			$masterfq = self::getMasterHostName();
+			if(substr($user_email,-3)!==substr($masterfq,-3)){
+				$masterHostName = self::getMasterHostName();
+				$masterID = self::dbLookupServerId($masterHostName);
+				// We could also just have returned null, as the default is master
+				return $masterID;
+			}
+		}
+		
 		// TODO: placing algorithm that takes, quota, available space and even distribution of users into consideration
 		// For now, just take the first server found of the given site.
 		$current_server_id = self::dbLookupServerIdForUser($user_id, $priority);
@@ -960,7 +975,7 @@ class Lib {
 		\OCP\Util::writeLog('files_sharding', 'Number of servers now: '.$num_rows, \OC_Log::WARN);
 		if($num_rows>0){
 			$random_int = rand(0, $num_rows-1);
-			\OCP\Util::writeLog('files_sharding', 'Choosing random site '.$random_int.' out of '.$num_rows, \OC_Log::WARN);
+			\OCP\Util::writeLog('files_sharding', 'Choosing random server '.$random_int.' out of '.$num_rows, \OC_Log::WARN);
 			return $results[$random_int]['id'];
 		}
 		

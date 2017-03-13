@@ -17,7 +17,8 @@ else{
 }
 if(isset($_POST['site']) && !empty($_POST['site'])){
 	$site = $_POST['site'];
-	$server_id = OCA\FilesSharding\Lib::dbChooseServerForUser($user_id, $site, $priority, isset($_POST['exclude_server_id'])?$_POST['exclude_server_id']:null);
+	$user_email = \OCP\Config::getUserValue($user_id, 'settings', 'email');
+	$server_id = OCA\FilesSharding\Lib::dbChooseServerForUser($user_id, $user_email, $site, $priority, isset($_POST['exclude_server_id'])?$_POST['exclude_server_id']:null);
 }
 else{
 	// Allow empty $server_id only for backup server

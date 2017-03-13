@@ -95,7 +95,7 @@ else{
 			$destination = preg_replace('|^'.$masterUrl.'|', $serverUrl, $_SERVER['HTTP_DESTINATION']);
 			header("Destination: " . $destination);
 		}
-		header("HTTP/1.1 301 Moved Permanently");
+		header("HTTP/1.1 307 Temporary Redirect");
 		header("Location: " . $serverUrl . $_SERVER['REQUEST_URI']);
 	}
 	else{
