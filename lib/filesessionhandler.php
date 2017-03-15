@@ -161,6 +161,7 @@ class FileSessionHandler {
 			self::update_mail($uid, $mail);
 		}
 		if (isset($groups) && \OCP\App::isEnabled('user_saml')) {
+			require_once 'user_saml/user_saml.php';
 			$samlBackend = new \OC_USER_SAML();
 			self::update_groups($uid, $groups, $samlBackend->protectedGroups, true);
 		}
