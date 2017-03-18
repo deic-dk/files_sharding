@@ -16,7 +16,8 @@ class Hooks {
 			return;
 		}
 		
-		\OC_Log::write('files_sharding',"Checking session ".$_COOKIE[$params['sessionName']].": ".serialize($params['session']), \OC_Log::WARN);
+		\OC_Log::write('files_sharding',"Checking session ".$_COOKIE[$params['sessionName']].": ".
+				serialize($params['session']), \OC_Log::INFO);
 
 		session_set_save_handler(
 			array(self::$handler, 'open'),

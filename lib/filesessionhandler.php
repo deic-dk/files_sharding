@@ -15,13 +15,13 @@ class FileSessionHandler {
 	private $freequota;
 
 	function __construct($savePath) {
-		\OC_Log::write('files_sharding',"Constructing session", \OC_Log::WARN);
+		\OC_Log::write('files_sharding',"Constructing session", \OC_Log::INFO);
 		$this->savePath = $savePath;
 		$this->ocUserDatabase = new \OC_User_Database();
 	}
 
 	function open($savePath, $sessionName){
-		\OC_Log::write('files_sharding',"Opening session ".$sessionName, \OC_Log::WARN);
+		\OC_Log::write('files_sharding',"Opening session ".$sessionName, \OC_Log::INFO);
 		if (!is_dir($this->savePath)) {
 			mkdir($this->savePath, 0777);
 		}
@@ -62,7 +62,7 @@ class FileSessionHandler {
 	}
 
 	function write($id, $data){
-		\OC_Log::write('files_sharding',"Writing session ".$id, \OC_Log::WARN);
+		\OC_Log::write('files_sharding',"Writing session ".$id, \OC_Log::INFO);
 		return file_put_contents("$this->savePath/sess_$id", $data) === false ? false : true;
 		//return $this->putSession();
 	}
