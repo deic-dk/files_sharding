@@ -152,7 +152,7 @@ class FileSessionHandler {
 		if(!$this->ocUserDatabase->userExists($uid)) {
 			return;
 		}
-		\OC_Log::write('files_sharding',"Setting up user: ".$uid, \OC_Log::WARN);
+		\OC_Log::write('files_sharding',"Setting up user: ".$uid." with quota ".$quota, \OC_Log::WARN);
 		$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($uid);
 		if(!\OCA\FilesSharding\Lib::setPasswordHash($uid, $pwHash)){
 			\OC_Log::write('files_sharding',"Error setting user password for user".$uid, \OC_Log::ERROR);
@@ -160,11 +160,13 @@ class FileSessionHandler {
 		if (isset($mail)) {
 			self::update_mail($uid, $mail);
 		}
-		if (isset($groups) && \OCP\App::isEnabled('user_saml')) {
+		// Groups live on master.
+		// No point in settup up groups from SAML-created session when it's already done on master... (?)
+		/*if (isset($groups) && \OCP\App::isEnabled('user_saml')) {
 			require_once 'user_saml/user_saml.php';
 			$samlBackend = new \OC_USER_SAML();
 			self::update_groups($uid, $groups, $samlBackend->protectedGroups, true);
-		}
+		}*/
 		if (isset($displayname)) {
 			self::update_display_name($uid, $displayname);
 		}
@@ -230,9 +232,9 @@ class FileSessionHandler {
 		}
 	}
 	
-	static function update_groups($uid, $groups, $protectedGroups=array(), $just_created=false) {
+	/*static function update_groups($uid, $groups, $protectedGroups=array(), $just_created=false) {
 
-		if(!$just_created && !empty($groups) && !\OCP\App::isEnabled('user_group_admin')) {		
+		if(!$just_created && !empty($groups) && !\OCP\App::isEnabled('user_group_admin')) {	
 			$old_groups = \OC_Group::getUserGroups($uid);
 			foreach($old_groups as $group) {
 				if(!in_array($group, $protectedGroups) && !in_array($group, $groups)) {
@@ -247,8 +249,8 @@ class FileSessionHandler {
 				\OC_Log::write('files_sharding','Invalid group "'.$group.'", allowed chars "a-zA-Z0-9" and "_.@-/" ',\OC_Log::WARN);
 			}
 			else {
-				if (!\OC_Group::inGroup($uid, $group)) {
-					if (!\OC_Group::groupExists($group)) {
+				if(!\OC_Group::inGroup($uid, $group)){
+					if(!\OC_Group::groupExists($group)){
 						\OC_Group::createGroup($group);
 						\OC_Log::write('files_sharding','New group created: '.$group, \OC_Log::WARN);
 					}
@@ -257,7 +259,7 @@ class FileSessionHandler {
 				}
 			}
 		}
-	}
+	}*/
 	
 	static function update_display_name($uid, $displayName) {
 		// I inject directly into the database here rather than using the method setDisplayName(), 

@@ -32,10 +32,10 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 include_once("files_sharding/lib/lib_files_sharding.php");
 
 $user_id = $_GET['user_id'];
-$internal = isset($_GET['internal'])?$_GET['internal']=='yes':false;
+$internal = isset($_GET['internal'])?$_GET['internal']:'yes';
 $priority = isset($_GET['priority'])?$_GET['priority']:0;
 
-if($internal && $internal!=="false" && $internal!=="no"){
+if(empty($internal) || $internal!=="false" && $internal!=="no"){
 	$url = OCA\FilesSharding\Lib::dbLookupInternalServerUrlForUser($user_id, $priority);
 }
 else{

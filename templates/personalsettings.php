@@ -1,7 +1,6 @@
 <fieldset id="filesShardingDataFolders" class="section">
 	<h2><?php p($l->t('Data folders')); ?></h2>
-	These folders are intended to hold data: Their content is NOT synchronized.<br />
-	Any files put in them locally, will be uploaded and then deleted locally.
+	These folders are intended to hold data and live only on the server. They are <i>not</i> synchronized to your desktop or laptop.
 	<br />
 	<br />
 	<div id="filesShardingDataFoldersList">

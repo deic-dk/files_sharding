@@ -223,22 +223,25 @@ class Lib {
 			if(!apc_exists(self::$WS_CERT_CACHE_KEY)){
 				self::$wsCert = \OCP\Config::getSystemValue('wscertificate', '');
 				apc_store(self::$WS_CERT_CACHE_KEY, self::$wsCert);
-				
-				$parsedCert = openssl_x509_parse(file_get_contents(self::$wsCert));
-				self::$wsCertSubject = $parsedCert['name'];
-				apc_store(self::$WS_CERT_SUBJECT_CACHE_KEY, self::$wsCertSubject);
-				
-				self::$wsKey = \OCP\Config::getSystemValue('wsprivatekey', '');
-				apc_store(self::$WS_KEY_CACHE_KEY, self::$wsKey);
-				
-				self::$wsCACert = \OCP\Config::getSystemValue('wscacertificate', '');
-				apc_store(self::$WS_CACERT_CACHE_KEY, self::$wsCACert);
+				if(!empty(self::$wsCert)){
+					$parsedCert = openssl_x509_parse(file_get_contents(self::$wsCert));
+					self::$wsCertSubject = $parsedCert['name'];
+					apc_store(self::$WS_CERT_SUBJECT_CACHE_KEY, self::$wsCertSubject);
+					
+					self::$wsKey = \OCP\Config::getSystemValue('wsprivatekey', '');
+					apc_store(self::$WS_KEY_CACHE_KEY, self::$wsKey);
+					
+					self::$wsCACert = \OCP\Config::getSystemValue('wscacertificate', '');
+					apc_store(self::$WS_CACERT_CACHE_KEY, self::$wsCACert);
+				}
 			}
 			else{
 				self::$wsCert = apc_fetch(self::$WS_CERT_CACHE_KEY);
-				self::$wsCertSubject = apc_fetch(self::$WS_CERT_SUBJECT_CACHE_KEY);
-				self::$wsKey = apc_fetch(self::$WS_KEY_CACHE_KEY);
-				self::$wsCACert = apc_fetch(self::$WS_CACERT_CACHE_KEY);
+				if(!empty(self::$wsCert)){
+					self::$wsCertSubject = apc_fetch(self::$WS_CERT_SUBJECT_CACHE_KEY);
+					self::$wsKey = apc_fetch(self::$WS_KEY_CACHE_KEY);
+					self::$wsCACert = apc_fetch(self::$WS_CACERT_CACHE_KEY);
+				}
 			}
 		}
 		return empty(self::$wsCert)?null:array('certificate_file'=>self::$wsCert, 'key_file'=>self::$wsKey,
@@ -718,8 +721,15 @@ class Lib {
 	public static function dbLookupServerId($hostname){
 		$servers = self::dbGetServersList();
 		foreach($servers as $server){
+			if($server['url']==$hostname || $server['internal_url']==$hostname){
+				return $server['id'];
+			}
 			$urlParts = parse_url($server['url']);
-			if($server['url'] == $hostname || $urlParts['host'] == $hostname){
+			if($urlParts['host']==$hostname){
+				return $server['id'];
+			}
+			$urlParts = parse_url($server['internal_url']);
+			if($urlParts['host']==$hostname){
 				return $server['id'];
 			}
 		}
@@ -1020,10 +1030,11 @@ class Lib {
 			$result = $query->execute( array($user_id));
 		}*/
 		// If we're setting a new backup server, disable current backup server
-		if($priority==1){
+		if($priority==self::$USER_SERVER_PRIORITY_BACKUP_1){
 			if(!empty($server_id)){
 				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `priority` >= ? AND `server_id` != ?');
-				$result = $query->execute(array(self::$USER_SERVER_PRIORITY_DISABLE, self::$USER_ACCESS_NONE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1, $server_id));
+				$result = $query->execute(array(self::$USER_SERVER_PRIORITY_DISABLE,
+						self::$USER_ACCESS_NONE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1, $server_id));
 			}
 			else{
 			// Backup server cleared, nothing more to do
@@ -1040,7 +1051,7 @@ class Lib {
 		
 		\OCP\Util::writeLog('files_sharding', 'Number of servers for '.$user_id.":".$server_id.":".count($results), \OCP\Util::ERROR);
 		if(count($results)===0){
-			$newAccess = empty($access)?self::$USER_ACCESS_READ_ONLY:$access;
+			$newAccess = isset($access)?$access:self::$USER_ACCESS_READ_ONLY;
 			$lastSync = empty($last_sync)?0:$last_sync;
 			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*files_sharding_user_servers` (`user_id`, `server_id`, `priority`, `access`, `last_sync`) VALUES (?, ?, ?, ?, ?)');
 			$result = $query->execute( array($user_id, $server_id, $priority, $newAccess, $lastSync));
