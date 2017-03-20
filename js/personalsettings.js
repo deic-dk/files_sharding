@@ -148,10 +148,11 @@ function set_home_server(home_server_id, backup_server_id){
 
 var remove_dialogs = [];
 
-function create_remove_dialog(path){
+function create_r_dialog(path){
 	if(remove_dialogs[path] != undefined){
 		return;
 	}
+	$("#filesShardingDataFolders #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] div.dialog").text("Are you sure you want to sync the folder "+path+" again?");
 	$("#filesShardingDataFolders #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] div.dialog").text("Are you sure you want to sync the folder "+path+" again?");
 	remove_dialogs[path] =  $("#filesShardingDataFolders  #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] div.dialog").dialog({
 		title: "Confirm sync",
@@ -306,7 +307,7 @@ $(document).ready(function(){
 
 	$('#filesShardingDataFolders div#filesShardingDataFoldersList div.dataFolder .remove_data_folder').live('click', function(e){
 		path = $(this).parent().attr('path');
-		create_remove_dialog(path);
+		create_r_dialog(path);
 		remove_dialogs[path].dialog('open');
 	});
 	
