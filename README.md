@@ -7,11 +7,27 @@ without resorting to distributed file systems, SAN or NAS technology, but by let
 server in a group of ownCloud servers be responsible for a segment of the user and/or
 folders and redirect accordingly.
 
+NOTICE: This app is a prototype, exploring ideas for supporting large-scale,
+multi-site, organizational deployments of ownCloud/Nextcloud.
+
 ## User sharding
 
 The idea is to shard on username, keep each user on one server and limit users to e.g.
 0.5 TB each for personal files. Each server with, say 70 TB, could then host, say 100
 users and keep 20 TB for users with special needs.
+
+## Dependencies
+
+The app was developed for ownCloud-7, and is not guaranteed to work with other versions.
+
+Moreover it depends on:
+
+- The theme [deic_theme_oc7](https://github.com/deic-dk/deic_theme_oc7)
+- The app [chooser](https://github.com/deic-dk/chooser)
+- The app [user_saml](https://github.com/deic-dk/user_saml)
+- https://github.com/deic-dk/simplesamlphp
+
+The dependency on a theme will be lifted in future versions. The same goes for the dependency on SAML.
 
 ## Implementation
 
