@@ -22,10 +22,10 @@ The app was developed for ownCloud-7, and is not guaranteed to work with other v
 
 Moreover it depends on:
 
-- The theme [deic_theme_oc7](https://github.com/deic-dk/deic_theme_oc7)
-- The app [chooser](https://github.com/deic-dk/chooser)
-- The app [user_saml](https://github.com/deic-dk/user_saml)
-- https://github.com/deic-dk/simplesamlphp
+- [deic_theme_oc7](https://github.com/deic-dk/deic_theme_oc7)
+- [chooser](https://github.com/deic-dk/chooser)
+- [user_saml](https://github.com/deic-dk/user_saml)
+- [SimpleSAMLphp](https://github.com/deic-dk/simplesamlphp)
 
 The dependency on a theme will be lifted in future versions. The same goes for the dependency on SAML.
 
