@@ -7,14 +7,12 @@ without resorting to distributed file systems, SAN or NAS technology, but by let
 server in a group of ownCloud servers be responsible for a segment of the user and/or
 folders and redirect accordingly.
 
-NOTICE: This app is a prototype, exploring ideas for supporting large-scale,
-multi-site, organizational deployments of ownCloud/Nextcloud.
-
-## User sharding
-
-The idea is to shard on username, keep each user on one server and limit users to e.g.
+The idea is to keep each user on one server and limit users to e.g.
 0.5 TB each for personal files. Each server with, say 70 TB, could then host, say 100
 users and keep 20 TB for users with special needs.
+
+NOTICE: This app is a prototype, exploring ideas for supporting large-scale,
+multi-site, organizational deployments of ownCloud/Nextcloud.
 
 ## Dependencies
 
