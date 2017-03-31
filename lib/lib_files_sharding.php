@@ -267,7 +267,7 @@ class Lib {
 		if(isset(self::$WS_CACHE_CALLS[$script]) && apc_exists($cache_key)){
 			$json_response = apc_fetch($cache_key);
 			$response = json_decode($json_response, $array);
-			\OCP\Util::writeLog('files_sharding', 'Returning cached response for '.$script.'-->'.$cache_key, \OC_Log::DEBUG);
+			\OCP\Util::writeLog('files_sharding', 'Returning cached response for '.$script.'-->'.$cache_key, \OC_Log::INFO);
 			return $response;	
 		}
 		
