@@ -39,10 +39,11 @@
 			$currency." per GB per year<br />".$server['description']."</p>";
 		}
 	}
+	$fromEmail = \OCP\Config::getSystemValue('fromemail', '');
 	?>
 	
 	<h1>More Questions</h1>
 	If you need more help, please contact
-	<a target="_blank" href="mailto:<?php $issuerEmail = \OCA\Files_Accounting\Storage_Lib::getIssuerEmail(); echo $issuerEmail; ?>">
-	<?php echo $issuerEmail; ?></a>. 
+	<a target="_blank" href="mailto:<?php echo $fromEmail; ?>">
+	<?php echo $fromEmail; ?></a>. 
 </div>
