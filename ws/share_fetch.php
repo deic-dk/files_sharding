@@ -165,6 +165,7 @@ switch ($_GET['fetch']) {
 					$users = OC_User::getDisplayNames($_GET['search'], $limit, $offset);
 					// share alias mock-up; added by Christian
 					if(\OCP\App::isEnabled('user_alias')){
+						require_once('user_alias/lib/user_alias.php');
 						$users += OC_User_Alias::getAliases($_GET['search'], $limit, $offset);
 					}
 				}
