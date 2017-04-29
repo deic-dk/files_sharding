@@ -218,6 +218,17 @@ if ( !$url ) {
   curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, false);
   curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, false);
   
+  if(\OCP\App::isEnabled('files_sharding') && !empty(\OCA\FilesSharding\Lib::getWSCert())){
+  	\OCP\Util::writeLog('files_sharding', 'Authenticating '.
+  			' with cert '.\OCA\FilesSharding\Lib::$wsCert.
+  			' and key '.\OCA\FilesSharding\Lib::$wsKey, \OC_Log::WARN);
+  	curl_setopt($ch, CURLOPT_CAINFO, \OCA\FilesSharding\Lib::$wsCACert);
+  	curl_setopt($ch, CURLOPT_SSLCERT, \OCA\FilesSharding\Lib::$wsCert);
+  	curl_setopt($ch, CURLOPT_SSLKEY, \OCA\FilesSharding\Lib::$wsKey);
+  	//curl_setopt($curl, CURLOPT_SSLCERTPASSWD, '');
+  	//curl_setopt($curl, CURLOPT_SSLKEYPASSWD, '');
+  }
+  
   curl_setopt( $ch, CURLOPT_USERAGENT, isset($_GET['user_agent'] ) && $_GET['user_agent'] ? $_GET['user_agent'] : $_SERVER['HTTP_USER_AGENT'] );
   
   list( $header, $contents ) = preg_split( '/([\r\n][\r\n])\\1/', curl_exec( $ch ), 2 );

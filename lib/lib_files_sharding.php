@@ -36,10 +36,10 @@ class Lib {
 	private static $WS_CACERT_CACHE_KEY = 'oc_ws_cacert';
 	// Full path of the certificate/key files used for trusted WS requests if the
 	// above attributes are set in the config file.
-	private static $wsCert = '';
-	private static $wsKey = '';
-	private static $wsCACert = '';
-	private static $wsCertSubject = '';
+	public static $wsCert = '';
+	public static $wsKey = '';
+	public static $wsCACert = '';
+	public static $wsCertSubject = '';
 	
 	public static function getCookieDomain(){
 		if(self::$cookiedomain===''){
@@ -195,11 +195,22 @@ class Lib {
 			curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
 			curl_setopt($curl, CURLOPT_USERPWD, "$username:$password");
 		}
+		
+		if(!empty(self::getWSCert())){
+			\OCP\Util::writeLog('files_sharding', 'Authenticating '.$url.':'.$username.':'.$password.' with cert '.self::$wsCert.
+					' and key '.self::$wsKey, \OC_Log::WARN);
+			curl_setopt($curl, CURLOPT_CAINFO, self::$wsCACert);
+			curl_setopt($curl, CURLOPT_SSLCERT, self::$wsCert);
+			curl_setopt($curl, CURLOPT_SSLKEY, self::$wsKey);
+			//curl_setopt($curl, CURLOPT_SSLCERTPASSWD, '');
+			//curl_setopt($curl, CURLOPT_SSLKEYPASSWD, '');
+		}
+		
 		$data = curl_exec($curl);
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
-		if($status===0 || $status>=300 || $json_response===null || $json_response===false){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response. '.$json_response, \OC_Log::ERROR);
+		if($status===0 || $status>=300 || $data===null || $data===false){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response: '.$status.':'.$data, \OC_Log::ERROR);
 			return null;
 		}
 		
@@ -299,7 +310,7 @@ class Lib {
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
 		if($status===0 || $status>=300 || $json_response===null || $json_response===false){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response. '.$json_response, \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response. '.$status.':'.$json_response, \OC_Log::ERROR);
 			return null;
 		}
 		
@@ -1634,20 +1645,14 @@ class Lib {
 		return $result['password'];
 	}
 	
-	/**
-	 * Check that the requesting IP address is allowed to get confidential
-	 * information.
-	 * UPDATE: now alternatively checks client certificate instead.
-	 */
-	public static function checkIP(){
-		
+	public static function checkCert(){
 		if(!empty(self::getWSCert()) &&
 				!empty($_SERVER['SSL_CLIENT_VERIFY']) &&
 				($_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS' || $_SERVER['SSL_CLIENT_VERIFY']=='NONE')){
 			$issuerDN = !empty($_SERVER['SSL_CLIENT_I_DN'])?$_SERVER['SSL_CLIENT_I_DN']:
-				(!empty($_SERVER['REDIRECT_SSL_CLIENT_I_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_I_DN']:'');
+			(!empty($_SERVER['REDIRECT_SSL_CLIENT_I_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_I_DN']:'');
 			$clientDN = !empty($_SERVER['SSL_CLIENT_S_DN'])?$_SERVER['SSL_CLIENT_S_DN']:
-				(!empty($_SERVER['REDIRECT_SSL_CLIENT_S_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_S_DN']:'');
+			(!empty($_SERVER['REDIRECT_SSL_CLIENT_S_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_S_DN']:'');
 			$clientDNArr = explode(',', $clientDN);
 			$clientDNwSlashes = '/'.implode('/', array_reverse($clientDNArr));
 			$servers = self::getServersList();
@@ -1659,6 +1664,19 @@ class Lib {
 					return true;
 				}
 			}
+		}
+		return false;
+	}
+	
+	/**
+	 * Check that the requesting IP address is allowed to get confidential
+	 * information.
+	 * UPDATE: now alternatively checks client certificate instead.
+	 */
+	public static function checkIP(){
+		
+		if(self::checkCert()){
+			return true;
 		}
 		
 		if(self::$trustednet===''){
@@ -2097,6 +2115,17 @@ class Lib {
 		curl_setopt($curl, CURLOPT_INFILESIZE, filesize($tmpFile));
 		$fh = fopen($tmpFile, 'r');
 		curl_setopt($curl, CURLOPT_INFILE, $fh);
+		
+		if(!empty(self::getWSCert())){
+			\OCP\Util::writeLog('files_sharding', 'Authenticating '.$url.' with cert '.self::$wsCert.
+					' and key '.self::$wsKey, \OC_Log::INFO);
+			curl_setopt($curl, CURLOPT_CAINFO, self::$wsCACert);
+			curl_setopt($curl, CURLOPT_SSLCERT, self::$wsCert);
+			curl_setopt($curl, CURLOPT_SSLKEY, self::$wsKey);
+			//curl_setopt($curl, CURLOPT_SSLCERTPASSWD, '');
+			//curl_setopt($curl, CURLOPT_SSLKEYPASSWD, '');
+		}
+		
 		$res = curl_exec ($curl);
 		fclose($fh);
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
