@@ -42,4 +42,9 @@ if(empty($server_id)){
 
 $ret = OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $server_id, $priority, $access, $last_sync);
 
-OCP\JSON::encodedPrint($ret);
+if($ret){
+	OCP\JSON::encodedPrint($ret);
+}
+else{
+	OCP\JSON::error();
+}

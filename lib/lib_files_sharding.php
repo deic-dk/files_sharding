@@ -12,7 +12,9 @@ class Lib {
 	
 	public static $USER_ACCESS_ALL = 0;
 	public static $USER_ACCESS_READ_ONLY = 1;
-	public static $USER_ACCESS_NONE = 2;
+	public static $USER_ACCESS_TWO_FACTOR = 2;
+	public static $USER_ACCESS_TWO_FACTOR_FORCED = 3;
+	public static $USER_ACCESS_NONE = 4;
 	
 	public static $USER_SERVER_PRIORITY_DISABLE = -2;
 	public static $USER_SERVER_PRIORITY_DISABLED = -1;
@@ -21,6 +23,8 @@ class Lib {
 	public static $USER_SERVER_PRIORITY_BACKUP_2 = 2;
 	
 	public static $LOGIN_OK_COOKIE = 'oc_ok';
+	public static $ACCESS_OK_COOKIE = 'oc_access_ok';
+	public static $ACCESS_OK_COOKIE_SECONDS = 600;
 	
 	const TYPE_SERVER_SYNC = 'server_sync';
 	
@@ -40,6 +44,8 @@ class Lib {
 	public static $wsKey = '';
 	public static $wsCACert = '';
 	public static $wsCertSubject = '';
+	
+	private static $SECOND_FACTOR_CACHE_KEY_PREFIX = 'oc_second_factor';
 	
 	public static function getCookieDomain(){
 		if(self::$cookiedomain===''){
@@ -684,6 +690,23 @@ class Lib {
 		return self::$USER_ACCESS_ALL;
 	}
 	
+	public static function dbGetUserServerPriority($serverId, $userId){
+		$query = \OC_DB::prepare('SELECT `priority` FROM `*PREFIX*files_sharding_user_servers` WHERE `server_id` = ? AND  `user_id` = ?');
+		$result = $query->execute(Array($serverId, $userId));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$results = $result->fetchAll();
+		if(count($results)>1){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Too many entries found for server '.$serverId.', user '.$userId, \OCP\Util::ERROR);
+		}
+		foreach($results as $row){
+			return($row['priority']);
+		}
+		\OCP\Util::writeLog('files_sharding', 'WARNING: server '.$serverId.', user '.$userId.' not found.', \OC_Log::DEBUG);
+		return self::$USER_SERVER_PRIORITY_PRIMARY;
+	}
+	
 	private static function dbGetServerUsers($serverId){
 		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_user_servers` WHERE `server_id` = ?');
 		$result = $query->execute(Array($serverId));
@@ -1021,17 +1044,27 @@ class Lib {
 	 * @throws Exception
 	 * @return boolean true on success, false on failure
 	 */
-	public static function dbSetServerForUser($user_id, $server_id, $priority, $access=null, $last_sync=0){
+	public static function dbSetServerForUser($user_id, $server_id, $priority=null, $access=null, $last_sync=0){
+		if(empty($priority)){
+			$priority = self::dbGetUserServerPriority($server_id, $user_id);
+		}
 		if(empty($server_id)){
+			// This is in case it is a slave making a ws request.
 			$server = $_SERVER['REMOTE_ADDR'];
 			$server_id = self::dbLookupServerId($server);
+			// This is in case we're just altering an entry
+			if(empty($server_id)){
+				$server_info = self::dbGetUserServerInfo($user_id, $priority);
+				$server_id = empty($server_info)||empty($server_info['id'])?null:$server_info['id'];
+			}
+			// Fall back to master
 			if(empty($server_id)){
 				$server = self::getMasterHostName();
 				$server_id = self::dbLookupServerId($server);
 			}
 		}
 		// If we're not changing anything, just return true
-		if(empty($access) && empty($last_sync) && self::dbLookupServerIdForUser($user_id, $priority)===$server_id){
+		if(!isset($access) && empty($last_sync) && self::dbLookupServerIdForUser($user_id, $priority)===$server_id){
 			return true;
 		}
 		// If we're setting a home server, set current home server as backup server
@@ -1053,7 +1086,8 @@ class Lib {
 			}
 		}
 		
-		$query = \OC_DB::prepare('SELECT `user_id`, `server_id`, `priority`, `access`, `last_sync` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
+		$query = \OC_DB::prepare('SELECT `user_id`, `server_id`, `priority`, `access`, `last_sync` '.
+				'FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
 		$result = $query->execute(Array($user_id, $server_id));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
@@ -1071,13 +1105,13 @@ class Lib {
 		else{
 			foreach($results as $row){
 				if($row['priority']==$priority &&
-						(empty($access) || $row['access']==$access) &&
+						(!isset($access) || $row['access']==$access) &&
 						(empty($last_sync) || $row['last_sync']==$last_sync)){
 					return true;
 				}
 			}
 			
-			if(empty($access) && empty($last_sync)){
+			if(!isset($access) && empty($last_sync)){
 				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ? WHERE `user_id` = ? AND `server_id` = ?');
 				$result = $query->execute(array($priority, $user_id, $server_id));
 			}
@@ -1085,7 +1119,7 @@ class Lib {
 				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `server_id` = ?');
 				$result = $query->execute(array($priority, $access, $user_id, $server_id));
 			}
-			elseif(empty($access)){
+			elseif(!isset($access)){
 				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `last_sync` = ? WHERE `user_id` = ? AND `server_id` = ?');
 				$result = $query->execute(array($priority, $last_sync, $user_id, $server_id));
 			}
@@ -1109,7 +1143,8 @@ class Lib {
 			if($last_sync!==null){
 				$args['last_sync'] = $last_sync;
 			}
-			$ret = self::ws('set_server_for_user', $args);
+			$res = self::ws('set_server_for_user', $args);
+			$ret = empty($res['error']);
 		}
 		return $ret;
 	}
@@ -1120,7 +1155,10 @@ class Lib {
 	 * @param $user
 	 * @return URL of the server - null if none has been set. Important as user_saml relies on this.
 	 */
-	public static function dbLookupServerUrlForUser($user, $priority=0){
+	public static function dbLookupServerUrlForUser($user, $priority=null){
+		if(empty($priority)){
+			$priority = self::$USER_SERVER_PRIORITY_PRIMARY;
+		}
 		$id = self::dbLookupServerIdForUser($user, $priority);
 		if(!empty($id)){
 			return self::dbLookupServerURL($id);
@@ -1504,6 +1542,7 @@ class Lib {
 			return null;
 		}
 		$i = 0;
+		$ok = true;
 		do{
 			if($i>self::$MAX_SYNC_ATTEMPTS){
 				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
@@ -1623,20 +1662,18 @@ class Lib {
 			$serverURL = self::getMasterInternalURL();
 		}
 		if(self::isMaster()/* || self::onServerForUser($user_id)*/){
-			$pw = self::dbGetPwHash($user_id);
+			return self::dbGetPwHash($user_id);
 		}
 		else{
 			$res = self::ws('get_pw_hash', array('user_id'=>$user_id), true, true, $serverURL);
-			$pw = $res['pw_hash'];
+			if(!empty($res['error'])){
+				\OC_Log::write('files_sharding',"Password error. ".serialize($res), \OC_Log::WARN);
+			}
+			if(empty($res['pw_hash'])){
+				\OC_Log::write('files_sharding',"No password returned for user ".$user_id.": ".serialize($res), \OC_Log::WARN);
+			}
+			return $res['pw_hash'];
 		}
-		if(empty($pw)){
-			\OC_Log::write('files_sharding',"No password returned. ".serialize($res), \OC_Log::WARN);
-			return null;
-		}
-		if(!empty($res['error'])){
-			\OC_Log::write('files_sharding',"Password error. ".serialize($res), \OC_Log::WARN);
-		}
-		return $pw;
 	}
 	
 	public static function dbGetPwHash($user_id){
@@ -1666,6 +1703,52 @@ class Lib {
 			}
 		}
 		return false;
+	}
+	
+	public static function getOneTimeToken($user_id, $forceNew=false){
+		if($forceNew || !apc_exists(self::$SECOND_FACTOR_CACHE_KEY_PREFIX.$user_id)){
+			$token = md5($user_id . time ());
+			apc_store(self::$SECOND_FACTOR_CACHE_KEY_PREFIX.$user_id, $token, 10*60 /*keep 10 minutes*/);
+		}
+		else{
+			$token = apc_fetch(self::$SECOND_FACTOR_CACHE_KEY_PREFIX.$user_id);
+		}
+		return $token;
+	}
+	
+	public static function checkOneTimeToken($user_id, $token){
+		$storedToken = apc_fetch(self::$SECOND_FACTOR_CACHE_KEY_PREFIX.$user_id);
+		return $token===$storedToken;
+	}
+	
+	public static function emailOneTimeToken($user_id, $token){
+		try{
+			$email = \OCP\Config::getUserValue($user_id, 'settings', 'email');
+			$displayName = \OCP\User::getDisplayName($user_id);
+			$systemFrom = \OCP\Config::getSystemValue('fromemail', '');
+			$defaults = new \OCP\Defaults();
+			$senderName = $defaults->getName();
+			$subject = "Two-factor token";
+			$message = $token;
+			\OCP\Util::sendMail($email, $displayName, $subject, $message, $systemFrom, $senderName);
+			return true;
+		}
+		catch(\Exception $e){
+			\OCP\Util::writeLog('User_Group_Admin',
+					'A problem occurred while sending the e-mail to '.$email.'. Please revisit your settings.',
+					\OCP\Util::ERROR);
+			return false;
+		}
+	}
+	
+	public static function getUserHomeServerAccess($userId){
+		$serverInfo = self::getUserServerInfo($userId);
+		if(empty($serverInfo)){
+			return self::$USER_ACCESS_ALL;
+		}
+		$serverId = $serverInfo['id'];
+		$access = self::getUserServerAccess($serverId, $userId);
+		return $access;
 	}
 	
 	/**
