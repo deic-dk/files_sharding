@@ -14,7 +14,7 @@
 	<p>To change home site, you must <i>first</i> choose a backup site and wait for first
 	backup to occur (24 hours max). After that, you can change your home site to your backup site.</p> 
 
-	<h1>Which site to choose</h1>
+	<h4>Which site to choose</h4>
 	
 	<p>When choosing a home site, you might want to consider the following:</p>
 	
@@ -30,7 +30,7 @@
 	<p>When choosing a backup site, in most cases, price and data loss guarantees will be the main
 	considerations.</p>
 	
-	<h1>List of sites</h1>
+	<h4>List of sites</h4>
 	
 	<?php
 	foreach($servers as $server){
@@ -42,7 +42,7 @@
 	$fromEmail = \OCP\Config::getSystemValue('fromemail', '');
 	?>
 	
-	<h1>More Questions</h1>
+	<h4>More Questions</h4>
 	If you need more help, please contact
 	<a target="_blank" href="mailto:<?php echo $fromEmail; ?>">
 	<?php echo $fromEmail; ?></a>. 

@@ -9,7 +9,6 @@ OCP\User::checkLoggedIn();
 $errors = Array();
 
 $tmpl = new OCP\Template('files_sharding', 'datasettings');
-$tmpl->assign('sites_list', OCA\FilesSharding\Lib::dbGetSitesList());
 
 $user_id = OCP\USER::getUser();
 $user_server_id = OCA\FilesSharding\Lib::dbLookupServerIdForUser($user_id, 0);
@@ -26,6 +25,20 @@ $user_home_site = OCA\FilesSharding\Lib::dbGetSite($user_server_id);
 $tmpl->assign('user_server_id', $user_server_id);
 $tmpl->assign('user_server_url', $user_server_url);
 $tmpl->assign('user_home_site', $user_home_site);
+
+// List of sites to choose for backup
+$user_server_internal_url = OCA\FilesSharding\Lib::dbLookupInternalServerURL($user_server_id);
+$internalIpIsNumeric = ip2long($user_server_internal_url) !== false;
+if($internalIpIsNumeric){
+	$tmpl->assign('sites_list', OCA\FilesSharding\Lib::dbGetSitesList());
+}
+else{
+	// We cannot backup from sites that do  not have a numeric internal IP.
+	// Non-numeric internal IP sites are those not on the trusted net, i.e.
+	// the command-line sync client used, cannot be authenticated by IP.
+	// The command-line sync client unfortunately cannot use a client certificate for authentication.
+	$tmpl->assign('sites_list', array());
+}
 
 $user_backup_server_id = OCA\FilesSharding\Lib::dbLookupServerIdForUser($user_id, 1);
 if(!empty($user_backup_server_id)){

@@ -19,3 +19,8 @@
 .home_site {
 	margin-top: 12px;
 }
+
+.oc-dialog ul {
+    list-style: outside none disc;
+    padding-left: 14px;
+}
