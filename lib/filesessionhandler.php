@@ -130,7 +130,8 @@ class FileSessionHandler {
 					$session['oc_groups'], $session['oc_quota'], $session['oc_freequota']);
 		}
 		else{
-			\OC_Log::write('files_sharding',"User already exists, syncing: ".$session['user_id'], \OC_Log::WARN);
+			\OC_Log::write('files_sharding',"User already exists, syncing: ".$session['user_id']."/".
+					$session['oc_display_name'], \OC_Log::WARN);
 			$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'],
 					$session['oc_groups'], $session['oc_quota'], $session['oc_freequota']);
 		}
@@ -152,7 +153,7 @@ class FileSessionHandler {
 		if(!$this->ocUserDatabase->userExists($uid)) {
 			return;
 		}
-		\OC_Log::write('files_sharding',"Setting up user: ".$uid." with quota ".$quota, \OC_Log::WARN);
+		\OC_Log::write('files_sharding',"Setting up user: ".$uid."/".$displayname." with quota ".$quota, \OC_Log::WARN);
 		$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($uid);
 		if(!\OCA\FilesSharding\Lib::setPasswordHash($uid, $pwHash)){
 			\OC_Log::write('files_sharding',"Error setting user password for user".$uid, \OC_Log::ERROR);
