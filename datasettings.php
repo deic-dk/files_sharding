@@ -28,9 +28,10 @@ $tmpl->assign('user_home_site', $user_home_site);
 
 // List of sites to choose for backup
 $user_server_internal_url = OCA\FilesSharding\Lib::dbLookupInternalServerURL($user_server_id);
-$internalIpIsNumeric = ip2long($user_server_internal_url) !== false;
+$user_server_internal_host = parse_url($user_server_internal_url, PHP_URL_HOST);
+$internalIpIsNumeric = ip2long($user_server_internal_host) !== false;
 if($internalIpIsNumeric){
-	$tmpl->assign('sites_list', OCA\FilesSharding\Lib::dbGetSitesList());
+	$tmpl->assign('sites_list', OCA\FilesSharding\Lib::dbGetSitesList(true));
 }
 else{
 	// We cannot backup from sites that do  not have a numeric internal IP.

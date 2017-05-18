@@ -381,8 +381,12 @@ class Lib {
 		return $results[0];
 	}
 	
-	public static function dbGetSitesList(){
-		$query = \OC_DB::prepare('SELECT DISTINCT `site` FROM `*PREFIX*files_sharding_servers`');
+	public static function dbGetSitesList($onlyBackupSites=false){
+		$sql = "SELECT DISTINCT `site` FROM `*PREFIX*files_sharding_servers`";
+		if($onlyBackupSites){
+			$sql .= " WHERE `exclude_as_backup` != 'yes'";
+		}
+		$query = \OC_DB::prepare($sql);
 		$result = $query->execute(Array());
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);

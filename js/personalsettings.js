@@ -135,8 +135,8 @@ function set_home_server(home_server_id, backup_server_id){
 		 dataType:'json',
 		 success: function(s){
 			 OC.msg.finishedSaving('#setHomeServerMsg', {status: 'success', data: {message: "Site selection saved"}});
-			 $('#lastSync').text(s.last_sync+' ' +s.timezone);
-			 $('#nextSync').text(s.next_sync+' ' +s.timezone);
+			 $('#lastSync').text(s.last_sync+' ' + (typeof s.timezone!=='undefined'?s.timezone:''));
+			 $('#nextSync').text(s.next_sync+' ' + (typeof s.timezone!=='undefined'?s.timezone:''));
 			 $('#filesShardingPersonalSettings #current_home_server').attr('site', home_server_id);
 			 $('#filesShardingPersonalSettings #current_home_server').text($('#filesShardingPersonalSettings .home_server').text());
 		 },
