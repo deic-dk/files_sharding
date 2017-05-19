@@ -1557,7 +1557,7 @@ class Lib {
 			++$i;
 		}
 		while(!is_numeric($syncedFiles) || is_numeric($syncedFiles) && $syncedFiles!=0);
-		if($syncedFiles===0 && $i<=self::$MAX_SYNC_ATTEMPTS){
+		if($syncedFiles==0 && $i<=self::$MAX_SYNC_ATTEMPTS){
 			// Update last_sync, set r/w if this is a new primary server
 			$access = null;
 			$ok = true;
