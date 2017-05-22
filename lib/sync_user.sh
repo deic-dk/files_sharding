@@ -5,6 +5,8 @@ OC_ROOT="/usr/local/www/owncloud"
 OC_LOCAL_DATA_ROOT="/tank/data/owncloud"
 OC_REMOTE_BASE_DIR="/remote.php/webdav/"
 
+export OWNCLOUD_MAX_PARALLEL=1
+
 #
 # Script for one-way syncing of a user from a remote ownCloud server to a local one.
 # Copyright Frederik Orellana, 2016

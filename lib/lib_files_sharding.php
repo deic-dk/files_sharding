@@ -291,6 +291,7 @@ class Lib {
 		\OCP\Util::writeLog('files_sharding', 'URL: '.$url.', '.($post?'POST':'GET').': '.$content, \OC_Log::WARN);
 		
 		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_USERAGENT, 'curl');
 		curl_setopt($curl, CURLOPT_HEADER, false);
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 		if($post){
