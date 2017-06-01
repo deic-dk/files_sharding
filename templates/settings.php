@@ -32,7 +32,7 @@
   		<label>Internal URL</label> /
   		<label>Certificate DN</label> /
   		<label>Site</label> /
-  		<label>Charge per GB</label> /
+  		<label>Charge per GB per month</label> /
   		<label>Allow local login</label> /
   		<label>Exclude as backup destination</label> /
 			<label>Description</label>');
