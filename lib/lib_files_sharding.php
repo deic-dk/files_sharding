@@ -1651,8 +1651,15 @@ class Lib {
 	}
 	
 	public static function setPasswordHash($user_id, $pwHash) {
-		$query = \OC_DB::prepare('UPDATE `*PREFIX*users` SET `password` = ? WHERE `uid` = ?');
-		$result = $query->execute(array($pwHash, $user_id));
+		$oldHash = self::dbGetPwHash($user_id);
+		if(!$oldHash){
+			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*users` (`uid`, `password`) VALUES (?, ?)');
+			$result = $query->execute(array($user_id, $pwHash));
+		}
+		else{
+			$query = \OC_DB::prepare('UPDATE `*PREFIX*users` SET `password` = ? WHERE `uid` = ?');
+			$result = $query->execute(array($pwHash, $user_id));
+		}
 		return $result ? true : false;
 	}
 	
@@ -1684,6 +1691,9 @@ class Lib {
 	public static function dbGetPwHash($user_id){
 		$query = \OC_DB::prepare( "SELECT `password` FROM `*PREFIX*users` WHERE `uid` = ?" );
 		$result = $query->execute( array($user_id))->fetchRow();
+		if(!$result){
+			return $result;
+		}
 		return $result['password'];
 	}
 	

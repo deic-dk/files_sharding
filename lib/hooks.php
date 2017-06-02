@@ -93,8 +93,9 @@ class Hooks {
 	}
 	
 	public static function setup($options) {
-		// Don't load shares when called via webdav
-		if(strpos($_SERVER['REQUEST_URI'], \OC::$WEBROOT."/remote.php/mydav")===0 ||
+		// Don't load shares when called via webdav or cron
+		if(empty($_SERVER['REQUEST_URI']) ||
+			strpos($_SERVER['REQUEST_URI'], \OC::$WEBROOT."/remote.php/mydav")===0 ||
 			strpos($_SERVER['REQUEST_URI'], \OC::$WEBROOT."/remote.php/webdav")===0 ||
 			strpos($_SERVER['REQUEST_URI'], \OC::$WEBROOT."/files/")===0){
 			return;

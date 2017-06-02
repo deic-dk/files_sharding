@@ -22,7 +22,8 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 			$user = $userArr['user_id'];
 			$priority = $userArr['priority'];
 			$numericStorageId = $userArr['numeric_storage_id'];
-			if(!\OCP\User::userExists($user)){
+			if(!\OC_User::userExists($user)){
+				\OCP\Util::writeLog('files_sharding', 'Creating user '.$user, \OC_Log::WARN);
 				$password = \OC_Util::generateRandomBytes(20);
 				\OC_User::createUser($user, $password);
 			}
