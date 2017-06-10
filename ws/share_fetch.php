@@ -170,10 +170,10 @@ switch ($_GET['fetch']) {
 					}
 				}
 				$offset += $limit;
+				$itemSharesUids = empty($_GET['itemSharesUids'])?array():
+					json_decode($_GET['itemSharesUids']);
 				foreach ($users as $uid => $displayName) {
-					if ((!isset($_GET['itemShares'])
-						|| !is_array($_GET['itemShares'][OCP\Share::SHARE_TYPE_USER])
-						|| !in_array($uid, $_GET['itemShares'][OCP\Share::SHARE_TYPE_USER]))
+					if (!in_array($uid, $itemSharesUids)
 						&& $uid != OC_User::getUser()) {
 						$shareWith[] = array(
 							'label' => $displayName,
@@ -189,13 +189,13 @@ switch ($_GET['fetch']) {
 
 			// enable l10n support
 			$l = OC_L10N::get('core');
-
+			
+			$itemSharesGroups = empty($_GET['itemSharesGroups'])?array():
+				json_decode($_GET['itemSharesGroups']);
+				
 			foreach ($groups as $group) {
 				if ($count < 15) {
-					if (!isset($_GET['itemShares'])
-						|| !isset($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])
-						|| !is_array($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])
-						|| !in_array($group, $_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])) {
+					if (!in_array($group, $itemSharesGroups)) {
 						$shareWith[] = array(
 							'label' => $group,
 							'value' => array(

@@ -29,13 +29,18 @@ class Api {
 	
 	public static function getItemShared($itemType, $itemSource){
 		if(!\OCP\App::isEnabled('files_sharding') || \OCA\FilesSharding\Lib::isMaster()){
-			return \OCP\Share::getItemShared($itemType, $itemSource);
+			$itemShared = \OCP\Share::getItemShared($itemType, $itemSource);
 		}
 		else{
 			\OCP\Util::writeLog('files_sharding', 'OCA\Files\Share_files_sharding::getItemShared '.\OC_User::getUser().":".$itemType.":".$itemSource, \OC_Log::WARN);
-			return \OCA\FilesSharding\Lib::ws('getItemShared', array('user_id' => \OC_User::getUser(), 'itemType' => $itemType,
+			$itemShared = \OCA\FilesSharding\Lib::ws('getItemShared', array('user_id' => \OC_User::getUser(), 'itemType' => $itemType,
 					'itemSource' => empty($itemSource)?null:$itemSource));
 		}
+		/*foreach($itemShared as &$share){
+			$path = \OC\Files\Filesystem::getPath($share['item_source']);
+			$share['path'] = $path;
+		}*/
+		return $itemShared;
 	}
 
 	public static function getItemSharedWithBySource($itemType, $itemSource){

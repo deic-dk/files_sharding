@@ -39,10 +39,11 @@ $user_id = $_GET['user_id'];
 
 $itemShared = \OCP\Share::getItemShared($itemType, empty($itemSource)?null:$itemSource);
 
-foreach($itemShared as &$share){
+// Nope - this should be done on the calling slave
+/*foreach($itemShared as &$share){
 	$path = \OC\Files\Filesystem::getPath($share['file_source']);
 	$share['path'] = $path;
-}
+}*/
 
 \OCP\Util::writeLog('files_sharding', 'Returning item shared '.serialize($itemShared), \OC_Log::WARN);
 
