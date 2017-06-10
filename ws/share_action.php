@@ -187,8 +187,8 @@ switch ($_POST['action']) {
 		}
 		// don't send a mail to the user who shared the file
 		$recipientList = array_diff($recipientList, array(\OCP\User::getUser()));
-
-		$mailNotification = new OC\Share\MailNotifications();
+		$fromEmail = \OCP\Config::getSystemValue('fromemail', '');
+		$mailNotification = new OC\Share\MailNotifications($fromEmail);
 		$result = $mailNotification->sendInternalShareMail($recipientList, $itemSource, $itemType);
 
 		\OCP\Share::setSendMailStatus($itemType, $itemSource, $shareType, $recipient, true);
@@ -219,9 +219,8 @@ switch ($_POST['action']) {
 		$link = $_POST['link'];
 		$file = $_POST['file'];
 		$to_address = $_POST['toaddress'];
-
-		$mailNotification = new \OC\Share\MailNotifications();
-
+		$fromEmail = \OCP\Config::getSystemValue('fromemail', '');
+		$mailNotification = new \OC\Share\MailNotifications($fromEmail);
 		$expiration = null;
 		if (isset($_POST['expiration']) && $_POST['expiration'] !== '') {
 			try {
