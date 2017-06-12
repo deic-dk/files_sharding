@@ -77,7 +77,7 @@ else
 	password="-p '\"\"'"
 fi
 ls "$folder" >& /dev/null || mkdir -p "$folder"
-$OC_CMD --non-interactive -u "$user" $password "$folder" $url
+$OC_CMD --non-interactive --silent --trust -u "$user" $password "$folder" $url
 
 ## Create user if he does not exist
 php "$OC_ROOT/console.php" user:lastseen "$user" | grep 'not exist'

@@ -1740,7 +1740,8 @@ class Lib {
 		try{
 			$email = \OCP\Config::getUserValue($user_id, 'settings', 'email');
 			$displayName = \OCP\User::getDisplayName($user_id);
-			$systemFrom = \OCP\Config::getSystemValue('fromemail', '');
+			//$systemFrom = \OCP\Config::getSystemValue('fromemail', '');
+			$systemFrom = \OCP\Util::getDefaultEmailAddress('no-reply');
 			$defaults = new \OCP\Defaults();
 			$senderName = $defaults->getName();
 			$subject = "Two-factor token";

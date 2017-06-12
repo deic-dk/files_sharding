@@ -179,7 +179,7 @@ switch ($_POST['action']) {
 		$itemType = $_POST['itemType'];
 		$itemSource = $_POST['itemSource'];
 		$recipient = $_POST['recipient'];
-
+		
 		if($shareType === \OCP\Share::SHARE_TYPE_USER) {
 			$recipientList[] = $recipient;
 		} elseif ($shareType === \OCP\Share::SHARE_TYPE_GROUP) {
@@ -187,8 +187,7 @@ switch ($_POST['action']) {
 		}
 		// don't send a mail to the user who shared the file
 		$recipientList = array_diff($recipientList, array(\OCP\User::getUser()));
-		$fromEmail = \OCP\Config::getSystemValue('fromemail', '');
-		$mailNotification = new OC\Share\MailNotifications($fromEmail);
+		$mailNotification = new OC\Share\MailNotifications($user_id);
 		$result = $mailNotification->sendInternalShareMail($recipientList, $itemSource, $itemType);
 
 		\OCP\Share::setSendMailStatus($itemType, $itemSource, $shareType, $recipient, true);
@@ -219,8 +218,7 @@ switch ($_POST['action']) {
 		$link = $_POST['link'];
 		$file = $_POST['file'];
 		$to_address = $_POST['toaddress'];
-		$fromEmail = \OCP\Config::getSystemValue('fromemail', '');
-		$mailNotification = new \OC\Share\MailNotifications($fromEmail);
+		$mailNotification = new \OC\Share\MailNotifications($user_id);
 		$expiration = null;
 		if (isset($_POST['expiration']) && $_POST['expiration'] !== '') {
 			try {
