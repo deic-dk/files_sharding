@@ -249,6 +249,7 @@ $(document).ready(function(){
 		height: 440,
 		width: 620,
 		modal: true,
+		dialogClass: "sharding_dialog",
 		buttons: {
 			"Choose": function() {
 				folder = stripTrailingSlash($('#chosen_folder').text());
@@ -382,12 +383,13 @@ $(document).ready(function(){
 			}
 		});
 		
-		/*$(document).click(function(e){
-			if (!$(e.target).parents().filter('.oc-dialog').length && !$(e.target).filter('#sharding-info').length ) {
+		$(document).click(function(e){
+			if ($(e.target).attr('id')!='sharding-info' && $('.sharding_dialog').length &&
+					!$(e.target).parents().filter('.oc-dialog').length ) {
 				$(".oc-dialog").remove();
 				$('.modalOverlay').remove();
 			}
-		});*/
+		});
 		
 	}); 
 	

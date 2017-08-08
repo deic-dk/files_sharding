@@ -840,7 +840,7 @@ class Lib {
 	}
 	
 	public static function dbAddServer($url, $internal_url, $site, $charge,
-			$allow_local_login, $id=null, $x509_dn=''){
+			$allow_local_login, $id=null, $x509_dn='', $description=''){
 		
 		if(empty($id)){
 			$id = md5(uniqid(rand(), true));
@@ -853,13 +853,13 @@ class Lib {
 		}
 		$results = $result->fetchAll();
 		if(count($results)===0){
-			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*files_sharding_servers` (`id`, `url`, `internal_url`, `site`, `allow_local_login`, `charge_per_gb`, `x509_dn`) VALUES (?, ?, ?, ?, ?, ?, ?)');
-			$result = $query->execute( array($id, $url, $internal_url, $site, $allow_local_login, $charge, $x509_dn) );
+			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*files_sharding_servers` (`id`, `url`, `internal_url`, `site`, `allow_local_login`, `charge_per_gb`, `x509_dn`, `description`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+			$result = $query->execute( array($id, $url, $internal_url, $site, $allow_local_login, $charge, $x509_dn, $description) );
 		}
 		elseif(count($results)===1){
-			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_servers` SET `url` = ?, `internal_url` = ?, `site` = ?, `allow_local_login` = ?, `charge_per_gb` = ? , `x509_dn` = ? WHERE `ID` = ?');
+			$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_servers` SET `url` = ?, `internal_url` = ?, `site` = ?, `allow_local_login` = ?, `charge_per_gb` = ? , `x509_dn` = ?, `description` = ? WHERE `ID` = ?');
 			$result = $query->execute( array($url, $internal_url, $site, $allow_local_login,
-					$charge, $x509_dn, $id));
+					$charge, $x509_dn, $description, $id));
 		}
 		if(count($results)>1){
 			$error = 'ERROR: Duplicate entries found for server '.$id.' : '.$server_id;

@@ -73,7 +73,7 @@ function delete_server(id){
 }
 
 function add_server(url, internal_url, x509_dn, site, charge,
-		allow_local_login, exclude_as_backup, id){
+		allow_local_login, exclude_as_backup, description, id){
 	if(!url){
 		alert("You need to provide a URL");
 		return;
@@ -96,7 +96,8 @@ function add_server(url, internal_url, x509_dn, site, charge,
 			  site: site,
 			  charge: charge,
 			  allow_local_login: allow_local_login,
-			  exclude_as_backup: exclude_as_backup
+			  exclude_as_backup: exclude_as_backup,
+			  description: description
 		 },
 		 dataType:'json',
 		 success: function(s){
@@ -145,7 +146,8 @@ $(document).ready(function(){
 			allow_local_login =  $(this).parent().find('input.allow_local_login').first().is(':checked')?'yes':'no';
 			exclude_as_backup =  $(this).parent().find('input.exclude_as_backup').first().is(':checked')?'yes':'no';
 			x509_dn =  $(this).parent().find('input.x509_dn').first().val();
-			add_server(url, internal_url, x509_dn, site, charge, allow_local_login, exclude_as_backup, id);
+			description = $(this).parent().find('textarea.description').first().val();
+			add_server(url, internal_url, x509_dn, site, charge, allow_local_login, exclude_as_backup, description, id);
 	});
 	addEditLink();
 	addScrollbar();
