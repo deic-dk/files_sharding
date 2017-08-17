@@ -2,8 +2,13 @@
 
 namespace OCA\FilesSharding\BackgroundJob;
 
-require_once('user_notification/lib/data.php');
-require_once('activity/lib/data.php');
+
+if(\OCP\App::isEnabled('user_notification')){
+	require_once('user_notification/lib/data.php');
+}
+if(\OCP\App::isEnabled('activity')){
+	require_once('activity/lib/data.php');
+}
 
 class SyncUser extends \OC\BackgroundJob\TimedJob {
 	

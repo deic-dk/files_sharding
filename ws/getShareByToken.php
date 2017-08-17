@@ -34,6 +34,12 @@ if(isset($_GET['checkPasswordProtection'])){
 	$checkPasswordProtection = $_GET['checkPasswordProtection']==='1';
 }
 
+$public_link_authenticated = $_GET['public_link_authenticated'];
+
+if(!empty($public_link_authenticated)){
+	\OC::$session->set('public_link_authenticated', $public_link_authenticated);
+}
+
 $linkItem = OCP\Share::getShareByToken($token, $checkPasswordProtection);
 
 \OCP\Util::writeLog('files_sharding', 'Returning linkItem '.serialize($linkItem), \OC_Log::WARN);

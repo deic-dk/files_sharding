@@ -8,7 +8,7 @@ class Lib {
 	private static $masterfq = '';
 	private static $masterurl = '';
 	private static $cookiedomain = '';
-	private static $trustednet = '';
+	private static $trustednets = null;
 	
 	public static $USER_ACCESS_ALL = 0;
 	public static $USER_ACCESS_READ_ONLY = 1;
@@ -1778,14 +1778,20 @@ class Lib {
 			return true;
 		}
 		
-		if(self::$trustednet===''){
-			self::$trustednet = \OCP\Config::getSystemValue('trustednet', '');
-			self::$trustednet = (substr(self::$trustednet, 0, 8)==='TRUSTED_'?null:self::$trustednet);
+		if(self::$trustednets===null){
+			$tnet = \OCP\Config::getSystemValue('trustednet', '');
+			$tnet = trim($tnet);
+			$tnets = explode(' ', $tnet);
+			self::$trustednets = array_map('trim', $tnets);
+			if(count(self::$trustednets)==1 && substr(self::$trustednets[0], 0, 8)==='TRUSTED_'){
+				self::$trustednets = [];
+			}
 		}
-		
-		if(strpos($_SERVER['REMOTE_ADDR'], self::$trustednet)===0){
-			\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' OK', \OC_Log::DEBUG);
-			return true;
+		foreach(self::$trustednets as $trustednet){
+			if(strpos($_SERVER['REMOTE_ADDR'], $trustednet)===0){
+				\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' OK', \OC_Log::DEBUG);
+				return true;
+			}
 		}
 		\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].
 				' ('.(empty($clientDNwSlashes)?'':$clientDNwSlashes).') not trusted', \OC_Log::WARN);
