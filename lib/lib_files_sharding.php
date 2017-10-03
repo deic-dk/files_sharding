@@ -272,7 +272,9 @@ class Lib {
 		if($baseUrl==null){
 			$baseUrl = self::getMasterInternalURL();
 		}
-		$url = $baseUrl . "/apps/".(empty($appName)?"files_sharding":$appName)."/ws/".$script.".php";		
+		if(empty($url)){
+			$url = $baseUrl . "/apps/".(empty($appName)?"files_sharding":$appName)."/ws/".$script.".php";
+		}
 		if(!$post){
 			$url .= "?".$content;
 			$cache_key = $url;
@@ -883,7 +885,7 @@ class Lib {
 	 * @param $name
 	 */
 	private static function dbLookupUserServerPriority($user, $serverId){
-		$query = \OC_DB::prepare('SELECT `priority` FROM `*PREFIX*files_sharding_folder_servers` WHERE `user_id` = ? AND `server_id` = ?');
+		$query = \OC_DB::prepare('SELECT `priority` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
 		$result = $query->execute(Array($user, $serverId));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
