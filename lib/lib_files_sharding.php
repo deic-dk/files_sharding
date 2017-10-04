@@ -58,23 +58,35 @@ class Lib {
 	public static function onServerForUser($user_id=null){
 		$user_id = empty($user_id)?\OCP\USER::getUser():$user_id;
 		$user_server = self::getServerForUser($user_id);
+		$user_server_internal = self::getServerForUser($user_id, true);
 		if(!empty($user_server)){
 			$parse = parse_url($user_server);
 			$user_host = $parse['host'];
+			$parse = parse_url($user_server_internal);
+			$user_host_internal = $parse['host'];
+			\OCP\Util::writeLog('files_sharding', 'onServerForUser: '.$user_id.':'.$user_host.
+					':'.$user_host_internal.':'.$_SERVER['HTTP_HOST'], \OC_Log::WARN);
 		}
-		else{
+		if(empty($user_server)){
 			// If no server has been set for the user, he can logically only be on the master
+			\OCP\Util::writeLog('files_sharding', 'onServerForUser: No host for user '.$user_id, \OC_Log::WARN);
 			return self::isMaster();
 		}
 		if(empty($_SERVER['HTTP_HOST']) && empty($_SERVER['SERVER_NAME'])){
 			// Running off cron
 			$myShortName = php_uname("n");
 			$homeNameArr = explode(".", $user_host);
-			return isset($homeNameArr[0]) && $myShortName == $homeNameArr[0];
+			$homeName = isset($homeNameArr[0])?$homeNameArr[0]:null;
+			$homeNameInternalArr = explode(".", $user_host_internal);
+			$homeNameInternal = isset($homeNameInternalArr[0])?$homeNameInternalArr[0]:null;
+			return !empty($homeName) && $myShortName == $homeName ||
+				!empty($homeNameInternal) && $myShortName == $homeNameInternal;
 		}
 		return 
-				isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']===$user_host ||
-				isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME']===$user_host;
+				isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST']===$user_host ||
+						$_SERVER['HTTP_HOST']===$user_host_internal) ||
+				isset($_SERVER['SERVER_NAME']) && ($_SERVER['SERVER_NAME']===$user_host ||
+						$_SERVER['SERVER_NAME']===$user_host_internal);
 	}
 	
 	public static function isMaster(){
@@ -1835,8 +1847,8 @@ class Lib {
 		// TODO: consider using \OCP\Share::getUsersSharingFile instead
 		foreach($itemsSharedWithUser as $data){
 			\OCP\Util::writeLog('files_sharding', 'Checking access of '.$user_id. ' to '.
-					$itemSource.'<->'.$data['fileid'], \OC_Log::WARN);
-			if((int)$data['fileid'] === (int)$itemSource){
+					$itemSource.'<->'.$data['itemsource'], \OC_Log::WARN);
+			if((int)$data['itemsource'] === (int)$itemSource){
 				$ret = true;
 				break;
 			}
@@ -1874,6 +1886,12 @@ class Lib {
 			else{
 				$sharedFiles = \OCP\Share::getItemsSharedWithUser($itemType, $user_id, \OC_Shard_Backend_File::FORMAT_GET_FOLDER_CONTENTS);
 				$sharedFolders = array();
+			}
+			foreach($sharedFiles as &$item){
+				$item['itemsource'] = self::getshareItemSource($item['fileid']/*file_source*/);
+			}
+			foreach($sharedFolders as &$item){
+				$item['itemsource'] = self::getshareItemSource($item['fileid']/*file_source*/);
 			}
 		}
 		else{
@@ -2070,6 +2088,17 @@ class Lib {
 		return($row['file_target']);
 	}
 	
+	
+	public static function getShareItemSource($item_source){
+		$query = \OC_DB::prepare('SELECT `item_source` FROM `*PREFIX*share` WHERE `file_source` = ?');
+		$result = $query->execute(array($item_source));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$row = $result->fetchRow();
+		return($row['item_source']);
+	}
+
 	public static function switchUser($owner){
 		$user_id = \OCP\USER::getUser();
 		if($owner && $owner!==$user_id){

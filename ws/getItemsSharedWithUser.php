@@ -36,7 +36,8 @@ $includeCollections = isset($_GET['includeCollections'])?$_GET['includeCollectio
 
 $user_id = $_GET['user_id'];
 
-$itemsShared = \OCP\Share::getItemsSharedWithUser($itemType, $user_id, $format, $parameters, $limit, $includeCollections);
+//$itemsShared = OCP\Share::getItemsSharedWithUser($itemType, $user_id, $format, $parameters, $limit, $includeCollections);
+$itemsShared = OCA\FilesSharding\Lib::getItemsSharedWithUser($user_id, $itemType);
 
 foreach($itemsShared as &$item){
 	$item['owner_path'] = OCA\FilesSharding\Lib::getFilePath($item['fileid'], $item['uid_owner']);

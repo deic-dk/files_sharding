@@ -59,8 +59,14 @@ if($id){
 }
 
 \OCP\Util::writeLog('files_sharding', 'Path: '.$path, \OC_Log::WARN);
-$info = \OC\Files\Filesystem::getFileInfo($path);
-
+if(!empty($owner) && $owner!=$user_id &&
+		!\OCA\FilesSharding\Lib::checkReadAccessRecursively($user_id, $id, $owner)){
+	restoreUser($user_id);
+	//throw new Exception('Not allowed. '.$id);
+}
+else{
+	$info = \OC\Files\Filesystem::getFileInfo($path);
+}
 if(!$info){
 	\OCP\Util::writeLog('files_sharding', 'File not found '.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
 	OCP\JSON::encodedPrint('');
