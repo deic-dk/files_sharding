@@ -2278,6 +2278,13 @@ class Lib {
 		//return \OCA\Files\Helper::buildFileStorageStatistics($dir);
 		
 		$user = \OCP\USER::getUser();
+		if(empty($user)){
+			\OC\Files\Filesystem::init($owner, $groupDir);
+		}
+		if(empty($user)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: cannot proceed as nobody', \OCP\Util::ERROR);
+			return array();
+		}
 		$group_dir_owner = $user;
 		
 		if(!empty($owner)&& $owner!=$user){
