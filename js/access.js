@@ -65,7 +65,7 @@ function checkUserServerAccess(user_id, server_id){
 				var res = parseInt(result['access'], 10);
 				switch(res){
 					case USER_ACCESS_NONE:
-						kt();
+						logout('Permission denied');
 						break;
 					case USER_ACCESS_READ_ONLY:
 						disableWrite();

@@ -34,6 +34,7 @@ $offset = isset($_GET['offset'])?$_GET['offset']:null;
 
 $users = OC_User::getDisplayNames($search, $limit, $offset);
 if(\OCP\App::isEnabled('user_alias')){
+	require_once('user_alias/lib/user_alias.php');
 	$users += OC_User_Alias::getAliases($search, $limit, $offset);
 }
 

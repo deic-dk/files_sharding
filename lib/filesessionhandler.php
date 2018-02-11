@@ -144,7 +144,8 @@ class FileSessionHandler {
     $user_created = $this->ocUserDatabase->createUser($uid, $password);
 		if($user_created && $this->ocUserDatabase->userExists($uid)){
 			self::set_numeric_storage_id($storageid, $numericstorageid);
-			\OC_Util::setupFS($uid);
+			$userDir = '/'.$uid.'/files';
+			\OC\Files\Filesystem::init($uid, $userDir);
 		}
 	}
 	
@@ -162,7 +163,7 @@ class FileSessionHandler {
 			self::update_mail($uid, $mail);
 		}
 		// Groups live on master.
-		// No point in settup up groups from SAML-created session when it's already done on master... (?)
+		// No point in seting up groups from SAML-created session when it's already done on master... (?)
 		/*if (isset($groups) && \OCP\App::isEnabled('user_saml')) {
 			require_once 'user_saml/user_saml.php';
 			$samlBackend = new \OC_USER_SAML();
@@ -170,6 +171,9 @@ class FileSessionHandler {
 		}*/
 		if (isset($displayname)) {
 			self::update_display_name($uid, $displayname);
+		}
+		else{
+			self::update_display_name_from_master($uid);
 		}
 		if (!empty($quota) || $quota==='0') {
 			$this->update_quota($uid, $quota);
@@ -320,6 +324,17 @@ class FileSessionHandler {
 		if (isset($personalStorage['freequota'])) {
 			\OCP\Config::setUserValue($uid, 'files_accounting', 'freequota', $personalStorage['freequota']);
 			$this->freequota = $personalStorage['freequota'];
+		}
+	}
+	
+	private static function update_display_name_from_master($uid){
+		$ret = \OCA\FilesSharding\Lib::ws('getDisplayName', array('userid'=>$uid));
+		$displayNames = \OCA\FilesSharding\Lib::ws('getDisplayNames', array('search'=>$uid));
+		foreach($displayNames as $userid=>$name){
+			if($userid==$uid){
+				self::update_display_name($uid, $name);
+				break;
+			}
 		}
 	}
 	
