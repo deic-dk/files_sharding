@@ -328,7 +328,6 @@ class FileSessionHandler {
 	}
 	
 	private static function update_display_name_from_master($uid){
-		$ret = \OCA\FilesSharding\Lib::ws('getDisplayName', array('userid'=>$uid));
 		$displayNames = \OCA\FilesSharding\Lib::ws('getDisplayNames', array('search'=>$uid));
 		foreach($displayNames as $userid=>$name){
 			if($userid==$uid){
