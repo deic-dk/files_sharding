@@ -126,9 +126,9 @@ switch ($_POST['action']) {
 					$token = $_POST['token'];
 				}
 				if (is_string($token)) {
-					OC_JSON::success(array('data' => array('token' => $token)));
+					OC_JSON::success(array('data' => array('token' => $token, 'file_source'=>$itemMasterSource)));
 				} else {
-					OC_JSON::success();
+					OC_JSON::success(array('file_source'=>$itemMasterSource));
 				}
 			} catch (Exception $exception) {
 				OC_JSON::error(array('data' => array('message' => $exception->getMessage())));
