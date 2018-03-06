@@ -52,10 +52,12 @@ class Hooks {
 					\OCP\Util::computerFileSize($quotas['quota']) <
 						\OCP\Util::computerFileSize($quotas['freequota']) ||
 					!empty($quotas['default_quota']) && !empty($quotas['freequota']) &&
+					$quotas['default_quota'] != INF &&
 					\OCP\Util::computerFileSize($quotas['default_quota']) <
 						\OCP\Util::computerFileSize($quotas['freequota'])){
 				\OCP\Util::writeLog('files_sharding', 'Updating quota to freequota for user: '.
-						$user.':'.$quotas['quota'].'-->' .$quotas['freequota'], \OC_Log::WARN);
+						$user.':'.$quotas['quota'].'/'.$quotas['default_quota'].':'.
+						\OCP\Util::computerFileSize($quotas['default_quota']).'-->' .$quotas['freequota'], \OC_Log::WARN);
 				\OCP\Config::setUserValue($user, 'files', 'quota', $quotas['freequota']);
 			}
 		}

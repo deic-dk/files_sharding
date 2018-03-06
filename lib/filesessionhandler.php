@@ -297,12 +297,14 @@ class FileSessionHandler {
 		$personalStorage = \OCA\FilesSharding\Lib::ws('personalStorage', array('key'=>'quotas', 'userid'=>$uid),
 				false, true, null, 'files_accounting');
 		if (isset($personalStorage['quota'])) {
+			\OCP\Util::writeLog('Files_Sharding', 'Updating quota for '.$uid.': '.$this->quota.' --> '.
+					$personalStorage['quota'], \OCP\Util::WARN);
 			\OCP\Config::setUserValue($uid, 'files', 'quota', $personalStorage['quota']);
 			$this->quota = $personalStorage['quota'];
 		}
 		// Update defaults
 		$localDefaultQuota = \OC_Appconfig::getValue('files', 'default_quota');
-		\OCP\Util::writeLog('Files_Sharding', 'Updating quotas: '.$localDefaultQuota.' --> '.
+		\OCP\Util::writeLog('Files_Sharding', 'Updating default quotas: '.$localDefaultQuota.' --> '.
 				$personalStorage['default_quota'], \OCP\Util::WARN);
 		if((!empty($personalStorage['default_quota']) || $personalStorage['default_quota']==='0') &&
 				$personalStorage['default_quota']!=$localDefaultQuota){
