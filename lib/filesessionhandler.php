@@ -154,7 +154,8 @@ class FileSessionHandler {
 		if(!$this->ocUserDatabase->userExists($uid)) {
 			return;
 		}
-		\OC_Log::write('files_sharding',"Setting up user: ".$uid."/".$displayname." with quota ".$quota, \OC_Log::WARN);
+		\OC_Log::write('files_sharding',"Setting up user: ".$uid."/".$displayname." with quota ".$quota.
+				', mail '.$mail, \OC_Log::WARN);
 		$pwHash = \OCA\FilesSharding\Lib::getPasswordHash($uid);
 		if(!\OCA\FilesSharding\Lib::setPasswordHash($uid, $pwHash)){
 			\OC_Log::write('files_sharding',"Error setting user password for user".$uid, \OC_Log::ERROR);
