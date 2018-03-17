@@ -70,7 +70,7 @@ $parsedMaster = parse_url($masterUrl);
 $master = isset($parsedMaster['host']) ? $parsedMaster['host'] : null;
 
 // Serve
-if($redirected_from===$master || empty($redirected_from)){
+if($redirected_from===$master /*|| empty($redirected_from)*/){
 	\OCP\Util::writeLog('files_sharding', 'Serving', \OC_Log::INFO);
 	include('chooser/appinfo/remote.php');
 }
