@@ -50,7 +50,12 @@ if(strpos($requestUri, $PUBLIC_BASE."/")===0){
 	$user = OCA\FilesSharding\Lib::getShareOwner($token);
 }
 else{
-	$user = $_SERVER['PHP_AUTH_USER'];
+	if(!empty($_SERVER['PHP_AUTH_USER'])){
+		$user = $_SERVER['PHP_AUTH_USER'];
+	}
+	else{
+		$user = \OC_User::getUser();
+	}
 }
 
 // Sharded paths take first priority
