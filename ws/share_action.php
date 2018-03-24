@@ -71,7 +71,7 @@ switch ($_POST['action']) {
 			try {
 				// TODO: Get rid of this hack
 				// Create file/folder if not there
-				$file_path = $_POST['itemPath'];
+				$file_path = urldecode($_POST['itemPath']);
 				if(($_POST['itemType'] === 'file' or $_POST['itemType'] === 'folder')){
 					if(!OC\Files\Filesystem::file_exists($file_path)){
 						if($_POST['itemType']==='file'){
@@ -94,7 +94,7 @@ switch ($_POST['action']) {
 				
 				$shareType = (int)$_POST['shareType'];
 				$shareWith = $_POST['shareWith'];
-				$itemSourceName = isset($_POST['itemSourceName']) ? $_POST['itemSourceName'] : null;
+				$itemSourceName = isset($_POST['itemSourceName']) ? urldecode($_POST['itemSourceName']) : null;
 				if ($shareType === OCP\Share::SHARE_TYPE_LINK && $shareWith == '') {
 					$shareWith = null;
 				}
@@ -111,8 +111,8 @@ switch ($_POST['action']) {
 				// not catch the shared items, i.e. getItems() from share.php will not.
 				if($_POST['itemSource']!==$itemMasterSource){
 					\OCP\Util::writeLog('files_sharding', 'Updating item_source '.$_POST['itemSource'].'-->'.$itemMasterSource, \OC_Log::WARN);
-					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `item_source` = ? WHERE `item_source` = ?');
-					$query->execute(array($_POST['itemSource'], $itemMasterSource));
+					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `item_source` = ? WHERE `item_source` = ? AND `file_source` = ?');
+					$query->execute(array($_POST['itemSource'], $itemMasterSource, $itemMasterSource));
 				}
 				// Now set parent to -1 to prevent showing the item in the file listing
 				$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `parent` = ? WHERE `item_source` = ?');
@@ -142,7 +142,7 @@ switch ($_POST['action']) {
 			} else {
 				$shareWith = $_POST['shareWith'];
 			}
-			$file_path = $_POST['itemPath'];
+			$file_path = urldecode($_POST['itemPath']);
 			//$return = OCP\Share::unshare($_POST['itemType'], $_POST['itemSource'], $_POST['shareType'], $shareWith);
 			//$itemMasterSource = OCA\FilesSharding\Lib::getFileId($file_path, $user_id);
 			$itemMasterSource = OCA\FilesSharding\Lib::getFileSource($_POST['itemSource'], $_POST['itemType'], false);

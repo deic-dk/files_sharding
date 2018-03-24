@@ -7,6 +7,7 @@
     <licence>AGPL</licence>
     <author>Frederik Orellana</author>
     <require>4.93</require>
+    <shipped>false</shipped>
     <types>
         <filesystem/>
         <authentication/>

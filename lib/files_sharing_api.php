@@ -125,7 +125,7 @@ class Api {
 		}
 
 		$shares = self::getItemShared('file', null);
-		
+		$isMaster = \OCA\FilesSharding\Lib::isMaster();
 		if ($shares === false) {
 			return new \OC_OCS_Result(null, 404, 'could not get shares');
 		} else {
@@ -133,10 +133,21 @@ class Api {
 				// item_source is the id on the slave, file_source is the fake id on the master 
 				//$share['file_source'] = $share['item_source'];
 				// Since I'm listing files shared by me, I'm on my home server.
-				// Set path accordingly
-				if($share['item_source']){
-					$share['path'] = \OCA\FilesSharding\Lib::getFilePath($share['item_source']);
+				// Set path accordingly.
+				// Well, actually API requests are now redirected to the master,
+				// so for those, use file_source, for ajax calls still use item_source.
+				if($isMaster){
+					if($share['file_source']){
+						$share['path'] = \OCA\FilesSharding\Lib::getFilePath($share['file_source']);
+					}
 				}
+				else{
+					if($share['item_source']){
+						$share['path'] = \OCA\FilesSharding\Lib::getFilePath($share['item_source']);
+					}
+				}
+				\OCP\Util::writeLog('files_sharding', 'Got item shared '.
+						$share['file_source'].'-->'.$share['path'], \OC_Log::INFO);
 				//
 				if ($share['item_type'] === 'file' && isset($share['path'])) {
 					$share['mimetype'] = \OC_Helper::getFileNameMimeType($share['path']);
@@ -148,7 +159,7 @@ class Api {
 				$fileInfo = \OCA\FilesSharding\Lib::getFileInfo($share['path'], null, $share['item_source'], null);
 				if($fileInfo['path']=='files' && \OCP\App::isEnabled('user_group_admin')){
 					\OCP\Util::writeLog('files_sharding', 'Getting group for '.$share['item_source'].
-						':'.$fileInfo['path'], \OC_Log::WARN);
+						':'.$fileInfo['path'], \OC_Log::INFO);
 					$group = \OC_User_Group_Admin_Util::getGroup($share['item_source']);
 					if(!empty($group)){
 						$share['group'] = $group['group'];
@@ -156,7 +167,7 @@ class Api {
 					}
 				}
 			}
-			\OCP\Util::writeLog('files_sharding', 'Got items shared '.serialize($shares), \OC_Log::DEBUG);
+			\OCP\Util::writeLog('files_sharding', 'Got items shared '.serialize($shares), \OC_Log::INFO);
 			return new \OC_OCS_Result($shares);
 		}
 
@@ -303,7 +314,7 @@ class Api {
 	 * @return \OC_OCS_Result
 	 */
 	public static function getFilesSharedWithMe() {
-		try	{
+		try{
 			if(!\OCP\App::isEnabled('files_sharding') || \OCA\FilesSharding\Lib::isMaster()){
 				$shares = \OCP\Share::getItemsSharedWith('file');
 			}
@@ -328,6 +339,26 @@ class Api {
 		return $result;
 
 	}
+	
+	public static function lookupShare($itemType, $itemSource, $shareType, $shareWith=null, $token=null){
+		$shares = self::getItemShared($itemType, $itemSource);
+		if(is_string($token)) { //public link share
+			foreach ($shares as $share) {
+				if ($share['token']==$token) {
+					return $share;
+				}
+			}
+		}
+		else{
+			foreach ($shares as $share) {
+				if((empty($shareWith) || $share['share_with']==$shareWith) &&
+						$share['share_type']==$shareType && $share['item_source']==$itemSource) {
+					return $share;
+				}
+			}
+		}
+		return null;
+	}
 
 	/**
 	 * create a new share
@@ -335,13 +366,16 @@ class Api {
 	 * @return \OC_OCS_Result
 	 */
 	public static function createShare($params) {
-
+		
+		\OCP\Util::writeLog('files_sharing', 'Creating share:'.serialize($params).
+				'-->'.serialize($_GET).'-->'.serialize($_POST), \OCP\Util::WARN);
 		$path = isset($_POST['path']) ? $_POST['path'] : null;
 
 		if($path === null) {
 			return new \OC_OCS_Result(null, 400, "please specify a file or folder path");
 		}
 		$itemSource = self::getFileId($path);
+		$fileSource = self::getFileId($path);
 		$itemType = self::getItemType($path);
 
 		if($itemSource === null) {
@@ -374,20 +408,39 @@ class Api {
 			default:
 				return new \OC_OCS_Result(null, 400, "unknown share type");
 		}
-
-		try	{
-			$token = self::shareItem(
-					$itemType,
-					$itemSource,
-					$shareType,
-					$shareWith,
-					$permissions
-					);
-		} catch (\Exception $e) {
-			return new \OC_OCS_Result(null, 403, $e->getMessage());
+		
+		if(!empty($_GET) && !empty($_GET['item_source']) && $_GET['item_source']!=$itemSource){
+			$itemSource = $_GET['item_source'];
+		}
+		$exists = false;
+		if(empty(self::lookupShare($itemType, $itemSource, $shareType, $shareWith)) &&
+				empty(self::lookupShare($itemType, $fileSource, $shareType, $shareWith))){
+			// Only do this if files_sharing action has not been run.
+			// In that case, just do the fix below.
+			$exists = true;
+			try{
+				$token = self::shareItem(
+						$itemType,
+						$fileSource,
+						$shareType,
+						$shareWith,
+						$permissions
+						);
+			} catch (\Exception $e) {
+				return new \OC_OCS_Result(null, 403, $e->getMessage());
+			}
+		}
+		if(!empty($_GET) && !empty($_GET['item_source'])){
+			// Now we need to fix the entries in the database to match the original itemSource, otherwise the js view will
+			// not catch the shared items, i.e. getItems() from share.php will not.
+			if($fileSource!=$itemSource){
+				\OCP\Util::writeLog('files_sharding', 'Updating item_source '.$fileSource.'-->'.$itemSource, \OC_Log::WARN);
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `item_source` = ? WHERE `item_source` = ? AND `file_source` = ?');
+				$query->execute(array($itemSource, $fileSource, $fileSource));
+			}
 		}
 
-		if ($token) {
+		if (!$exists || $token) {
 			$data = array();
 			$data['id'] = 'unknown';
 			$shares = self::getItemShared($itemType, $itemSource);
@@ -410,6 +463,27 @@ class Api {
 					}
 				}
 			}
+			
+			if(!$exists){
+				// This is to prevent the registered files_sharing action to kick in
+				// and try to modify an ID that no longer exists.
+				// Yes, shareItem modifies the ID for links. Go figure...
+				\OCP\Util::writeLog('files_sharing', 'SUCCESS', \OCP\Util::WARN);
+				echo '<?xml version="1.0"?>
+<ocs>
+ <meta>
+  <status>ok</status>
+  <statuscode>100</statuscode>
+  <message/>
+ </meta>
+ <data>
+  <id>'.$data['id'].'</id>'.
+  (empty($data['token'])?'':'<token>'.$data['token'].'</token>').
+  '</data>
+</ocs>';
+  exit();
+			}
+			
 			return new \OC_OCS_Result($data);
 		} else {
 			return new \OC_OCS_Result(null, 404, "couldn't share file");
@@ -425,11 +499,11 @@ class Api {
 	public static function updateShare($params) {
 
 		$share = self::getShareFromId($params['id']);
-
+		\OCP\Util::writeLog('files_sharing', 'Updating share '.$params['id'].'-->'.serialize($share), \OCP\Util::WARN);
 		if(!isset($share['file_source'])) {
-			return new \OC_OCS_Result(null, 404, "wrong share Id, share doesn't exist.");
+			return new \OC_OCS_Result(null, 404, "wrong share Id, share doesn't exist. ".$params['id']);
 		}
-
+		
 		try {
 			if(isset($params['_put']['permissions'])) {
 				return self::updatePermissions($share, $params);
@@ -552,6 +626,7 @@ class Api {
 	private static function updatePassword($share, $params) {
 
 		$itemSource = $share['item_source'];
+		$fileSource = $share['file_source'];
 		$itemType = $share['item_type'];
 
 		if( (int)$share['share_type'] !== \OCP\Share::SHARE_TYPE_LINK) {
@@ -564,8 +639,9 @@ class Api {
 			$shareWith = null;
 		}
 
-		$items = self::getItemShared($itemType, $itemSource);
-
+		$items = self::getItemShared($itemType, $fileSource);
+		\OCP\Util::writeLog('files_sharing', 'Updating '.$fileSource.'-->'.serialize($items), \OCP\Util::WARN);
+		
 		$checkExists = false;
 		foreach ($items as $item) {
 			if($item['share_type'] === \OCP\Share::SHARE_TYPE_LINK) {
@@ -581,7 +657,7 @@ class Api {
 		try {
 			$result = self::shareItem(
 					$itemType,
-					$itemSource,
+					$fileSource,
 					\OCP\Share::SHARE_TYPE_LINK,
 					$shareWith,
 					$permissions
@@ -589,8 +665,29 @@ class Api {
 		} catch (\Exception $e) {
 			return new \OC_OCS_Result(null, 403, $e->getMessage());
 		}
-
+		// Now we need to fix the entries in the database to match the original itemSource, otherwise the js view will
+		// not catch the shared items, i.e. getItems() from share.php will not.
+		if($fileSource!=$itemSource){
+			\OCP\Util::writeLog('files_sharding', 'Updating item_source '.$fileSource.'-->'.$itemSource, \OC_Log::WARN);
+			$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `item_source` = ? WHERE `item_source` = ? AND `file_source` = ?');
+			$query->execute(array($itemSource, $fileSource, $fileSource));
+		}
+		
 		if($result) {
+			\OCP\Util::writeLog('files_sharing', 'SUCCESS', \OCP\Util::WARN);
+echo '<?xml version="1.0"?>
+<ocs>
+ <meta>
+  <status>ok</status>
+  <statuscode>100</statuscode>
+  <message/>
+ </meta>
+ <data/>
+</ocs>';
+			// This is to prevent the registered files_sharing action to kick in
+			// and try to modify an ID that no longer exists.
+			// Yes, shareItem modifies the ID for links. Go figure...
+			exit();
 			return new \OC_OCS_Result();
 		}
 
@@ -682,9 +779,11 @@ class Api {
 		$args = array($shareID);
 		$query = \OCP\DB::prepare($sql);
 		$result = $query->execute($args);
-
+		
+		\OCP\Util::writeLog('files_sharing', 'Getting share :'.$shareID.': -->'.$sql, \OCP\Util::WARN);
+		
 		if (\OCP\DB::isError($result)) {
-			\OCP\Util::writeLog('files_sharing', \OC_DB::getErrorMessage($result), \OCP\Util::ERROR);
+			\OCP\Util::writeLog('files_sharing', 'Could not get share'.\OC_DB::getErrorMessage($result), \OCP\Util::ERROR);
 			return null;
 		}
 		if ($share = $result->fetchRow()) {

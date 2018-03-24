@@ -16,14 +16,33 @@ OC\Share\MyShare::myRegisterBackend('file', 'OC_Shard_Backend_File', null, null)
 // The idea is to get apps/files/list.php to display shared folders.
 // list.php first calls getFileInfo() from filesystem.php which call the same from view.php.
 // getFileInfo() needs an entry to exist in the local oc_filecache table.
-
 OC::$CLASSPATH['OCA\Files\Share_files_sharding\Api'] = 'files_sharding/lib/files_sharing_api.php';
 // This is to have items shared with me populated
-OC_API::register('get', '/apps/files_sharding/api/v1/shares', array('\OCA\Files\Share_files_sharding\Api', 'getAllShares'), 'files_sharing');
-//OC_API::register('post', '/apps/files_sharing/api/v1/shares', array('\OCA\Files\Share_files_sharding\Api', 'createShare'), 'files_sharing');
-OC_API::register('get', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'getShare'), 'files_sharing');
-//OC_API::register('put', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'updateShare'), 'files_sharing');
-//OC_API::register('delete', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'deleteShare'), 'files_sharing');
+if(OCA\FilesSharding\Lib::isMaster()){
+	// On master we overrule the default
+	OC_API::register('get', '/apps/files_sharing/api/v1/shares', array('\OCA\Files\Share_files_sharding\Api', 'getAllShares'), 'files_sharing');
+	OC_API::register('post', '/apps/files_sharing/api/v1/shares', array('\OCA\Files\Share_files_sharding\Api', 'createShare'), 'files_sharing');
+	OC_API::register('get', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'getShare'), 'files_sharing');
+	OC_API::register('put', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'updateShare'), 'files_sharding');
+	//OC_API::register('delete', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'deleteShare'), 'files_sharing');
+}
+else{
+	// For the web interface on slaves this seems to be necessary...
+	OC_API::register('get', '/apps/files_sharing/api/v1/shares', array('\OCA\Files\Share_files_sharding\Api', 'getAllShares'), 'files_sharding');
+	//OC_API::register('post', '/apps/files_sharing/api/v1/shares', array('\OCA\Files\Share_files_sharding\Api', 'createShare'), 'files_sharding');
+	OC_API::register('get', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'getShare'), 'files_sharding');
+	//OC_API::register('put', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'updateShare'), 'files_sharding');
+	//OC_API::register('delete', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'deleteShare'), 'files_sharding');
+}
+// Make the Nextcloud sync client happy - nacked in .htaccess instead
+/*OC_API::register('get', '/apps/files/api/v1/thumbnail', array('\OCA\Files\Share_files_sharding\Api', 'getThumbnail'), 'files_sharding');
+OC_API::register(
+		'get',
+		'/apps/files_sharing/api/v1/sharees',
+		array('\OCA\Files\Share_files_sharding\Api', 'getSharees'),
+		'files_sharding',
+		OC_API::USER_AUTH
+		);*/
 
 // Fix stuff in Lucene. TODO: remove when fixed upstream
 // This is not working - presumably because the apps in question are loaded after this one.
@@ -43,6 +62,8 @@ OC_Search::registerProvider('OCA\FilesSharding\SearchShared');
 // under the user's storage with path /dir/file.
 // We fix this by adding initMountPoints() to the hook.
 OC::$CLASSPATH['OCA\FilesSharding\Hooks'] = 'files_sharding/lib/hooks.php';
+
+OC::$CLASSPATH['OCA\FilesSharding\Capabilities'] = 'files_sharding/lib/capabilities.php';
 
 OC_Hook::clear('OC_Filesystem', 'post_write');
 OC_Hook::clear('OC_Filesystem', 'post_rename');
