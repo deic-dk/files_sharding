@@ -63,7 +63,7 @@ if(OCA\FilesSharding\Lib::inDataFolder($reqPath)){
 	$serverUrl = OCA\FilesSharding\Lib::getNextServerForFolder($reqPath, $user);
 }
 
-// Trusting HTTP_REFERER. Not really sasfe, but worst case: a malicious user cannot find his files or fills up a machine.
+// Trusting HTTP_REFERER. Not really safe, but worst case: a malicious user cannot find his files or fills up a machine.
 // Best case: we save a rest lookup.
 $redirected_from = null;
 if(isset($_SERVER['HTTP_REFERER'])){
@@ -106,7 +106,9 @@ else{
 	else{
 		// Don't give a not found - sync clients will start deleting local files.
 		//http_response_code(404);
-		throw new \Exception('Invalid Host '.$server);
+		//throw new \Exception('Invalid Host '.$server);
+		\OCP\Util::writeLog('files_sharding', 'Serving, '.$server, \OC_Log::INFO);
+		include('chooser/appinfo/remote.php');
 	}	
 }
 

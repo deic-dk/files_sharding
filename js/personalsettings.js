@@ -243,6 +243,16 @@ $(document).ready(function(){
 		$(this).css("font-weight", "bold");
 	});
 
+	var choose_data_folder_dialog;
+	var buttons = {};
+	buttons[t("files_picocms", "Choose")] = function() {
+		folder = stripTrailingSlash($('#chosen_folder').text());
+		addDataFolder(folder);
+		choose_data_folder_dialog.dialog("close");
+ 	};
+ 	buttons[t("files_picocms", "Cancel")] = function() {
+		choose_data_folder_dialog.dialog("close");
+	};
 	choose_data_folder_dialog = $("#filesShardingDataFolders div.addDataFolder div.dialog").dialog({//create dialog, but keep it closed
 		title: "Choose new data folder to exclude from syncing",
 		autoOpen: false,
@@ -250,16 +260,7 @@ $(document).ready(function(){
 		width: 620,
 		modal: true,
 		dialogClass: "sharding_dialog",
-		buttons: {
-			"Choose": function() {
-				folder = stripTrailingSlash($('#chosen_folder').text());
-				addDataFolder(folder);
-			choose_data_folder_dialog.dialog("close");
-			},
-			"Cancel": function() {
-				choose_data_folder_dialog.dialog("close");
-			}
-		}
+		buttons: buttons
 	});
 
 	$('#filesShardingPersonalSettings div select.home_site').on('change', function() {
