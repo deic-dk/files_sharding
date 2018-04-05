@@ -24,3 +24,7 @@
     list-style: outside none disc;
     padding-left: 14px;
 }
+
+.backup_server, .home_server {
+	font-weight: bold;
+}

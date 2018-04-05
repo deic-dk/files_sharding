@@ -344,7 +344,7 @@ $(document).ready(function(){
 		if($('.sharding-help').length){
 			return false;
 		};
-		var html = "<div><h3>Choosing home and backup site</h3>\
+		var html = "<div><h3>"+t("files_sharding", "Choosing home and backup site")+"</h3>\
 				<a class='oc-dialog-close close svg'></a>\
 				<div class='sharding-help'></div></div>";
 		$(html).dialog({
