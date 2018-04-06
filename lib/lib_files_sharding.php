@@ -317,6 +317,12 @@ class Lib {
 		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, TRUE);
 		curl_setopt($curl, CURLOPT_UNRESTRICTED_AUTH, TRUE);
 		
+		if(!empty($_SERVER['HTTP_ACCEPT_LANGUAGE'])){
+			$langHeader = array("Accept-Language: ".$_SERVER['HTTP_ACCEPT_LANGUAGE']);
+			\OCP\Util::writeLog('files_sharding', 'Using language header '.$langHeader, \OC_Log::DEBUG);
+			curl_setopt($curl, CURLOPT_HTTPHEADER, $langHeader);
+		}
+		
 		if(!empty(self::getWSCert())){
 			\OCP\Util::writeLog('files_sharding', 'Authenticating '.$url.' with cert '.self::$wsCert.
 					' and key '.self::$wsKey, \OC_Log::INFO);

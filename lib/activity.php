@@ -73,17 +73,20 @@ class ServerSync_Activity implements IExtension {
 		}
 		switch ($text) {
 			case 'sync_finished':
+				$newparams = $params;
 				if(\OCA\FilesSharding\Lib::isMaster()){
-					$params[1] = \OCA\FilesSharding\Lib::dbLookupServerURL($params[1]);
+					$strippedID = preg_replace('|<strong>(.*)</strong>|', '$1', $params[1]);
+					$newparams[1] = '<strong>'.\OCA\FilesSharding\Lib::dbLookupServerURL($strippedID).'</strong>';
 				}
-				return (string) $this->l->t('Your files have been synchronized from <strong>%1$s</strong> to <strong>%2$s</strong>',
-				$params);
+				return (string) $this->l->t('Your files have been synchronized from %1$s to %2$s', $newparams);
 			case 'migration_finished':
+				$newparams = $params;
 				if(\OCA\FilesSharding\Lib::isMaster()){
-					$params[1] = \OCA\FilesSharding\Lib::dbLookupServerURL($params[1]);
+					$strippedID = preg_replace('/<strong>(.*)</strong>/', '$1', $params[1]);
+					$newparams[1] = '<strong>'.\OCA\FilesSharding\Lib::dbLookupServerURL($strippedID).'</strong>';
 				}
-				return (string) $this->l->t('Your files have been migrated from <strong>%1$s</strong> to <strong>%2$s</strong>.<br><strong>Please change URL in the settings of your sync clients!',
-				$params);
+				return (string) $this->l->t('Your files have been migrated from %1$s to %2$s.<br><strong>Please change URL</strong> in the settings of your sync clients!',
+					$newparams);
 			default:
 				return false;
 		}

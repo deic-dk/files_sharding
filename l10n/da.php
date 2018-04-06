@@ -1,5 +1,11 @@
 <?php
 $TRANSLATIONS = array(
+		"Your files have been backed up" => "Backup af dine filer er foretaget",
+		'Your files have been synchronized from %1$s to %2$s' =>
+			'Dine filer er blevet synkroniseret fra %1$s til %2$s',
+		'Your files have been migrated from %1$s to %2$s.<br><strong>Please change URL</strong> in the settings of your sync clients!' =>
+			'Dine filer er blevet migreret fra %1$s til %2$s.<br><strong>Husk</strong> at ændre URL for dine synkroniseringsklienter.',
+		'Files have been <strong>backed up</strong>' => 'Backup er foretaget',
 		"Choose" => "Vælg",
 		"Cancel" => "Fortryd",
 		"Data folders" => "Data-mapper",
