@@ -319,7 +319,7 @@ class Lib {
 		
 		if(!empty($_SERVER['HTTP_ACCEPT_LANGUAGE'])){
 			$langHeader = array("Accept-Language: ".$_SERVER['HTTP_ACCEPT_LANGUAGE']);
-			\OCP\Util::writeLog('files_sharding', 'Using language header '.$langHeader, \OC_Log::DEBUG);
+			\OCP\Util::writeLog('files_sharding', 'Using language header '.$langHeader[0], \OC_Log::DEBUG);
 			curl_setopt($curl, CURLOPT_HTTPHEADER, $langHeader);
 		}
 		
