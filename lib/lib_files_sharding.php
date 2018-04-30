@@ -2416,4 +2416,16 @@ class Lib {
 		return $linkItem;
 	}
 	
+	public static function migrateUser($olduid, $uid){
+		$datadir = OC_Config::getValue("datadirectory", OC::$SERVERROOT . '/data');
+		$backupdir = OC_Config::getValue("backupdirectory", '/tmp');
+		// Just in case - backup the newly created user
+		rename($datadir.'/'.$uid, $backupdir.'/'.$uid);
+		// Now move the existing/migrated user's data to the new location
+		rename($datadir.'/'.$olduid, $backupdir.'/'.$uid);
+		// Delete the user $olduid
+		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*users` WHERE LOWER(`uid`) = ?');
+		$query->execute(array($olduid));
+	}
+	
 }

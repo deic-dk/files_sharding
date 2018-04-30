@@ -125,6 +125,10 @@ class FileSessionHandler {
 			exit;
 		}
 		if(isset($session['user_id']) && !$this->ocUserDatabase->userExists($session['user_id'])) {
+			if(!empty($session['oc_mail']) && $session['user_id']!=$session['oc_mail'] &&
+					\OC_User::userExists($session['oc_mail'])){
+						\OCA\FilesSharding\Lib::migrateUser($session['oc_mail'], $session['user_id']);
+			}
 			$this->createUser($session['user_id'], $session['oc_storage_id'], $session['oc_numeric_storage_id']);
 			$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'],
 					$session['oc_groups'], $session['oc_quota'], $session['oc_freequota']);
