@@ -959,6 +959,9 @@ class Lib {
 		$shortest = INF;
 		$closestSite = null;
 		foreach($servers as $server){
+			if(empty($server['site']) || strtolower($server['site'])=='none'){
+				continue;
+			}
 			$l = levenshtein(strtolower($server['site']), strtolower($schacHomeOrganization));
 			\OC_Log::write('files_sharding','Levenshtein for '.$server['site'].' for user '.$mail.":".$schacHomeOrganization.
 					":".$entitlement.":".$l, \OC_Log::WARN);
