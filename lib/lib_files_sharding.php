@@ -1002,6 +1002,10 @@ class Lib {
 		// TODO: placing algorithm that takes, quota, available space and even distribution of users into consideration
 		// For now, just take the first server found of the given site.
 		$current_server_id = self::dbLookupServerIdForUser($user_id, $priority);
+		// Watch out for migrated users
+		if(empty($current_server_id) && !empty ($user_email)){
+			$current_server_id = self::dbLookupServerIdForUser($user_email, $priority);
+		}
 		$old_server_ids = self::dbLookupOldServerIdsForUser($user_id);
 		\OCP\Util::writeLog('files_sharding', 'Current server: '.$current_server_id, \OC_Log::WARN);
 		$query = \OC_DB::prepare('SELECT `id` FROM `*PREFIX*files_sharding_servers` WHERE `site` = ?');
@@ -2417,12 +2421,16 @@ class Lib {
 	}
 	
 	public static function migrateUser($olduid, $uid){
-		$datadir = OC_Config::getValue("datadirectory", OC::$SERVERROOT . '/data');
-		$backupdir = OC_Config::getValue("backupdirectory", '/tmp');
+		$datadir = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT . '/data');
+		$backupdir = \OC_Config::getValue("backupdirectory", '/tmp');
 		// Just in case - backup the newly created user
+		\OCP\Util::writeLog('files_sharding', 'Backing up files of user '.$uid.': '.
+				$datadir.'/'.$uid.'-->'.$backupdir.'/'.$uid, \OC_Log::WARN);
 		rename($datadir.'/'.$uid, $backupdir.'/'.$uid);
 		// Now move the existing/migrated user's data to the new location
-		rename($datadir.'/'.$olduid, $backupdir.'/'.$uid);
+		\OCP\Util::writeLog('files_sharding', 'Migrating files of user '.$olduid.': '.
+				$datadir.'/'.$olduid.'-->'.$datadir.'/'.$uid, \OC_Log::WARN);
+		rename($datadir.'/'.$olduid, $datadir.'/'.$uid);
 		// Delete the user $olduid
 		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*users` WHERE LOWER(`uid`) = ?');
 		$query->execute(array($olduid));
