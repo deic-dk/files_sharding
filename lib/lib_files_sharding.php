@@ -1575,12 +1575,14 @@ class Lib {
 		}
 		$i = 0;
 		$ok = true;
+		\OCP\Util::writeLog('files_sharding', 'Syncing with command: '.
+				__DIR__."/sync_user.sh -u '".$user."' -s ".$server, \OC_Log::WARN);
 		do{
 			if($i>self::$MAX_SYNC_ATTEMPTS){
 				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
 				break;
 			}
-			$syncedFiles = shell_exec(__DIR__."/sync_user.sh -u \"".$user."\" -s ".$server." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'");
+			$syncedFiles = shell_exec(__DIR__."/sync_user.sh -u '".$user."' -s ".$server." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'");
 			\OCP\Util::writeLog('files_sharding', 'Synced '.$syncedFiles.' files for '.$user.' from '.$server, \OC_Log::ERROR);
 			++$i;
 		}

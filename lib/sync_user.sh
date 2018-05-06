@@ -61,9 +61,10 @@ if [ -z "$folder" -o -z "$url" ]; then
 fi
 
 # Check if script is already running for this user
-is_running=`exec ps auxw | grep "sync_user.sh" | grep "$user" | grep -v grep | wc -l`;
-if [ $is_running -gt 2 ]; then
-	echo "User $user is already being synced. $is_running"
+syncs_running=`ps auxw | grep "sync_user.sh" | grep "$user" | grep -v grep | grep -v bash`
+is_running=`ps auxw | grep "sync_user.sh" | grep "$user" | grep -v grep | grep -v bash | wc -l`
+if [ $is_running -gt 1 ]; then
+	echo "User $user is already being synced. $syncs_running"
 	exit 0
 fi
 
@@ -86,7 +87,7 @@ if [ $? -eq 0 ]; then
 fi
 
 ## Run local file scan
-php "$OC_ROOT/console.php" files:scan "$user"
+php "$OC_ROOT/console.php" files:scan "$user" > /dev/null
 
 if [ "$?" != "0" ]; then
 	echo "ERROR: Could not scan files" 2>&1

@@ -23,6 +23,7 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 			\OCP\Util::writeLog('files_sharding', 'ERROR: Will not sync with web cron.', \OC_Log::ERROR);
 		}
 		$userArr = \OCA\FilesSharding\Lib::getNextSyncUser();
+		\OCP\Util::writeLog('files_sharding', 'Got sync user '.serialize($userArr), \OC_Log::WARN);
 		if(!empty($userArr['user_id'])){
 			$user = $userArr['user_id'];
 			$priority = $userArr['priority'];
@@ -49,7 +50,7 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 							\OCA\UserNotification\Data::PRIORITY_HIGH, $user);
 				}
 				else{
-					$l = OC_L10N::get('files_sharding');
+					$l = \OC_L10N::get('files_sharding');
 					\OCA\UserNotification\Data::send('files_sharding', $l->t('Your files have been backed up'), array(),
 							'sync_finished',
 							array($server, $thisServerId), '', '', $user, \OCA\FilesSharding\Lib::TYPE_SERVER_SYNC,
