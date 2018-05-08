@@ -50,5 +50,8 @@ $TRANSLATIONS = array(
 		"per GB per year" => "per GB per år",
 		"Questions?" => "Spørgsmål?",
 		"If you need more help, please contact" => "Hvis du har brug for mere hjælp, så kontakt venligst",
+		"You only have read access on this server" => "Du har kun læse-adgang på denne server",
+		"You've been emailed a one-time security token. Please enter it and click 'Continue'." =>
+		"Du har fået tilsendt en sikkerhedskode. Indtast den venligst og klik 'Videre'"
 );
 $PLURAL_FORMS = "nplurals=2; plural=(n != 1);";

@@ -97,7 +97,7 @@ function disableWrite(){
 		if(!$('.viewcontainer:not(.hidden) .access-message').length){
 			$('<div class="msg access-message"></div>').insertAfter('.viewcontainer:not(.hidden) .crumb.last');
 		}
-		OC.msg.finishedSaving('.viewcontainer:not(.hidden) .access-message', {status: 'success', data: {message: "You only have read access on this server"}});
+		OC.msg.finishedSaving('.viewcontainer:not(.hidden) .access-message', {status: 'success', data: {message: t("You only have read access on this server")}});
 		notify = true;
 	}
 	else{
