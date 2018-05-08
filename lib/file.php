@@ -202,42 +202,4 @@ class OC_Shard_Backend_File implements OCP\Share_Backend_File_Dependent {
 		return array();
 	}
 
-
-	/**
-	 * @param string $target
-	 * @param string $mountPoint
-	 * @param string $itemType
-	 * @return array|false source item
-	 */
-	public static function getSource($target, $mountPoint, $itemType) {
-		if(\OCA\FilesSharding\Lib::isMaster()){
-			$source = \OCP\Share::getItemSharedWith(isset($itemType)&&!empty($itemType)?$itemType:'file', $mountPoint, \OC_Share_Backend_File::FORMAT_SHARED_STORAGE);
-		}
-		else{
-			$source =  \OCA\FilesSharding\Lib::ws('getItemSharedWith',
-					array('user_id' => \OC_User::getUser(), 'target' => $target, 'mountPoint' => $mountPoint,
-					'itemType' => empty($itemType)?null:$itemType));
-		}
-		if($itemType==='folder' && $source && $target !== ''){
-			$source['path'] = $source['path'].'/'.$target;
-		}
-		if($source){
-			if(\OCA\FilesSharding\Lib::isMaster()){
-				$rootLinkItem = \OCA\FilesSharding\Lib::resolveReShare($source);
-			}
-			else{
-				$rootLinkItem = \OCA\FilesSharding\Lib::ws('resolveReShare', array('linkItem' => \OCP\JSON::encode($source)), true, true);
-			}
-			if($rootLinkItem){
-				$source['fileOwner'] = $rootLinkItem['uid_owner'];
-			}
-			else{
-				$source['fileOwner'] = $source['uid_owner'];
-			}
-			return $source;
-		}
-		\OCP\Util::writeLog('files_sharing', 'File source not found for: '.$target, \OCP\Util::ERROR);
-		return false;
-	}
-
 }
