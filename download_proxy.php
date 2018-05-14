@@ -140,8 +140,8 @@
 // ############################################################################
 
 // Change these configuration options if needed, see above descriptions for info.
-$enable_jsonp    = false;
-$enable_native   = true;
+$enable_jsonp = false;
+$enable_native = true;
 $valid_url_regex = '/.*/';
 
 // ############################################################################
@@ -175,129 +175,138 @@ function encodeURI($url) {
 }
 
 if ( !$url ) {
-  
-  // Passed url not specified.
-  $contents = 'ERROR: url not specified';
-  $status = array( 'http_code' => 'ERROR' );
-  
+	
+	// Passed url not specified.
+	$contents = 'ERROR: url not specified';
+	$status = array( 'http_code' => 'ERROR' );
+	
 } else if ( !preg_match( $valid_url_regex, $url ) ) {
-  
-  // Passed url doesn't match $valid_url_regex.
-  $contents = 'ERROR: invalid url';
-  $status = array( 'http_code' => 'ERROR' );
-  
+	
+	// Passed url doesn't match $valid_url_regex.
+	$contents = 'ERROR: invalid url';
+	$status = array( 'http_code' => 'ERROR' );
+	
 } else {
 	
 	$url = encodeURI($url."&user_id=".$user_id);
 	
 	\OCP\Util::writeLog('files_sharding', 'Proxy URL: '.$url, \OC_Log::WARN);
 	
-  $ch = curl_init( $url );
-  
-  if ( strtolower($_SERVER['REQUEST_METHOD']) == 'post' ) {
-    curl_setopt( $ch, CURLOPT_POST, true );
-    curl_setopt( $ch, CURLOPT_POSTFIELDS, $_POST );
-  }
-  
-  if ( isset($_GET['send_cookies']) && $_GET['send_cookies'] ) {
-    $cookie = array();
-    foreach ( $_COOKIE as $key => $value ) {
-      $cookie[] = $key . '=' . $value;
-    }
-    if ( isset($_GET['send_session']) && $_GET['send_session'] ) {
-      $cookie[] = SID;
-    }
-    $cookie = implode( '; ', $cookie );
-    
-    curl_setopt( $ch, CURLOPT_COOKIE, $cookie );
-  }
-  
-  curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
-  curl_setopt( $ch, CURLOPT_HEADER, true );
-  curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
-  curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, false);
-  curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, false);
-  
-  if(\OCP\App::isEnabled('files_sharding') && !empty(\OCA\FilesSharding\Lib::getWSCert())){
-  	\OCP\Util::writeLog('files_sharding', 'Authenticating '.
-  			' with cert '.\OCA\FilesSharding\Lib::$wsCert.
-  			' and key '.\OCA\FilesSharding\Lib::$wsKey, \OC_Log::WARN);
-  	curl_setopt($ch, CURLOPT_CAINFO, \OCA\FilesSharding\Lib::$wsCACert);
-  	curl_setopt($ch, CURLOPT_SSLCERT, \OCA\FilesSharding\Lib::$wsCert);
-  	curl_setopt($ch, CURLOPT_SSLKEY, \OCA\FilesSharding\Lib::$wsKey);
-  	//curl_setopt($curl, CURLOPT_SSLCERTPASSWD, '');
-  	//curl_setopt($curl, CURLOPT_SSLKEYPASSWD, '');
-  }
-  
-  curl_setopt( $ch, CURLOPT_USERAGENT, isset($_GET['user_agent'] ) && $_GET['user_agent'] ? $_GET['user_agent'] : $_SERVER['HTTP_USER_AGENT'] );
-  
-  list( $header, $contents ) = preg_split( '/([\r\n][\r\n])\\1/', curl_exec( $ch ), 2 );
-  
-  $status = curl_getinfo( $ch );
-  
-  curl_close( $ch );
+	$ch = curl_init( $url );
+	
+	if ( strtolower($_SERVER['REQUEST_METHOD']) == 'post' ) {
+		curl_setopt( $ch, CURLOPT_POST, true );
+		curl_setopt( $ch, CURLOPT_POSTFIELDS, $_POST );
+	}
+	
+	if ( isset($_GET['send_cookies']) && $_GET['send_cookies'] ) {
+		$cookie = array();
+		foreach ( $_COOKIE as $key => $value ) {
+			$cookie[] = $key . '=' . $value;
+		}
+		if ( isset($_GET['send_session']) && $_GET['send_session'] ) {
+			$cookie[] = SID;
+		}
+		$cookie = implode( '; ', $cookie );
+		
+		curl_setopt( $ch, CURLOPT_COOKIE, $cookie );
+	}
+	
+	curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
+	curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, false);
+	curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, false);
+
+	if(\OCP\App::isEnabled('files_sharding') && !empty(\OCA\FilesSharding\Lib::getWSCert())){
+		\OCP\Util::writeLog('files_sharding', 'Authenticating '.
+				' with cert '.\OCA\FilesSharding\Lib::$wsCert.
+				' and key '.\OCA\FilesSharding\Lib::$wsKey, \OC_Log::WARN);
+		curl_setopt($ch, CURLOPT_CAINFO, \OCA\FilesSharding\Lib::$wsCACert);
+		curl_setopt($ch, CURLOPT_SSLCERT, \OCA\FilesSharding\Lib::$wsCert);
+		curl_setopt($ch, CURLOPT_SSLKEY, \OCA\FilesSharding\Lib::$wsKey);
+		//curl_setopt($curl, CURLOPT_SSLCERTPASSWD, '');
+		//curl_setopt($curl, CURLOPT_SSLKEYPASSWD, '');
+	}
+
+	curl_setopt( $ch, CURLOPT_USERAGENT, isset($_GET['user_agent'] ) && $_GET['user_agent'] ? $_GET['user_agent'] : $_SERVER['HTTP_USER_AGENT'] );
 }
 
-// Split header text into an array.
-$header_text = preg_split( '/[\r\n]+/', $header );
-
 if ( isset( $_GET['mode']) && $_GET['mode'] == 'native' ) {
-  if ( !$enable_native ) {
-    $contents = 'ERROR: invalid mode';
-    $status = array( 'http_code' => 'ERROR' );
-  }
-  
-  // Propagate headers to response.
-  foreach ( $header_text as $header ) {
-    //if ( preg_match( '/^(?:Content-Type|Content-Language|Set-Cookie):/i', $header ) ) {
-    if ( preg_match( '/^(?:Content-Type|Content-Language|Content-Disposition):/i', $header ) ) {
-    	header( $header );
-    }
-  }
-  
-  print $contents;
-  
-} else {
-  
-  // $data will be serialized into JSON data.
-  $data = array();
-  
-  // Propagate all HTTP headers into the JSON data object.
-  if ( isset($_GET['full_headers']) && $_GET['full_headers'] ) {
-    $data['headers'] = array();
-    
-    foreach ( $header_text as $header ) {
-      preg_match( '/^(.+?):\s+(.*)$/', $header, $matches );
-      if ( $matches ) {
-        $data['headers'][ $matches[1] ] = $matches[2];
-      }
-    }
-  }
-  
-  // Propagate all cURL request / response info to the JSON data object.
-  if ( isset($_GET['full_status']) && $_GET['full_status'] ) {
-    $data['status'] = $status;
-  } else {
-    $data['status'] = array();
-    $data['status']['http_code'] = $status['http_code'];
-  }
-  
-  // Set the JSON data object contents, decoding it from JSON if possible.
-  $decoded_json = json_decode( $contents );
-  $data['contents'] = $decoded_json ? $decoded_json : $contents;
-  
-  // Generate appropriate content-type header.
-  //$is_xhr = strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
-  //header( 'Content-type: application/' . ( $is_xhr ? 'json' : 'x-javascript' ) );
-  
-  // Get JSONP callback.
-  $jsonp_callback = $enable_jsonp && isset($_GET['callback']) ? $_GET['callback'] : null;
-  
-  // Generate JSON/JSONP string
-  $json = json_encode( $data );
-  
-  print $jsonp_callback ? "$jsonp_callback($json)" : $json;
-  
+	if ( !$enable_native ) {
+		$contents = 'ERROR: invalid mode';
+		$status = array( 'http_code' => 'ERROR' );
+		print $contents;
+	}
+	else{
+		// this function is called by curl for each header received
+		curl_setopt($ch, CURLOPT_HEADERFUNCTION,
+			function($curl, $header) {
+				$len = strlen($header);
+				$headerArr = explode(':', $header, 2);
+				if (count($headerArr) < 2){ // ignore invalid headers
+					return $len;
+				}
+				if ( preg_match( '/^(?:Content-Type|Content-Language|Content-Disposition):/i', $header ) ) {
+					header( $header );
+				}
+				return $len;
+			}
+		);
+		curl_exec( $ch );
+		$status = curl_getinfo( $ch );
+		curl_close( $ch );
+	}
+
+}
+else {
+	curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+	list( $header, $contents ) = preg_split( '/([\r\n][\r\n])\\1/', curl_exec( $ch ), 2 );
+	// Split header text into an array.
+	$header_text = preg_split( '/[\r\n]+/', $header );
+	$status = curl_getinfo( $ch );
+	curl_close( $ch );
+	
+	// $data will be serialized into JSON data.
+	$data = array();
+	
+	// Propagate all HTTP headers into the JSON data object.
+	if ( isset($_GET['full_headers']) && $_GET['full_headers'] ) {
+		$data['headers'] = array();
+		
+		foreach ( $header_text as $header ) {
+			if ( preg_match( '/^(?:Content-Type|Content-Language|Content-Disposition):/i', $header ) ) {
+				header( $header );
+			}
+			preg_match( '/^(.+?):\s+(.*)$/', $header, $matches );
+			if ( $matches ) {
+				$data['headers'][ $matches[1] ] = $matches[2];
+			}
+		}
+	}
+	
+	// Propagate all cURL request / response info to the JSON data object.
+	if ( isset($_GET['full_status']) && $_GET['full_status'] ) {
+		$data['status'] = $status;
+	} else {
+		$data['status'] = array();
+		$data['status']['http_code'] = $status['http_code'];
+	}
+	
+	// Set the JSON data object contents, decoding it from JSON if possible.
+	$decoded_json = json_decode( $contents );
+	$data['contents'] = $decoded_json ? $decoded_json : $contents;
+	
+	// Generate appropriate content-type header.
+	//$is_xhr = strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+	//header( 'Content-type: application/' . ( $is_xhr ? 'json' : 'x-javascript' ) );
+	
+	// Get JSONP callback.
+	$jsonp_callback = $enable_jsonp && isset($_GET['callback']) ? $_GET['callback'] : null;
+	
+	// Generate JSON/JSONP string
+	$json = json_encode( $data );
+	
+	print $jsonp_callback ? "$jsonp_callback($json)" : $json;
+	
 }
 
 ?>
