@@ -52,7 +52,7 @@ if (!is_array($files_list)) {
 
 \OCP\Util::writeLog('files_sharding', 'files: '.$files.', dir: '.$dir.', owner: '.$owner, \OC_Log::WARN);
 
-if(!empty($path)){
+if(!empty($dir)){
 	OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
 }
 else{
