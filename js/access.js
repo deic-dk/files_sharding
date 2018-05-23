@@ -39,7 +39,7 @@ function checkUserServerAccess(user_id, server_id){
 		return false;
 	}
 	$(document).off('mousedown', checkUserServerAccess);
-	if(isChecking){
+	if(isChecking || !$('.viewcontainer:not(.hidden) .crumb.last').length){
 		return false;
 	}
 	isChecking = true;
@@ -97,7 +97,8 @@ function disableWrite(){
 		if(!$('.viewcontainer:not(.hidden) .access-message').length){
 			$('<div class="msg access-message"></div>').insertAfter('.viewcontainer:not(.hidden) .crumb.last');
 		}
-		OC.msg.finishedSaving('.viewcontainer:not(.hidden) .access-message', {status: 'success', data: {message: t("You only have read access on this server")}});
+		//OC.msg.startAction('.viewcontainer:not(.hidden) .access-message',  t("files_sharding", "You only have read access on this server"));
+		OC.msg.finishedSaving('.viewcontainer:not(.hidden) .access-message', {status: 'error', data: {message: t("files_sharding", "You only have read access on this server")}});
 		notify = true;
 	}
 	else{
@@ -190,9 +191,11 @@ function promptSecondFactor(){
 }
 
 $(document).ready(function(){
-	checkUserServerAccess();
-	if (-1 !== $.inArray(checkUserServerAccess, $(document).data('events').mousedown)) {
-		$(document).on('mousedown', checkUserServerAccess);
+	//checkUserServerAccess();
+	//var checkAccessInterval = 10*1000;
+	//var checkAccessID = setInterval(checkUserServerAccess, checkAccessInterval);
+	if (-1==$.inArray(checkUserServerAccess, $(document).data('events').mousedown)) {
+		$(document).mousedown(function(){checkUserServerAccess()});
 	}
 });
 
