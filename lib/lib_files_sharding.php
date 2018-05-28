@@ -2249,9 +2249,10 @@ class Lib {
 	public static function putFile($tmpFile, $dataServer, $dirOwner, $path){
 		
 		$url = $dataServer .
-			(\OCP\App::isEnabled('user_group_admin')?'remote.php/mydav':'remote.php/webdav') . $path;
+			(\OCP\App::isEnabled('user_group_admin')?'/remote.php/mydav':'remote.php/webdav') .
+			implode('/', array_map('rawurlencode', explode('/', $path)));
 		
-		\OCP\Util::writeLog('files_sharding', 'PUTTING '.$tmpFile.'-->'.$url, \OC_Log::WARN);
+			\OCP\Util::writeLog('files_sharding', 'PUTTING '.$dirOwner.':'.$tmpFile.':'.filesize($tmpFile).'-->'.$url, \OC_Log::WARN);
 		
 		$curl = curl_init($url);
 		curl_setopt($curl, CURLOPT_HEADER, false);
@@ -2282,7 +2283,7 @@ class Lib {
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
 		if($status===0 || $status>=300){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: could not put. '.$res, \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not put. '.$status.':'.$res, \OC_Log::ERROR);
 			return null;
 		}
 		return true;
