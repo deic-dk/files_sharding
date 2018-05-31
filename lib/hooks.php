@@ -170,6 +170,7 @@ class Hooks {
 			$res = \OCA\FilesSharding\Lib::deleteShareFileTarget($user_id, $id, $path);
 		}
 		else{
+			$path = implode('/', array_map('rawurlencode', explode('/', $path)));
 			$res = \OCA\FilesSharding\Lib::ws('delete_share_file_target',
 					array('owner' => $user_id, 'id' => $id, 'path' => $path));
 		}
