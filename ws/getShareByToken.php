@@ -33,8 +33,9 @@ $checkPasswordProtection = false;
 if(isset($_GET['checkPasswordProtection'])){
 	$checkPasswordProtection = $_GET['checkPasswordProtection']==='1';
 }
-
-$public_link_authenticated = $_GET['public_link_authenticated'];
+if(isset($_GET['public_link_authenticated'])){
+	$public_link_authenticated = $_GET['public_link_authenticated'];
+}
 
 if(!empty($public_link_authenticated)){
 	\OC::$session->set('public_link_authenticated', $public_link_authenticated);
