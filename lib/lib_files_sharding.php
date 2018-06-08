@@ -65,7 +65,7 @@ class Lib {
 			$parse = parse_url($user_server_internal);
 			$user_host_internal = $parse['host'];
 			\OCP\Util::writeLog('files_sharding', 'onServerForUser: '.$user_id.':'.$user_host.
-					':'.$user_host_internal.':'.$_SERVER['HTTP_HOST'], \OC_Log::WARN);
+					':'.$user_host_internal.':'.(empty($_SERVER['HTTP_HOST'])?'':$_SERVER['HTTP_HOST']), \OC_Log::WARN);
 		}
 		if(empty($user_server)){
 			// If no server has been set for the user, he can logically only be on the master
