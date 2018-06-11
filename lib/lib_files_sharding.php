@@ -154,8 +154,8 @@ class Lib {
 			return self::dbGetAllowLocalLogin($node)!=='no';
 		}
 		else{
-			$ret = self::ws('get_allow_local_login', Array('node' => $node), true, false);
-			return $ret->allow_local_login!=='no';
+			$ret = self::ws('get_allow_local_login', Array('node' => $node), true, true);
+			return empty($ret['allow_local_login'])||$ret['allow_local_login']!=='no';
 		}
 	}
 	
@@ -228,7 +228,7 @@ class Lib {
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
 		if($status===0 || $status>=300 || $data===null || $data===false){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response: '.$status.':'.$data, \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response from '.$url.' : '.$status.' : '.$data, \OC_Log::ERROR);
 			return null;
 		}
 		
@@ -337,7 +337,7 @@ class Lib {
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
 		if($status===0 || $status>=300 || $json_response===null || $json_response===false){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response. '.$status.':'.$json_response, \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response from '.$url.' : '. $status.' : '.$json_response, \OC_Log::ERROR);
 			return null;
 		}
 		
@@ -547,12 +547,13 @@ class Lib {
 		else{
 			// On a slave, in the web interface, use session variable set by the master
 			if(isset($_SESSION['oc_data_folders'])){
-				return $_SESSION['oc_data_folders'];
+				$res = $_SESSION['oc_data_folders'];
 			}
 			else{
 				// On a slave via webdav, ask the master
-				return self::ws('get_data_folders', Array('user_id' => $user_id), true, true);
+				$res = self::ws('get_data_folders', Array('user_id' => $user_id), true, true);
 			}
+			return empty($res)?[]:$res;
 		}
 	}
 	
@@ -561,6 +562,7 @@ class Lib {
 		$result = $query->execute(Array($user_id));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			return [];
 		}
 		$results = $result->fetchAll();
 		return $results;
