@@ -151,6 +151,8 @@ class Hooks {
 			$res = \OCA\FilesSharding\Lib::renameShareFileTarget($user_id, $id, $oldname, $newname);
 		}
 		else{
+			$oldname = implode('/', array_map('rawurlencode', explode('/', $oldname)));
+			$newname = implode('/', array_map('rawurlencode', explode('/', $newname)));
 			$res = \OCA\FilesSharding\Lib::ws('rename_share_file_target',
 				array('owner' => $user_id, 'id' => $id, 'oldname' => $oldname, 'newname' => $newname));
 		}
