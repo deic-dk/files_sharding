@@ -35,10 +35,16 @@ $id = isset($_GET['id']) ? $_GET['id'] : null;
 $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
 $sortAttribute = isset($_GET['sortAttribute']) ? $_GET['sortAttribute'] : '';
 $sortDirection = isset($_GET['sortDirection']) ? $_GET['sortDirection'] : '';
+$group = isset($_GET['group']) ? $_GET['group'] : '';
 
 if(!empty($id) && !empty($owner)){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
+	if(!empty($group)){
+		\OC\Files\Filesystem::tearDown();
+		$groupDir = '/'.$owner.'/user_group_admin/'.$group;
+		\OC\Files\Filesystem::init($owner, $groupDir);
+	}
 	$path = \OC\Files\Filesystem::getPath($id);
 	\OCP\Util::writeLog('files_sharding', 'Path: '.$path, \OC_Log::WARN);
 	$files = \OCA\Files\Helper::getFiles($path, $sortAttribute, $sortDirection);

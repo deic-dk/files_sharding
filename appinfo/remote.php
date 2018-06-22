@@ -73,21 +73,29 @@ if(isset($_SERVER['HTTP_REFERER'])){
 $masterUrl = OCA\FilesSharding\Lib::getMasterURL();
 $parsedMaster = parse_url($masterUrl);
 $master = isset($parsedMaster['host']) ? $parsedMaster['host'] : null;
+$masterInternalUrl = OCA\FilesSharding\Lib::getMasterInternalURL();
+$parsedMasterInternal = parse_url($masterInternalUrl);
+$masterInternal = isset($parsedMasterInternal['host']) ? $parsedMasterInternal['host'] : null;
 
 // Serve
-if($redirected_from===$master /*|| empty($redirected_from)*/){
+if($redirected_from===$master || $redirected_from===$masterInternal /*|| empty($redirected_from)*/){
 	\OCP\Util::writeLog('files_sharding', 'Serving', \OC_Log::INFO);
 	include('chooser/appinfo/remote.php');
 }
 else{
 	// Default to sharding on user
 	if(!isset($serverUrl) || trim($serverUrl)===''){
-		$serverUrl = OCA\FilesSharding\Lib::getServerForUser($user);
+		$serverUrl = OCA\FilesSharding\Lib::getServerForUser($user, false);
+		$serverInternalUrl = OCA\FilesSharding\Lib::getServerForUser($user, true);
 	}
 	$parsedUrl = parse_url($serverUrl);
+	$parsedInternalUrl = parse_url($serverInternalUrl);
 	$server = isset($parsedUrl['host']) ? $parsedUrl['host'] : null;
-	if(isset($_SERVER['HTTP_HOST']) && $server===$_SERVER['HTTP_HOST'] ||
-			isset($_SERVER['SERVER_NAME']) && $server===$_SERVER['SERVER_NAME']){
+	$serverInternal = isset($parsedInternalUrl['host']) ? $parsedInternalUrl['host'] : null;
+	if(!empty($_SERVER['HTTP_HOST']) && !empty($server) && $server===$_SERVER['HTTP_HOST'] ||
+			!empty($_SERVER['SERVER_NAME']) && !empty($server) && $server===$_SERVER['SERVER_NAME'] ||
+			!empty($_SERVER['HTTP_HOST']) && !empty($serverInternal) && $serverInternal===$_SERVER['HTTP_HOST'] ||
+			!empty($_SERVER['SERVER_NAME']) && !empty($serverInternal) && $serverInternal===$_SERVER['SERVER_NAME']){
 		\OCP\Util::writeLog('files_sharding', 'Serving, '.$server, \OC_Log::INFO);
 		include('chooser/appinfo/remote.php');
 	}

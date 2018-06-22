@@ -1405,8 +1405,8 @@ class Lib {
 	 * @param $currentServerId slave issuing the request - can be null
 	 * @return URL (https://...)
 	 */
-	public static function dbLookupNextServerForFolder($folder, $user_id, $currentServerId=null){
-		$currentServerId = -1;
+	public static function dbLookupNextServerForFolder($folder, $user_id, $currentServerId=null,
+			$internal=false){
 		$currentServerPriority = -1;
 		if(!empty($currentServerId)){
 			$currentServerPriority = self::dbLookupFolderServerPriority($folder, $user_id, $currentServerId);
@@ -1414,7 +1414,12 @@ class Lib {
 		$results = getServersForFolder($folder, $user_id);
 		foreach($results as $row){
 			if($row['priority']>$currentServerPriority){
-				return dbLookupServerURL($row['server_id']);
+				if($internal){
+					return dbLookupInternalServerURL($row['server_id']);
+				}
+				else{
+					return dbLookupServerURL($row['server_id']);
+				}
 			}
 		}
 		\OCP\Util::writeLog('files_sharding', 'WARNING: no server registered for folder '.$folder, \OC_Log::WARN);
@@ -1427,7 +1432,7 @@ class Lib {
 	 * @param string $user_id
 	 * @return URL (https://...)
 	 */
-	public static function getNextServerForFolder($folder, $user_id=null){
+	public static function getNextServerForFolder($folder, $user_id=null, $internal=false){
 		if(substr($folder, 0, 1)!=='/'){
 			\OCP\Util::writeLog('files_sharding', 'Relative paths not allowed: '.$folder, \OC_Log::ERROR);
 		}
@@ -1439,11 +1444,12 @@ class Lib {
 		//$folderId = $fileInfo->getId();
 		// If I'm the master, look up in DB
 		if(self::isMaster()){
-			$server = self::dbLookupNextServerForFolder($folder, $user_id);
+			$server = self::dbLookupNextServerForFolder($folder, $user_id, $internal);
 		}
 		// Otherwise, ask master
 		else{
-			$server = self::ws('get_folder_server', Array('user_id' => $user_id, 'folder' => $folder), true, false);
+			$server = self::ws('get_folder_server', Array('user_id' => $user_id, 'folder' => $folder,
+					'internal'=>($internal?'yes':'no')), true, false);
 		}
 		return $server;
 	}
@@ -2141,7 +2147,7 @@ class Lib {
 		\OC_Util::setupFS($user_id);
 	}
 
-	public static function getFileInfo($path, $owner, $id, $parentId, $user = ''){
+	public static function getFileInfo($path, $owner, $id, $parentId, $user = '', $group=''){
 		$info = null;
 		
 		$user = empty($user)?\OC_User::getUser():$user;
@@ -2155,17 +2161,23 @@ class Lib {
 				}
 				if($id){
 					$data = self::ws('getFileInfoData',
-							array('user_id' => $user, 'path'=>urlencode($path), 'id'=>$id, 'owner'=>$owner),
+							array('user_id' => $user, 'path'=>urlencode($path), 'id'=>$id, 'owner'=>$owner,
+									'group'=>urlencode($group)),
 							false, true, $dataServer);
 				}
 				elseif($parentId){
 					$parentData = self::ws('getFileInfoData',
-							array('user_id' => $user, 'id'=>$parentId, 'owner'=>$owner),
+							array('user_id' => $user, 'id'=>$parentId, 'owner'=>$owner,
+									'group'=>urlencode($group)),
 							false, true, $dataServer);
 					$dirPath = preg_replace('|^files/|','/', $parentData['internalPath']);
+					if(!empty($group)){
+						$dirPath = preg_replace('|^user_group_admin/[^/]+/|','/', $parentData['internalPath']);
+					}
 					$pathinfo = pathinfo($path);
 					$data = self::ws('getFileInfoData',
-							array('user_id' => $user, 'path'=>urlencode($dirPath.'/'.$pathinfo['basename']), 'owner'=>$owner),
+							array('user_id' => $user, 'path'=>urlencode($dirPath.'/'.$pathinfo['basename']), 'owner'=>$owner,
+									'group'=>urlencode($group)),
 							false, true, $dataServer);
 				}
 				if($data){
@@ -2178,7 +2190,13 @@ class Lib {
 				if(!empty($owner)){
 					$user_id = self::switchUser($owner);
 				}
-				
+				if(!empty($group)){
+					$user_id = !empty($user_id)?$user_id:$user;
+					$groupOwner = \OC_User::getUser();
+					\OC\Files\Filesystem::tearDown();
+					$groupDir = '/'.$groupOwner.'/user_group_admin/'.$group;
+					\OC\Files\Filesystem::init($groupOwner, $groupDir);
+				}
 				if(!empty($id)){
 					$path = \OC\Files\Filesystem::getPath($id);
 				}
@@ -2208,8 +2226,28 @@ class Lib {
 		return $info;
 	}
 	
-	public static function moveTmpFile($tmpFile, $path, $dirOwner, $dirId){
+	public static function moveTmpFile($tmpFile, $path, $dirOwner, $dirId, $group=''){
 		$endPath = $path;
+		if($dirOwner){
+			// For a shared directory send data to server holding the directory
+			if(!self::onServerForUser($dirOwner)){
+				$dataServer = self::getServerForUser($dirOwner, true);
+				if(!$dataServer){
+					$dataServer = self::getMasterInternalURL();
+				}
+				return self::putFile($tmpFile, $dataServer, $dirOwner, $endPath, $group);
+			}
+			else{
+				if($dirOwner!=\OCP\USER::getUser()){
+					$user_id = self::switchUser($dirOwner);
+				}
+				if(!empty($group)){
+					\OC\Files\Filesystem::tearDown();
+					$groupDir = '/'.$dirOwner.'/user_group_admin/'.$group;
+					\OC\Files\Filesystem::init($dirOwner, $groupDir);
+				}
+			}
+		}
 		if($dirId){
 			$dirMeta = self::getFileInfo(null, $dirOwner, $dirId, null);
 			$dirPath = preg_replace('|^files/|','/', $dirMeta->getInternalPath());
@@ -2218,22 +2256,6 @@ class Lib {
 			$endPath = $dirPath.'/'.$pathinfo['basename'];
 			\OCP\Util::writeLog('files_sharding', 'dirMeta: '.$dirId.':'.$dirMeta->getInternalPath().':'.
 					$endPath.':'.$path.':'.\OCP\USER::getUser().':'.$dirOwner.':'.$dirId, \OC_Log::WARN);
-		}
-		
-		if($dirOwner){
-			// For a shared directory send data to server holding the directory
-			if(!self::onServerForUser($dirOwner)){
-				$dataServer = self::getServerForUser($dirOwner, true);
-				if(!$dataServer){
-					$dataServer = self::getMasterInternalURL();
-				}
-				return self::putFile($tmpFile, $dataServer, $dirOwner, $endPath);
-			}
-			else{
-				if($dirOwner!=\OCP\USER::getUser()){
-					$user_id = self::switchUser($dirOwner);
-				}
-			}
 		}
 		// TODO: This triggers writeHook() from files_sharing, which calls correctFolders(), ..., getFileInfo(),
 		// which fails when in group folders. Fix
@@ -2248,10 +2270,11 @@ class Lib {
 	}
 
 	// TODO: group support
-	public static function putFile($tmpFile, $dataServer, $dirOwner, $path){
+	public static function putFile($tmpFile, $dataServer, $dirOwner, $path, $group=''){
 		
 		$url = $dataServer .
-			(\OCP\App::isEnabled('user_group_admin')?'/remote.php/mydav':'remote.php/webdav') .
+		(\OCP\App::isEnabled('user_group_admin')?(empty($group)?'/remote.php/mydav/':'/group/'.urlencode($group).'/'):
+					'remote.php/webdav/') .
 			implode('/', array_map('rawurlencode', explode('/', $path)));
 		
 			\OCP\Util::writeLog('files_sharding', 'PUTTING '.$dirOwner.':'.$tmpFile.':'.filesize($tmpFile).'-->'.$url, \OC_Log::WARN);

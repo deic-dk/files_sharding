@@ -156,7 +156,11 @@ switch ($_GET['fetch']) {
 			if(OCP\App::isEnabled('user_group_admin') && !empty($_GET['search'])){
 				$ownedGroups = OC_User_Group_Admin_Util::getOwnerGroups(OC_User::getUser(), false, $_GET['search'].'%');
 				$ownedGroupNames = array_column($ownedGroups, 'gid');
-				$groups = array_merge($groups, $ownedGroupNames);
+				foreach($ownedGroupNames as $gid){
+					if(!in_array($gid, $groups)){
+						$groups[] = $gid;
+					}
+				}
 			}
 			$count = 0;
 			$users = array();

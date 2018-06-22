@@ -37,12 +37,14 @@ $group = isset($_GET['group']) ? $_GET['group'] : '';
 
 $group_dir_owner = $user_id;
 
-if($owner){
+if($owner && $owner!=$user_id){
+	\OC_Util::teardownFS();
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
 	$group_dir_owner = $owner;
 }
 elseif($user_id){
+	\OC_Util::teardownFS();
 	\OC_User::setUserId($user_id);
 	\OC_Util::setupFS($user_id);
 	\OCP\Util::writeLog('files_sharding', 'No id or owner: '.$owner.':'.$id, \OC_Log::WARN);
@@ -52,6 +54,7 @@ if(!empty($group) && !empty($group_dir_owner)){
 	\OC\Files\Filesystem::tearDown();
 	$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
 	\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
+	\OCP\Util::writeLog('files_sharding', 'Initialized group dir: '.$groupDir.' as '.\OC_User::getUser(), \OC_Log::WARN);
 }
 
 if($id){
@@ -61,11 +64,20 @@ if($id){
 \OCP\Util::writeLog('files_sharding', 'Path: '.$path, \OC_Log::WARN);
 if(!empty($owner) && $owner!=$user_id &&
 		!\OCA\FilesSharding\Lib::checkReadAccessRecursively($user_id, $id, $owner)){
+			\OCP\Util::writeLog('files_sharding', 'Not allowed '.$user_id.'/'.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
 	restoreUser($user_id);
 	//throw new Exception('Not allowed. '.$id);
 }
 else{
-	$info = \OC\Files\Filesystem::getFileInfo($path);
+	if(!empty($group)){
+		$path = \OC\Files\Filesystem::normalizePath('/'.$group.$path);
+		$fs = \OCP\Files::getStorage('user_group_admin');
+		\OCP\Util::writeLog('User_Group_Admin', 'DIR: '.$path, \OCP\Util::WARN);
+		$info = $fs->getFileInfo($path);
+	}
+	else{
+		$info = \OC\Files\Filesystem::getFileInfo($path);
+	}
 }
 if(!$info){
 	\OCP\Util::writeLog('files_sharding', 'File not found '.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
@@ -83,4 +95,11 @@ $data['internalPath'] = $info->getInternalPath();
 \OCP\Util::writeLog('files_sharding', 'Returning file info for '.$owner.'-->'.$id.':'.$path.':'.$data['path'], \OC_Log::WARN);
 
 OCP\JSON::encodedPrint($data);
+
+function restoreUser($user_id){
+	// If not done, the user shared with will now be logged in as $owner
+	\OC_Util::teardownFS();
+	\OC_User::setUserId($user_id);
+	\OC_Util::setupFS($user_id);
+}
 
