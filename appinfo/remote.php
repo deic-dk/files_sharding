@@ -28,8 +28,8 @@ OC_Log::write('files_sharding','Remote access',OC_Log::DEBUG);
 OCP\App::checkAppEnabled('files_sharding');
 OCP\App::checkAppEnabled('chooser');
 
-$FILES_BASE = "/files";
-$PUBLIC_BASE = "/public";
+$FILES_BASE = OC::$WEBROOT."/files";
+$PUBLIC_BASE = OC::$WEBROOT."/public";
 
 $requestFix = new URL\Normalizer($_SERVER['REQUEST_URI']);
 $requestUri = $requestFix->normalize();
@@ -60,7 +60,8 @@ else{
 
 // Sharded paths take first priority
 if(OCA\FilesSharding\Lib::inDataFolder($reqPath)){
-	$serverUrl = OCA\FilesSharding\Lib::getNextServerForFolder($reqPath, $user);
+	$serverUrl = OCA\FilesSharding\Lib::getNextServerForFolder($reqPath, $user, false);
+	$serverInternalUrl = OCA\FilesSharding\Lib::getNextServerForFolder($reqPath, $user, true);
 }
 
 // Trusting HTTP_REFERER. Not really safe, but worst case: a malicious user cannot find his files or fills up a machine.
