@@ -1610,7 +1610,7 @@ class Lib {
 				$access = self::$USER_ACCESS_ALL;
 				// Get group folders in files_accounting from previous primary server
 				if(\OCP\App::isEnabled('user_group_admin')){
-					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/groupdirs',
+					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/group',
 							$user.'/user_group_admin');
 				}
 				// Get bills from previous primary server
