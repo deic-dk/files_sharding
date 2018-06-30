@@ -7,8 +7,8 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	exit;
 }
 
-$owner = isset($_GET['owner']) ? $_GET['owner'] : '';
-$id = isset($_GET['id']);
+$owner = isset($_GET['owner'])?$_GET['owner'] : '';
+$id = isset($_GET['id'])?$_GET['id'] : '';
 $path = $_GET['path'];
 
 \OCP\Util::writeLog('files_sharding', 'ID: '.$id, \OC_Log::WARN);

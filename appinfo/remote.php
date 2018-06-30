@@ -28,22 +28,54 @@ OC_Log::write('files_sharding','Remote access',OC_Log::DEBUG);
 OCP\App::checkAppEnabled('files_sharding');
 OCP\App::checkAppEnabled('chooser');
 
+$SHARED_BASE = OC::$WEBROOT."/shared";
 $FILES_BASE = OC::$WEBROOT."/files";
+$GRID_BASE = OC::$WEBROOT."/grid";
 $PUBLIC_BASE = OC::$WEBROOT."/public";
+$GROUP_BASE = OC::$WEBROOT."/group";
+$SHARINGIN_BASE = OC::$WEBROOT."/sharingin";
+$SHARINGOUT_BASE = OC::$WEBROOT."/sharingout";
+$INGEST_BASE = OC::$WEBROOT."/ingest";
+$ADDCERT_BASE = OC::$WEBROOT."/addcert";
+$REMOVECERT_BASE = OC::$WEBROOT."/removecert";
 
 $requestFix = new URL\Normalizer($_SERVER['REQUEST_URI']);
 $requestUri = $requestFix->normalize();
 
 $baseUri = OC::$WEBROOT."/remote.php/davs";
 // Known aliases
-if(strpos($requestUri, $FILES_BASE."/")===0){
-	$baseuri = $FILES_BASE;
+if(strpos($requestUri, $SHARED_BASE."/")===0){
+	$baseuri = $SHARED_BASE;
+}
+elseif(strpos($requestUri, $GRID_BASE."/")===0){
+	$baseuri = $GRID_BASE;
 }
 elseif(strpos($requestUri, $PUBLIC_BASE."/")===0){
 	$baseuri = $PUBLIC_BASE;
 }
+elseif(strpos($requestUri, $GROUP_BASE."/")===0){
+	$baseuri = $GROUP_BASE;
+}
+elseif(strpos($requestUri, $SHARINGIN_BASE."/")===0){
+	$baseuri = $SHARINGIN_BASE;
+}
+elseif(strpos($requestUri, $SHARINGOUT_BASE."/")===0){
+	$baseuri = $SHARINGOUT_BASE;
+}
+elseif(strpos($requestUri, $INGEST_BASE."/")===0){
+	$baseuri = $INGEST_BASE;
+}
+elseif(strpos($requestUri, $PUBLIC_BASE."/")===0){
+	$baseuri = $PUBLIC_BASE;
+}
+elseif(strpos($requestUri, $ADDCERT_BASE."/")===0){
+	$baseuri = $ADDCERT_BASE;
+}
+elseif(strpos($requestUri, $REMOVECERT_BASE."/")===0){
+	$baseuri = $REMOVECERT_BASE;
+}
 
-$reqPath = substr($requestUri, strlen($baseUri));
+$reqPath = preg_replace('|^'.$baseUri.'|', "", $requestUri);
 
 if(strpos($requestUri, $PUBLIC_BASE."/")===0){
 	$token = preg_replace("/^\/([^\/]+)\/*/", "$1", $reqPath);
@@ -79,7 +111,8 @@ $parsedMasterInternal = parse_url($masterInternalUrl);
 $masterInternal = isset($parsedMasterInternal['host']) ? $parsedMasterInternal['host'] : null;
 
 // Serve
-if($redirected_from===$master || $redirected_from===$masterInternal /*|| empty($redirected_from)*/){
+if($redirected_from===$master || $redirected_from===$masterInternal || /*empty($redirected_from) ||*/
+		preg_match('|^/*sharingout/.*|', $reqPath)){
 	\OCP\Util::writeLog('files_sharding', 'Serving', \OC_Log::INFO);
 	include('chooser/appinfo/remote.php');
 }
@@ -102,7 +135,7 @@ else{
 	}
 	// Redirect
 	elseif(isset($server)){
-		OC_Log::write('files_sharding','Redirecting to: ' . $server .' :: '. $_SERVER['REQUEST_URI'], OC_Log::WARN);
+		OC_Log::write('files_sharding','Redirecting to: ' . $server .' :: '. $baseuri .' :: '.$reqPath.' :: '.$requestUri, OC_Log::WARN);
 		// In the case of a move request, a header will contain the destination
 		// with hard-wired host name. Change this host name on redirect.
 		if(!empty($_SERVER['HTTP_DESTINATION'])){

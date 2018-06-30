@@ -69,10 +69,9 @@ switch ($_GET['fetch']) {
 			$_GET['itemSource'] = OCA\FilesSharding\Lib::getFileSource($_GET['myItemSource'], $_GET['itemType'],
 					$_GET['sharedWithMe']);
 		}
-		if (isset($_GET['itemType'])
-			&& isset($_GET['itemSource'])
-			&& isset($_GET['checkReshare'])
-			&& isset($_GET['checkShares'])) {
+		if (isset($_GET['itemType']) && isset($_GET['itemSource'])
+			/*&& isset($_GET['checkReshare'])
+			&& isset($_GET['checkShares'])*/) {
 			if ($_GET['checkReshare'] == 'true') {
 				$reshare = OCP\Share::getItemSharedWithBySource(
 					$_GET['itemType'],
@@ -97,6 +96,21 @@ switch ($_GET['fetch']) {
 			}
 			\OCP\Util::writeLog('sharing', 'SHARES: '.$user_id.':'.$_GET['itemSource'].'-->'.serialize($shares), \OCP\Util::WARN);
 			OC_JSON::success(array('data' => array('reshare' => $reshare, 'shares' => $shares)));
+		}
+		break;
+	case 'getShareFromId':
+		if(isset($_GET['shareId'])){
+			$sql = 'SELECT * FROM `*PREFIX*share` WHERE `id` = ?';
+			$args = array($_GET['shareId']);
+			$query = \OCP\DB::prepare($sql);
+			$result = $query->execute($args);
+			while($row = $result->fetchRow()){
+				\OCP\Util::writeLog('sharing', 'SHARE: '.$user_id.':'.$_GET['shareId'].'-->'.serialize($row), \OCP\Util::WARN);
+				OC_JSON::success(array('data' => $row));
+			}
+		}
+		else{
+			OC_JSON::error();
 		}
 		break;
 	case 'getShareWithEmail':

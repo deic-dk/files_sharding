@@ -32,9 +32,10 @@ class Api {
 			$itemShared = \OCP\Share::getItemShared($itemType, $itemSource);
 		}
 		else{
-			\OCP\Util::writeLog('files_sharding', 'OCA\Files\Share_files_sharding::getItemShared '.\OC_User::getUser().":".$itemType.":".$itemSource, \OC_Log::WARN);
-			$itemShared = \OCA\FilesSharding\Lib::ws('getItemShared', array('user_id' => \OC_User::getUser(), 'itemType' => $itemType,
-					'itemSource' => empty($itemSource)?null:$itemSource));
+			\OCP\Util::writeLog('files_sharding', 'OCA\Files\Share_files_sharding::getItemShared '.
+					\OC_User::getUser().":".$itemType.":".$itemSource, \OC_Log::WARN);
+			$itemShared = \OCA\FilesSharding\Lib::ws('getItemShared', array('user_id' => \OC_User::getUser(),
+					'itemType' => $itemType, 'itemSource' => empty($itemSource)?null:$itemSource));
 		}
 		/*foreach($itemShared as &$share){
 			$path = \OC\Files\Filesystem::getPath($share['item_source']);
@@ -48,7 +49,8 @@ class Api {
 			return \OCP\Share::getItemSharedWithBySource($itemType, $itemSource);
 		}
 		else{
-			return \OCA\FilesSharding\Lib::ws('getItemSharedWithBySource', array('user_id' => \OC_User::getUser(), 'itemType' => $itemType,'itemSource' => $itemSource));
+			return \OCA\FilesSharding\Lib::ws('getItemSharedWithBySource', array('user_id' => \OC_User::getUser(),
+					'itemType' => $itemType,'itemSource' => $itemSource));
 		}
 	}
 	
@@ -112,11 +114,11 @@ class Api {
 			$params['path'] = $_GET['path'];
 			$params['itemType'] = self::getItemType($_GET['path']);
 
-			if ( isset($_GET['reshares']) && $_GET['reshares'] !== 'false' ) {
+			/*if ( isset($_GET['reshares']) && $_GET['reshares'] !== 'false' ) {
 				$params['reshares'] = true;
-			} else {
+			} else {*/
 				$params['reshares'] = false;
-			}
+			//}
 
 			if (isset($_GET['subfiles']) && $_GET['subfiles'] !== 'false') {
 				return self::getSharesFromFolder($params);
@@ -222,9 +224,9 @@ class Api {
 
 			// include also reshares in the lists. This means that the result
 			// will contain every user with access to the file.
-			if (isset($params['reshares']) && $params['reshares'] === true) {
+			/*if (isset($params['reshares']) && $params['reshares'] === true) {
 				$shares = self::addReshares($shares, $itemSource);
-			}
+			}*/
 
 			if ($receivedFrom) {
 				foreach ($shares as $key => $share) {
@@ -249,7 +251,7 @@ class Api {
 	 * @param int $itemSource item source ID
 	 * @return array new shares array which includes reshares
 	 */
-	private static function addReshares($shares, $itemSource) {
+	/*private static function addReshares($shares, $itemSource) {
 
 		// if there are no shares than there are also no reshares
 		$firstShare = reset($shares);
@@ -272,7 +274,7 @@ class Api {
 		}
 
 		return array_merge($shares, $reshares);
-	}
+	}*/
 
 	/**
 	 * get share from all files in a given folder (non-recursive)
@@ -430,7 +432,7 @@ class Api {
 				return new \OC_OCS_Result(null, 403, $e->getMessage());
 			}
 		}
-		if(!empty($_GET) && !empty($_GET['item_source'])){
+		if(!empty($_GET) && !empty($_GET['item_source']) && \OCA\FilesSharding\Lib::isMaster()){
 			// Now we need to fix the entries in the database to match the original itemSource, otherwise the js view will
 			// not catch the shared items, i.e. getItems() from share.php will not.
 			if($fileSource!=$itemSource){
@@ -667,7 +669,7 @@ class Api {
 		}
 		// Now we need to fix the entries in the database to match the original itemSource, otherwise the js view will
 		// not catch the shared items, i.e. getItems() from share.php will not.
-		if($fileSource!=$itemSource){
+		if($fileSource!=$itemSource && \OCA\FilesSharding\Lib::isMaster()){
 			\OCP\Util::writeLog('files_sharding', 'Updating item_source '.$fileSource.'-->'.$itemSource, \OC_Log::WARN);
 			$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `item_source` = ? WHERE `item_source` = ? AND `file_source` = ?');
 			$query->execute(array($itemSource, $fileSource, $fileSource));
@@ -775,7 +777,13 @@ echo '<?xml version="1.0"?>
 	 * @return array with: item_source, share_type, share_with, item_type, permissions
 	 */
 	private static function getShareFromId($shareID) {
-		$sql = 'SELECT `file_source`, `item_source`, `share_type`, `share_with`, `item_type`, `permissions`, `stime` FROM `*PREFIX*share` WHERE `id` = ?';
+		if(!\OCA\FilesSharding\Lib::isMaster()){
+			$itemShared = \OCA\FilesSharding\Lib::ws('share_fetch',
+					array('user_id' => \OC_User::getUser(), 'fetch' => 'getShareFromId',
+							'shareId' => $shareID ));
+			return $itemShared['data'];
+		}
+		$sql = 'SELECT * FROM `*PREFIX*share` WHERE `id` = ?';
 		$args = array($shareID);
 		$query = \OCP\DB::prepare($sql);
 		$result = $query->execute($args);

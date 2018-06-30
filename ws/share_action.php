@@ -142,7 +142,7 @@ switch ($_POST['action']) {
 			} else {
 				$shareWith = $_POST['shareWith'];
 			}
-			$file_path = urldecode($_POST['itemPath']);
+			//$file_path = urldecode($_POST['itemPath']);
 			//$return = OCP\Share::unshare($_POST['itemType'], $_POST['itemSource'], $_POST['shareType'], $shareWith);
 			//$itemMasterSource = OCA\FilesSharding\Lib::getFileId($file_path, $user_id);
 			$itemMasterSource = OCA\FilesSharding\Lib::getFileSource($_POST['itemSource'], $_POST['itemType'], false);

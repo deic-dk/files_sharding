@@ -2086,13 +2086,19 @@ class Lib {
 			\OCP\Util::writeLog('files_sharing','ERROR: no owner given.', \OCP\Util::WARN);
 			return false;
 		}
+				
+		\OC_Log::write('OCP\Share', 'QUERY: '.$path.':'.$id, \OC_Log::WARN);
 		
-		$old_file_target = self::getShareFileTarget($id);
+		$result = false;
 		
-		\OC_Log::write('OCP\Share', 'QUERY: '.$path, \OC_Log::WARN);
-		
-		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `uid_owner` = ? AND `item_source` = ?');
-		$result = $query->execute(array($owner, $id));
+		if(!empty($id)){
+			$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `uid_owner` = ? AND `item_source` = ?');
+			$result = $query->execute(array($owner, $id));
+		}
+		elseif(!empty($path)){
+			$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `uid_owner` = ? AND `file_target` = ?');
+			$result = $query->execute(array($owner, $path));
+		}
 		
 		if($result === false) {
 			\OC_Log::write('OCP\Share', 'Couldn\'t update share table for '.$user_id.' --> '.serialize($params), \OC_Log::ERROR);
@@ -2123,13 +2129,15 @@ class Lib {
 	}
 
 	public static function switchUser($owner){
-		$user_id = \OCP\USER::getUser();
+		\OCP\Util::writeLog('files_sharding', 'Logged in: '.\OC_User::isLoggedIn().', user: '.\OCP\USER::getUser(), \OC_Log::WARN);
+		$user_id = \OC_User::getUser();
 		if($owner && $owner!==$user_id){
 			\OC_Util::teardownFS();
 			//\OC\Files\Filesystem::initMountPoints($owner);
+			//\OC::$session->reopen();
 			\OC_User::setUserId($owner);
 			\OC_Util::setupFS($owner);
-			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.\OCP\USER::getUser(), \OC_Log::INFO);
+			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.\OCP\USER::getUser(), \OC_Log::WARN);
 			return $user_id;
 		}
 		else{
@@ -2187,7 +2195,7 @@ class Lib {
 				}
 			}
 			else{
-				if(!empty($owner)){
+				if(!empty($owner) && $owner!=$user){
 					$user_id = self::switchUser($owner);
 				}
 				if(!empty($group)){
@@ -2204,9 +2212,9 @@ class Lib {
 					$parentPath = \OC\Files\Filesystem::getPath($parentId);
 					$path = $parentPath . '/' . basename($path);
 				}
-				\OCP\Util::writeLog('files_sharding', 'Getting info for '.$parentId.':'.$id.':'.$path.':'.$owner, \OC_Log::WARN);
+				\OCP\Util::writeLog('files_sharding', 'Getting info for '.$parentId.':'.$id.':'.$path.':'.$owner.':'.
+						session_status(), \OC_Log::WARN);
 				$info = \OC\Files\Filesystem::getFileInfo($path);
-				\OCP\Util::writeLog('files_sharding', 'Got info: '.$info['path'].':'.$info['parent'], \OC_Log::WARN);
 			}
 		}
 		else{
@@ -2453,11 +2461,11 @@ class Lib {
 		$backupdir = \OC_Config::getValue("backupdirectory", '/tmp');
 		// Just in case - backup the newly created user
 		\OCP\Util::writeLog('files_sharding', 'Backing up files of user '.$uid.': '.
-				$datadir.'/'.$uid.'-->'.$backupdir.'/'.$uid, \OC_Log::WARN);
+				$datadir.'/'.$uid.'-->'.$backupdir.'/'.$uid, \OC_Log::ERROR);
 		rename($datadir.'/'.$uid, $backupdir.'/'.$uid);
 		// Now move the existing/migrated user's data to the new location
 		\OCP\Util::writeLog('files_sharding', 'Migrating files of user '.$olduid.': '.
-				$datadir.'/'.$olduid.'-->'.$datadir.'/'.$uid, \OC_Log::WARN);
+				$datadir.'/'.$olduid.'-->'.$datadir.'/'.$uid, \OC_Log::ERROR);
 		rename($datadir.'/'.$olduid, $datadir.'/'.$uid);
 		// Delete the user $olduid
 		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*users` WHERE LOWER(`uid`) = ?');
