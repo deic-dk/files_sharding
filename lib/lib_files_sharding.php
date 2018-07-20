@@ -1490,7 +1490,7 @@ class Lib {
 		return null;
 	}
 	
-	public function updateFree(){
+	public static function updateFree(){
 		$dataDir = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT . "/data");
 		$free = @disk_free_space($dataDir);
 		$total = @disk_total_space($dataDir);
