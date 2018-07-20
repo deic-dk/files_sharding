@@ -19,5 +19,8 @@ $user_id = OCP\USER::getUser();
 
 $tmpl->assign('data_folders', OCA\FilesSharding\Lib::getDataFoldersList($user_id));
 
+if(OCP\App::isEnabled('user_group_admin')){
+	$tmpl->assign('member_groups',OC_User_Group_Admin_Util::getUserGroups($user, true, true, true));
+}
 
 return $tmpl->fetchPage();

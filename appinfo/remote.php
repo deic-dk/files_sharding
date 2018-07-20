@@ -42,6 +42,8 @@ $REMOVECERT_BASE = OC::$WEBROOT."/removecert";
 $requestFix = new URL\Normalizer($_SERVER['REQUEST_URI']);
 $requestUri = $requestFix->normalize();
 
+$group = '';
+
 $baseUri = OC::$WEBROOT."/remote.php/davs";
 // Known aliases
 if(strpos($requestUri, $SHARED_BASE."/")===0){
@@ -55,6 +57,8 @@ elseif(strpos($requestUri, $PUBLIC_BASE."/")===0){
 }
 elseif(strpos($requestUri, $GROUP_BASE."/")===0){
 	$baseuri = $GROUP_BASE;
+	$group = preg_replace("|^".$GROUP_BASE."/|", "", $requestUri);
+	$group = preg_replace("|/.*$|", "", $group);
 }
 elseif(strpos($requestUri, $SHARINGIN_BASE."/")===0){
 	$baseuri = $SHARINGIN_BASE;
@@ -91,9 +95,22 @@ else{
 }
 
 // Sharded paths take first priority
-if(OCA\FilesSharding\Lib::inDataFolder($reqPath)){
-	$serverUrl = OCA\FilesSharding\Lib::getNextServerForFolder($reqPath, $user, false);
-	$serverInternalUrl = OCA\FilesSharding\Lib::getNextServerForFolder($reqPath, $user, true);
+if(OCA\FilesSharding\Lib::inDataFolder($reqPath, $user, $group)){
+	$serverUrl = OCA\FilesSharding\Lib::getServerForFolder($reqPath, $user, false);
+	$serverInternalUrl = OCA\FilesSharding\Lib::getServerForFolder($reqPath, $user, true);
+	// Check if this is a MKCOL and if there's enough space.
+	// If not, assign a new server to this folder.
+	// For this request we still create the folder on this server, but for subsequent requests in this folder
+	// we will then redirect.
+	if(strtolower($_SERVER['REQUEST_METHOD'])=='mkcol' && OCP\App::isEnabled('files_sharding')){
+		$newServerUrl = OCA\FilesSharding\Lib::setServerForFolder($reqPath, $user, $group);
+		// Also create the folder on the new server
+		$arr = array('user_id'=>$user, 'dir'=>urlencode(dirname($reqPath)), 'foldername'=>urlencode(basename($reqPath)),
+				'group'=>urlencode($group));
+		if(!empty($newServerUrl) && (empty($serverUrl) || $newServerUrl!=$serverUrl)){
+			$result = \OCA\FilesSharding\Lib::ws('newfolder', $arr, true, true, $newServerUrl);
+		}
+	}
 }
 
 // Trusting HTTP_REFERER. Not really safe, but worst case: a malicious user cannot find his files or fills up a machine.

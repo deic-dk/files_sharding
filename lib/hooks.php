@@ -169,14 +169,17 @@ class Hooks {
 		$id = \OCA\FilesSharding\Lib::getFileId($path, $user_id, $group);
 		
 		if(\OCA\FilesSharding\Lib::isMaster()){
-			$res = \OCA\FilesSharding\Lib::deleteShareFileTarget($user_id, $id, $path);
+			$res0 = \OCA\FilesSharding\Lib::deleteShareFileTarget($user_id, $id, $path);
+			$res1 = \OCA\FilesSharding\Lib::deleteDataFileTarget($user_id, $path);
 		}
 		else{
 			$path = implode('/', array_map('rawurlencode', explode('/', $path)));
-			$res = \OCA\FilesSharding\Lib::ws('delete_share_file_target',
+			$res0 = \OCA\FilesSharding\Lib::ws('delete_share_file_target',
 					array('owner' => $user_id, 'id' => $id, 'path' => $path));
+			$res1 = \OCA\FilesSharding\Lib::ws('delete_data_file_target',
+					array('owner' => $user_id, 'path' => $path));
 		}
-		return $res;
+		return $res0 && $res1;
 	}
 	
 	public static function noSharedSetup(){

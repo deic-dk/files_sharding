@@ -152,8 +152,9 @@ function create_r_dialog(path){
 	if(remove_dialogs[path] != undefined){
 		return;
 	}
-	$("#filesShardingDataFolders #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] div.dialog").text("Are you sure you want to sync the folder "+path+" again?");
-	$("#filesShardingDataFolders #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] div.dialog").text("Are you sure you want to sync the folder "+path+" again?");
+	msg = t("chooser", "Are you sure you want to sync the folder %s again?");
+	msg = msg.replace(/%s/, path)
+	$("#filesShardingDataFolders #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] div.dialog").text(msg);
 	remove_dialogs[path] =  $("#filesShardingDataFolders  #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] div.dialog").dialog({
 		title: "Confirm sync",
 		autoOpen: false,
@@ -183,7 +184,7 @@ function appendDataDiv(folder){
    		</div>');
 }
 
-function addDataFolder(folder){
+function addDataFolder(folder, group){
 	
 	if($("#filesShardingDataFolders #filesShardingDataFoldersList div.dataFolder[path='"+folder+"']").length>0){
 		return false;
@@ -193,6 +194,7 @@ function addDataFolder(folder){
 		 type:'POST',
 		  data:{
 			  folder: folder,
+			  group: group,
 		 },
 		 dataType:'json',
 		 success: function(s){
@@ -245,16 +247,17 @@ $(document).ready(function(){
 
 	var choose_data_folder_dialog;
 	var buttons = {};
-	buttons[t("files_picocms", "Choose")] = function() {
+	buttons[t("chooser", "Choose")] = function() {
 		folder = stripTrailingSlash($('#chosen_folder').text());
-		addDataFolder(folder);
+		group = $('#group_folder').val();
+		addDataFolder(folder, group);
 		choose_data_folder_dialog.dialog("close");
  	};
- 	buttons[t("files_picocms", "Cancel")] = function() {
+ 	buttons[t("chooser", "Cancel")] = function() {
 		choose_data_folder_dialog.dialog("close");
 	};
 	choose_data_folder_dialog = $("#filesShardingDataFolders div.addDataFolder div.dialog").dialog({//create dialog, but keep it closed
-		title: "Choose new data folder to exclude from syncing",
+		title: t("chooser", "Choose data folder"),
 		autoOpen: false,
 		height: 440,
 		width: 620,
@@ -317,6 +320,7 @@ $(document).ready(function(){
 	  choose_data_folder_dialog.dialog('open');
 	  //choose_data_folder_dialog.load("/apps/chooser/");
 	  choose_data_folder_dialog.show();
+		group = $('#group_folder').val();
 		$('#loadDataFolderTree').fileTree({
 			//root: '/',
 			script: '../../apps/chooser/jqueryFileTree.php',
@@ -325,7 +329,8 @@ $(document).ready(function(){
 			selectFile: false,
 			selectFolder: true,
 			folder: '/',
-			file: ''
+			file: '',
+			group: group
 		},
 		// single-click
 		function(file) {
@@ -334,7 +339,7 @@ $(document).ready(function(){
 		// double-click
 		function(file) {
 			if(file.indexOf("/", file.length-1)!=-1){// folder double-clicked
-				addDataFolder(file);
+				addDataFolder(file, group);
 				choose_data_folder_dialog.dialog("close");
 			}
 		});

@@ -86,6 +86,8 @@ OC::$CLASSPATH['OCA\FilesSharding\BackgroundJob\DeleteUser'] = 'apps/files_shard
 require_once('apps/files_sharding/lib/backgroundjob/sync_user.php');
 OCP\Backgroundjob::registerJob('OCA\FilesSharding\BackgroundJob\SyncUser');
 OCP\Backgroundjob::registerJob('OCA\FilesSharding\BackgroundJob\DeleteUser');
+require_once('apps/files_sharding/lib/backgroundjob/update_free.php');
+OCP\Backgroundjob::registerJob('OCA\FilesSharding\BackgroundJob\UpdateFree');
 // 
 
 OCP\Util::addScript('files_sharding', 'access');

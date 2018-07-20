@@ -54,6 +54,17 @@
 				<type>text</type>
 				<notnull>true</notnull>
 			</field>
+			<field>
+				<name>total</name>
+				<type>integer</type>
+				<notnull>true</notnull>
+				<length>18</length>
+			</field>
+				<name>free</name>
+				<type>integer</type>
+				<notnull>true</notnull>
+				<length>18</length>
+			</field>
 		</declaration>
 	</table>
 	<table>
@@ -64,6 +75,12 @@
 				<type>text</type>
 				<notnull>true</notnull>
 				<length>512</length>
+			</field>
+			<field>
+				<name>gid</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>64</length>
 			</field>
 			<field>
 				<name>server_id</name>

@@ -38,8 +38,10 @@ if(!isset($_POST['user_id']) || !isset($_POST['folder'])){
 
 $folder = $_POST['folder'];
 $user_id = $_POST['user_id'];
+$group = empty($_POST['group'])?'':$group;
+$server_id = empty($_POST['server_id'])?null:$_POST['server_id'];
 
-if(!OCA\FilesSharding\Lib::addDataFolder($folder, $user_id)){
+if(!OCA\FilesSharding\Lib::addDataFolder($folder, $group, $user_id, $server_id)){
 	$ret['error'] = "Failed adding data folder";
 }
 else{

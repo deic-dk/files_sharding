@@ -16,6 +16,7 @@ $TRANSLATIONS = array(
 		"Data location" => "Beliggenhed af dine data",
 		"What's this?" => "Hvad er dette?",
 		"Home site" => "Hjemme-site",
+		"Home" => "Hjem",
 		"Backup site" => "Backup-site",
 		"URL for sync clients" => "URL for synkroniserings-klienter",
 		"URL for file-transfer (WebDAV) clients" => "URL for filoverførsels/webdav-klienter",
