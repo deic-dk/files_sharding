@@ -70,6 +70,9 @@ class Lib {
 	}
 	
 	public static function isHostMe($hostname){
+		if(empty($hostname)){
+			return false;
+		}
 		if(empty($_SERVER['HTTP_HOST']) && empty($_SERVER['SERVER_NAME'])){
 			// Running off cron
 			$myShortName = php_uname("n");
@@ -83,6 +86,9 @@ class Lib {
 	}
 	
 	public static function isServerMe($server){
+		if(empty($server)){
+			return false;
+		}
 		$parse = parse_url($server);
 		return self::isHostMe($parse['host']);
 	}
@@ -1399,7 +1405,7 @@ class Lib {
 	 * @param internal $internal whether to return the internal URL
 	 * @return the base URL (https://...) of the server that will serve the files
 	 */
-	public static function getServerForUser($user_id, $internal=false, $priority=0){
+	public static function getServerForUser($user_id, $internal=false, $priority=0, $default_to_master=false){
 		// If I'm the master, look up in DB
 		if(self::isMaster()){
 			if($internal){
@@ -1414,6 +1420,9 @@ class Lib {
 			$response = self::ws('get_user_server',
 					Array('user_id' => $user_id, 'internal' => ($internal?'yes':'no'), 'priority' => $priority), false, false);
 			$server = $response->url;
+		}
+		if(empty($server) && $default_to_master){
+			$server = $internal?self::getMasterInternalURL():self::getMasterURL();
 		}
 		return $server;
 	}
