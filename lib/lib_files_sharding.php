@@ -2446,9 +2446,17 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'dirMeta: '.$dirId.':'.$dirMeta->getInternalPath().':'.
 					$endPath.':'.$path.':'.\OCP\USER::getUser().':'.$dirOwner.':'.$dirId, \OC_Log::WARN);
 		}
-		// TODO: This triggers writeHook() from files_sharing, which calls correctFolders(), ..., getFileInfo(),
-		// which fails when in group folders. Fix
-		$ret = \OC\Files\Filesystem::fromTmpFile($tmpFile, $endPath);
+		// This triggers writeHook() from files_sharing, which calls correctFolders(), ..., getFileInfo(),
+		// which fails when in group folders.
+		if(empty($group)){
+			$ret = \OC\Files\Filesystem::fromTmpFile($tmpFile, $endPath);
+		}
+		else{
+			$dataDir = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT . "/data");
+			$fullEndPath = $dataDir.'/'.\OCP\USER::getUser().'/'.trim(\OC\Files\Filesystem::getRoot(), '/').'/'.trim($endPath, '/');
+			\OCP\Util::writeLog('files_sharding', 'Moving tmp file: '.$tmpFile.'->'.$fullEndPath.':'.\OCP\USER::getUser(), \OC_Log::WARN);
+			$ret = rename($tmpFile, $fullEndPath);
+		}
 		
 		if(isset($user_id) && $user_id){
 			self::restoreUser($user_id);

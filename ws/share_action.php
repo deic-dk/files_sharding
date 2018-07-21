@@ -56,13 +56,11 @@ $user_id = $_POST['user_id'];
 \OC_User::setUserId($user_id);
 \OC_Util::setupFS($user_id);
 
-if(OCP\App::isEnabled('user_group_admin')){
-	$group = empty($_POST['group'])?'':$_POST['group'];
-	if(!empty($group)){
-		\OC\Files\Filesystem::tearDown();
-		$groupDir = '/'.$user_id.'/user_group_admin/'.$group;
-		\OC\Files\Filesystem::init($user_id, $groupDir);
-	}
+if(OCP\App::isEnabled('user_group_admin') && !empty($_POST['groupFolder'])){
+	$group = $_POST['groupFolder'];
+	\OC\Files\Filesystem::tearDown();
+	$groupDir = '/'.$user_id.'/user_group_admin/'.$group;
+	\OC\Files\Filesystem::init($user_id, $groupDir);
 }
 
 switch ($_POST['action']) {
@@ -74,12 +72,12 @@ switch ($_POST['action']) {
 				$file_path = urldecode($_POST['itemPath']);
 				if(($_POST['itemType'] === 'file' or $_POST['itemType'] === 'folder')){
 					if(!OC\Files\Filesystem::file_exists($file_path)){
+						$parent_path = dirname($file_path);
+						if(!OC\Files\Filesystem::file_exists($parent_path)){
+							\OCP\Util::writeLog('files_sharding', 'Creating '.$parent_path, \OC_Log::WARN);
+							OC\Files\Filesystem::mkdir($parent_path, '0770', true);
+						}
 						if($_POST['itemType']==='file'){
-							$parent_path = dirname($file_path);
-							if(!OC\Files\Filesystem::file_exists($parent_path)){
-								\OCP\Util::writeLog('files_sharding', 'Creating '.$parent_path, \OC_Log::WARN);
-								OC\Files\Filesystem::mkdir($parent_path, '0770', true);
-							}
 							OC\Files\Filesystem::touch($file_path);
 						}
 						if($_POST['itemType']==='folder'){

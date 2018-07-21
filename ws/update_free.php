@@ -9,12 +9,6 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 	exit;
 }
 
-
-if(!isset($_POST['user_id']) || !isset($_POST['folder'])){
-	http_response_code(401);
-	exit;
-}
-
 $total = $_POST['total'];
 $free = $_POST['free'];
 $server_id = empty($_POST['server_id'])?null:$_POST['server_id'];

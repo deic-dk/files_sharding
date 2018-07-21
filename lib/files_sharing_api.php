@@ -105,9 +105,6 @@ class Api {
 	 * @return \OC_OCS_Result share information
 	 */
 	public static function getAllShares($params) {
-		if (isset($_GET['shared_with_me']) && $_GET['shared_with_me'] !== 'false') {
-				return self::getFilesSharedWithMe();
-			}
 		// if a file is specified, get the share for this file
 		if (isset($_GET['path'])) {
 			$params['itemSource'] = self::getFileId($_GET['path']);
@@ -125,8 +122,13 @@ class Api {
 			}
 			return self::collectShares($params);
 		}
-
-		$shares = self::getItemShared('file', null);
+		if (isset($_GET['shared_with_me']) && $_GET['shared_with_me'] !== 'false') {
+			//return self::getFilesSharedWithMe();
+			$shares = self::getFilesSharedWithMe()->getData();
+		}
+		else{
+			$shares = self::getItemShared('file', null);
+		}
 		$isMaster = \OCA\FilesSharding\Lib::isMaster();
 		if ($shares === false) {
 			return new \OC_OCS_Result(null, 404, 'could not get shares');
@@ -160,10 +162,10 @@ class Api {
 				// Set group if in a group folder
 				$fileInfo = \OCA\FilesSharding\Lib::getFileInfo($share['path'], null, $share['item_source'], null);
 				if($fileInfo['path']=='files' && \OCP\App::isEnabled('user_group_admin')){
-					\OCP\Util::writeLog('files_sharding', 'Getting group for '.$share['item_source'].
-						':'.$fileInfo['path'], \OC_Log::INFO);
+
 					$group = \OC_User_Group_Admin_Util::getGroup($share['item_source']);
-					if(!empty($group)){
+					\OCP\Util::writeLog('files_sharding', 'Got group for '.$share['item_source'].
+							':'.$fileInfo['path'].':'.serialize($group), \OC_Log::WARN);if(!empty($group)){
 						$share['group'] = $group['group'];
 						$share['path'] = $group['path'];
 					}
