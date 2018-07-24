@@ -2412,18 +2412,18 @@ class Lib {
 	public static function moveTmpFile($tmpFile, $path, $dirOwner, $dirId, $group=''){
 		$endPath = $path;
 		$user = \OCP\USER::getUser();
-		if($dirOwner && $dirId){
+		if($dirId){
 			$dirMeta = self::getFileInfo(null, $dirOwner, $dirId, null, '', $group);
 			$dirPath = preg_replace('|^files/|','/', $dirMeta->getInternalPath());
 			$dirPath = preg_replace('|^user_group_admin/[^/]*/|','/', $dirPath);
 			$endPath = $dirPath.'/'.basename($path);
 		}
-		if(self::inDataFolder($path, $user, $group)){
-			$dataServer = self::getServerForFolder($path, $user, true);
+		if(self::inDataFolder($endPath, $user, $group)){
+			$dataServer = self::getServerForFolder($endPath, $user, true);
 		}
 		if(empty($dataServer) && $dirOwner){
-			if(self::inDataFolder($path, $dirOwner, $group)){
-				$dataServer = self::getServerForFolder($path, $dirOwner, true);
+			if(self::inDataFolder($endPath, $dirOwner, $group)){
+				$dataServer = self::getServerForFolder($endPath, $dirOwner, true);
 			}
 			// For a shared directory send data to server holding the directory
 			if(empty($dataServer) && !self::onServerForUser($dirOwner)){
@@ -2445,15 +2445,6 @@ class Lib {
 				$groupDir = '/'.$dirOwner.'/user_group_admin/'.$group;
 				\OC\Files\Filesystem::init($dirOwner, $groupDir);
 			}
-		}
-		if($dirId){
-			$dirMeta = self::getFileInfo(null, $dirOwner, $dirId, null);
-			$dirPath = preg_replace('|^files/|','/', $dirMeta->getInternalPath());
-			$dirPath = preg_replace('|^user_group_admin/[^/]*/|','/', $dirPath);
-			$pathinfo = pathinfo($path);
-			$endPath = $dirPath.'/'.$pathinfo['basename'];
-			\OCP\Util::writeLog('files_sharding', 'dirMeta: '.$dirId.':'.$dirMeta->getInternalPath().':'.
-					$endPath.':'.$path.':'.\OCP\USER::getUser().':'.$dirOwner.':'.$dirId, \OC_Log::WARN);
 		}
 		// This triggers writeHook() from files_sharing, which calls correctFolders(), ..., getFileInfo(),
 		// which fails when in group folders.
