@@ -123,8 +123,8 @@ class Api {
 			return self::collectShares($params);
 		}
 		if (isset($_GET['shared_with_me']) && $_GET['shared_with_me'] !== 'false') {
-			//return self::getFilesSharedWithMe();
-			$shares = self::getFilesSharedWithMe()->getData();
+			return self::getFilesSharedWithMe();
+			//$shares = self::getFilesSharedWithMe()->getData();
 		}
 		else{
 			$shares = self::getItemShared('file', null);
@@ -162,7 +162,6 @@ class Api {
 				// Set group if in a group folder
 				$fileInfo = \OCA\FilesSharding\Lib::getFileInfo($share['path'], null, $share['item_source'], null);
 				if($fileInfo['path']=='files' && \OCP\App::isEnabled('user_group_admin')){
-
 					$group = \OC_User_Group_Admin_Util::getGroup($share['item_source']);
 					\OCP\Util::writeLog('files_sharding', 'Got group for '.$share['item_source'].
 							':'.$fileInfo['path'].':'.serialize($group), \OC_Log::WARN);if(!empty($group)){

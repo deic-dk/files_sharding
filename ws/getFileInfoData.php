@@ -47,7 +47,7 @@ elseif($user_id){
 	\OC_Util::teardownFS();
 	\OC_User::setUserId($user_id);
 	\OC_Util::setupFS($user_id);
-	\OCP\Util::writeLog('files_sharding', 'No id or owner: '.$owner.':'.$id, \OC_Log::WARN);
+	\OCP\Util::writeLog('files_sharding', 'No id or owner: '.$user_id.':'.$owner.':'.$id, \OC_Log::WARN);
 }
 
 if(!empty($group) && !empty($group_dir_owner)){

@@ -2412,6 +2412,12 @@ class Lib {
 	public static function moveTmpFile($tmpFile, $path, $dirOwner, $dirId, $group=''){
 		$endPath = $path;
 		$user = \OCP\USER::getUser();
+		if($dirOwner && $dirId){
+			$dirMeta = self::getFileInfo(null, $dirOwner, $dirId, null, '', $group);
+			$dirPath = preg_replace('|^files/|','/', $dirMeta->getInternalPath());
+			$dirPath = preg_replace('|^user_group_admin/[^/]*/|','/', $dirPath);
+			$endPath = $dirPath.'/'.basename($path);
+		}
 		if(self::inDataFolder($path, $user, $group)){
 			$dataServer = self::getServerForFolder($path, $user, true);
 		}
@@ -2472,7 +2478,7 @@ class Lib {
 	public static function putFile($tmpFile, $dataServer, $dirOwner, $path, $group=''){
 		
 		$url = $dataServer .
-		(\OCP\App::isEnabled('user_group_admin')?(empty($group)?'/remote.php/mydav/':'/group/'.urlencode($group).'/'):
+		(\OCP\App::isEnabled('user_group_admin')?(empty($group)?'/remote.php/mydav/':'/group/'.rawurlencode($group).'/'):
 					'remote.php/webdav/') .
 			implode('/', array_map('rawurlencode', explode('/', $path)));
 		
@@ -2507,7 +2513,7 @@ class Lib {
 		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		curl_close($curl);
 		if($status===0 || $status>=300){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: could not put. '.$status.':'.$res, \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not put. '.$url.':'.$status.':'.$res, \OC_Log::ERROR);
 			return null;
 		}
 		return true;
