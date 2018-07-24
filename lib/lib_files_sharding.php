@@ -556,6 +556,9 @@ class Lib {
 			self::dbAddDataFolder($folder, $group, $user_server_id, $user_id, self::$USER_SERVER_PRIORITY_PRIMARY);
 		}
 		else{
+			$_SESSION['oc_data_folders'][] = array('folder'=>$folder, 'gid'=>$group,
+				'server_id'=>empty($serverID)?'':$serverID, 'user_id'=>$user_id,
+				'priority'=>self::$USER_SERVER_PRIORITY_PRIMARY);
 			return self::ws('add_data_folder',
 					Array('user_id' => $user_id, 'folder' => $folder, 'group' => $group,
 							'server_id' => (empty($serverID)?'':$serverID)), true, true);
