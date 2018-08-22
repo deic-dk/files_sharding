@@ -2039,7 +2039,7 @@ class Lib {
 		return $ret;
 	}
 	
-	public static function checkReadAccessRecursively($user_id, $itemSource, $owner, $group){
+	public static function checkReadAccessRecursively($user_id, $itemSource, $owner, $group=''){
 		$user = self::switchUser($owner);
 		$ret = false;
 		while(!empty($itemSource) && $itemSource!=-1){
