@@ -40,7 +40,7 @@ else{
 
 $ret = OCA\FilesSharding\Lib::dbGetDataFoldersList($user_id);
 
-\OCP\Util::writeLog('files_sharding', 'Returning data folders '.serialize($ret), \OC_Log::WARN);
+\OCP\Util::writeLog('files_sharding', 'Returning data folders '.serialize($ret), \OC_Log::INFO);
 
 OCP\JSON::encodedPrint($ret);
 

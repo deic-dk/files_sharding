@@ -2039,11 +2039,11 @@ class Lib {
 		return $ret;
 	}
 	
-	public static function checkReadAccessRecursively($user_id, $itemSource, $owner){
+	public static function checkReadAccessRecursively($user_id, $itemSource, $owner, $group){
 		$user = self::switchUser($owner);
 		$ret = false;
 		while(!empty($itemSource) && $itemSource!=-1){
-			$fileInfo = self::getFileInfo(null, $owner, $itemSource, null, $user_id);
+			$fileInfo = self::getFileInfo(null, $owner, $itemSource, null, $user_id, $group);
 			$fileType = $fileInfo->getType()===\OCP\Files\FileInfo::TYPE_FOLDER?'folder':'file';
 			if(empty($fileInfo['parent']) || $itemSource==$fileInfo['parent'] || empty($fileInfo['path'])){
 				break;
@@ -2052,8 +2052,8 @@ class Lib {
 				$ret = true;
 				break;
 			}
+			\OC_Log::write('files_sharding', 'Parent: '.$itemSource.'-->'.$fileInfo['fileid'].'-->'.$fileInfo['parent'], \OC_Log::WARN);
 			$itemSource = $fileInfo['parent'];
-			\OC_Log::write('files_sharding', 'Parent: '.$itemSource, \OC_Log::WARN);
 		}
 		self::restoreUser($user);
 		return $ret;
@@ -2304,7 +2304,7 @@ class Lib {
 	}
 
 	public static function switchUser($owner){
-		\OCP\Util::writeLog('files_sharding', 'Logged in: '.\OC_User::isLoggedIn().', user: '.\OCP\USER::getUser(), \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'Logged in: '.\OC_User::isLoggedIn().', user: '.\OCP\USER::getUser(), \OC_Log::INFO);
 		$user_id = \OC_User::getUser();
 		if($owner && $owner!==$user_id){
 			\OC_Util::teardownFS();
@@ -2312,7 +2312,7 @@ class Lib {
 			//\OC::$session->reopen();
 			\OC_User::setUserId($owner);
 			\OC_Util::setupFS($owner);
-			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.\OCP\USER::getUser(), \OC_Log::WARN);
+			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.\OCP\USER::getUser(), \OC_Log::INFO);
 			return $user_id;
 		}
 		else{
@@ -2404,7 +2404,7 @@ class Lib {
 			self::restoreUser($user_id);
 		}
 		
-		\OCP\Util::writeLog('files_sharding', 'User now '.\OC_User::getUser().':'.$user.':'.':'.$owner, \OC_Log::DEBUG);
+		\OCP\Util::writeLog('files_sharding', 'User now '.\OC_User::getUser().':'.$user.':'.':'.$owner, \OC_Log::INFO);
 		
 		return $info;
 	}
@@ -2453,8 +2453,11 @@ class Lib {
 		}
 		else{
 			$dataDir = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT . "/data");
-			$fullEndPath = $dataDir.'/'.\OCP\USER::getUser().'/'.trim(\OC\Files\Filesystem::getRoot(), '/').'/'.trim($endPath, '/');
-			\OCP\Util::writeLog('files_sharding', 'Moving tmp file: '.$tmpFile.'->'.$fullEndPath.':'.\OCP\USER::getUser(), \OC_Log::WARN);
+			$fullEndPath = $dataDir.'/'.
+			(empty($group)?\OCP\USER::getUser().'/':'/').
+			trim(\OC\Files\Filesystem::getRoot(), '/').'/'.trim($endPath, '/');
+			\OCP\Util::writeLog('files_sharding', 'Moving tmp file: '.$tmpFile.'->'.$dataDir.'->'.$endPath.'->'.
+					\OC\Files\Filesystem::getRoot().'->'.$$fullEndPath.':'.\OCP\USER::getUser(), \OC_Log::WARN);
 			$ret = rename($tmpFile, $fullEndPath);
 		}
 		

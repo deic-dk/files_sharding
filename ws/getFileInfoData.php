@@ -37,16 +37,25 @@ $group = isset($_GET['group']) ? $_GET['group'] : '';
 
 $group_dir_owner = $user_id;
 
+function switchUser($myowner){
+	$myuser = \OC_User::getUser();
+	if($myowner && $myowner!==$myuser){
+		\OC_Util::teardownFS();
+		\OC_User::setUserId($myowner);
+		\OC_Util::setupFS($myowner);
+		return $myuser;
+	}
+	else{
+		return null;
+	}
+}
+
 if($owner && $owner!=$user_id){
-	\OC_Util::teardownFS();
-	\OC_User::setUserId($owner);
-	\OC_Util::setupFS($owner);
+	switchUser($owner);
 	$group_dir_owner = $owner;
 }
 elseif($user_id){
-	\OC_Util::teardownFS();
-	\OC_User::setUserId($user_id);
-	\OC_Util::setupFS($user_id);
+	switchUser($user_id);
 	\OCP\Util::writeLog('files_sharding', 'No id or owner: '.$user_id.':'.$owner.':'.$id, \OC_Log::WARN);
 }
 
@@ -63,12 +72,15 @@ if($id){
 
 \OCP\Util::writeLog('files_sharding', 'Path: '.$path, \OC_Log::WARN);
 if(!empty($owner) && $owner!=$user_id &&
-		!\OCA\FilesSharding\Lib::checkReadAccessRecursively($user_id, $id, $owner)){
+		!\OCA\FilesSharding\Lib::checkReadAccessRecursively($user_id, $id, $owner, $group)){
 			\OCP\Util::writeLog('files_sharding', 'Not allowed '.$user_id.'/'.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
 	restoreUser($user_id);
 	//throw new Exception('Not allowed. '.$id);
 }
 else{
+	if(!empty($owner) && $owner!=$user_id){
+		switchUser($owner);
+	}
 	if(!empty($group)){
 		$path = \OC\Files\Filesystem::normalizePath('/'.$group.$path);
 		$fs = \OCP\Files::getStorage('user_group_admin');
@@ -79,7 +91,10 @@ else{
 		$info = \OC\Files\Filesystem::getFileInfo($path);
 	}
 }
-if(!$info){
+
+restoreUser($user_id);
+
+if(!$info || $info->getId()!=$id){
 	\OCP\Util::writeLog('files_sharding', 'File not found '.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
 	OCP\JSON::encodedPrint('');
 	exit;

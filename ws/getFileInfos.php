@@ -32,6 +32,7 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 // The superglobals $_GET and $_REQUEST are already decoded
 $dir = isset($_GET['dir'])?$_GET['dir']:'';
 $id = isset($_GET['id']) ? $_GET['id'] : null;
+$user_id = isset($_GET['user_id']) ? $_GET['user_id'] : '';
 $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
 $sortAttribute = isset($_GET['sortAttribute']) ? $_GET['sortAttribute'] : '';
 $sortDirection = isset($_GET['sortDirection']) ? $_GET['sortDirection'] : '';
