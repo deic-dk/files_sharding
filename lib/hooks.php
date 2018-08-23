@@ -176,7 +176,7 @@ class Hooks {
 			$path = implode('/', array_map('rawurlencode', explode('/', $path)));
 			$res0 = \OCA\FilesSharding\Lib::ws('delete_share_file_target',
 					array('owner' => $user_id, 'id' => $id, 'path' => $path));
-			$res1 = \OCA\FilesSharding\Lib::ws('delete_data_file_target',
+			$res1 = \OCA\FilesSharding\Lib::ws('delete_share_file_target',
 					array('owner' => $user_id, 'path' => $path));
 		}
 		return $res0 && $res1;
