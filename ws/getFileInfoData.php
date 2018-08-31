@@ -50,9 +50,9 @@ function switchUser($myowner){
 	}
 }
 
+$group_dir_owner = $owner;
 if($owner && $owner!=$user_id){
 	switchUser($owner);
-	$group_dir_owner = $owner;
 }
 elseif($user_id){
 	switchUser($user_id);
@@ -71,30 +71,36 @@ if($id){
 }
 
 \OCP\Util::writeLog('files_sharding', 'Path: '.$path, \OC_Log::WARN);
-if(!empty($owner) && $owner!=$user_id &&
-		!\OCA\FilesSharding\Lib::checkReadAccessRecursively($user_id, $id, $owner, $group)){
-			\OCP\Util::writeLog('files_sharding', 'Not allowed '.$user_id.'/'.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
-	restoreUser($user_id);
-	//throw new Exception('Not allowed. '.$id);
-}
-else{
-	if(!empty($owner) && $owner!=$user_id){
-		switchUser($owner);
-	}
-	if(!empty($group)){
-		$path = \OC\Files\Filesystem::normalizePath('/'.$group.$path);
-		$fs = \OCP\Files::getStorage('user_group_admin');
-		\OCP\Util::writeLog('User_Group_Admin', 'DIR: '.$path, \OCP\Util::WARN);
-		$info = $fs->getFileInfo($path);
+try{
+	if(!empty($owner) && $owner!=$user_id &&
+			!\OCA\FilesSharding\Lib::checkReadAccessRecursively($user_id, $id, $owner, $group, $path)){
+				\OCP\Util::writeLog('files_sharding', 'Not allowed '.$user_id.'/'.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
+		restoreUser($user_id);
+		//throw new Exception('Not allowed. '.$id);
 	}
 	else{
-		$info = \OC\Files\Filesystem::getFileInfo($path);
+		if(!empty($owner) && $owner!=$user_id){
+			switchUser($owner);
+		}
+		if(!empty($group)){
+			$path = \OC\Files\Filesystem::normalizePath('/'.$group.$path);
+			$fs = \OCP\Files::getStorage('user_group_admin');
+			\OCP\Util::writeLog('User_Group_Admin', 'DIR: '.$path, \OCP\Util::WARN);
+			$info = $fs->getFileInfo($path);
+		}
+		else{
+			$info = \OC\Files\Filesystem::getFileInfo($path);
+		}
 	}
 }
-
+catch(\Exception $e){
+	restoreUser($user_id);
+	OCP\JSON::encodedPrint('');
+	exit;
+}
 restoreUser($user_id);
 
-if(!$info || $info->getId()!=$id){
+if(!$info || !empty($id) && $info->getId()!=$id){
 	\OCP\Util::writeLog('files_sharding', 'File not found '.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
 	OCP\JSON::encodedPrint('');
 	exit;

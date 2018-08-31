@@ -2039,8 +2039,12 @@ class Lib {
 		return $ret;
 	}
 	
-	public static function checkReadAccessRecursively($user_id, $itemSource, $owner, $group=''){
+	public static function checkReadAccessRecursively($user_id, $itemSource, $owner, $group='',
+			$path=''){
 		$user = self::switchUser($owner);
+		if(empty($itemSource) && !empty($path)){
+			$itemSource = self::getFileId($path, $owner, $group);
+		}
 		$ret = false;
 		while(!empty($itemSource) && $itemSource!=-1){
 			$fileInfo = self::getFileInfo(null, $owner, $itemSource, null, $user_id, $group);
