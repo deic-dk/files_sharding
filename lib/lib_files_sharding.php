@@ -1457,7 +1457,7 @@ class Lib {
 	 * @return URL (https://...)
 	 */
 	public static function dbGetServerForFolder($folder, $user_id, $internal=false){
-		$results = dbGetServersForFolder($folder, $user_id);
+		$results = self::dbGetServersForFolder($folder, $user_id);
 		foreach($results as $row){
 			if($row['priority']=self::$USER_SERVER_PRIORITY_PRIMARY){
 				if($internal){
@@ -2380,6 +2380,7 @@ class Lib {
 				if(!empty($group)){
 					$user_id = !empty($user_id)?$user_id:$user;
 					$groupOwner = \OC_User::getUser();
+					\OCP\Util::writeLog('files_sharding', 'Using group '.$groupOwner.':'.$group, \OC_Log::WARN);
 					\OC\Files\Filesystem::tearDown();
 					$groupDir = '/'.$groupOwner.'/user_group_admin/'.$group;
 					\OC\Files\Filesystem::init($groupOwner, $groupDir);
