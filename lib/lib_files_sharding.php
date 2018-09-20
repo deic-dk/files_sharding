@@ -2368,6 +2368,9 @@ class Lib {
 							false, true, $dataServer);
 				}
 				if($data){
+					\OCP\Util::writeLog('files_sharding', 'Getting file info for '.$data['path'].'-->'.serialize($data), \OC_Log::WARN);
+					$configDataDirectory = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT."/data");
+					\OC\Files\Filesystem::mount('\OC\Files\Storage\Local', array('datadir'=>$configDataDirectory), '/');
 					$storage = \OC\Files\Filesystem::getStorage($data['path']);
 					$info = new \OC\Files\FileInfo($data['path'], $storage, $data['internalPath'], $data);
 					\OCP\Util::writeLog('files_sharding', 'Returning file info for '.$data['path'].'-->'.serialize($data), \OC_Log::WARN);
@@ -2399,14 +2402,31 @@ class Lib {
 		}
 		else{
 			// For non-shared directories, file information is kept on the slave
+			if(!empty($owner) && $owner!=$user){
+				$user_id = self::switchUser($owner);
+			}
+			if(!empty($group)){
+				$user_id = !empty($user_id)?$user_id:$user;
+				$groupOwner = \OC_User::getUser();
+				\OCP\Util::writeLog('files_sharding', 'Using group '.$groupOwner.':'.$group, \OC_Log::WARN);
+				\OC\Files\Filesystem::tearDown();
+				$groupDir = '/'.$groupOwner.'/user_group_admin/'.$group;
+				\OC\Files\Filesystem::init($groupOwner, $groupDir);
+			}
 			if($id){
 				$path = \OC\Files\Filesystem::getPath($id);
 			}
+			\OCP\Util::writeLog('files_sharding', 'Getting info for '.$user.':'.\OC\Files\Filesystem::getRoot().
+					':'.$path, \OC_Log::WARN);
 			$info = \OC\Files\Filesystem::getFileInfo($path);
 		}
 		
 		if(isset($user_id) && $user_id){
 			self::restoreUser($user_id);
+		}
+		if(!empty($group)){
+			\OC\Files\Filesystem::tearDown();
+			\OC\Files\Filesystem::init($user, "/".$user."/files");
 		}
 		
 		\OCP\Util::writeLog('files_sharding', 'User now '.\OC_User::getUser().':'.$user.':'.':'.$owner, \OC_Log::INFO);
