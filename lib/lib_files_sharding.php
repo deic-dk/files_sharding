@@ -1518,7 +1518,7 @@ class Lib {
 		}
 	}
 	
-	public function dbUpdateFree($total, $free, $server_id){
+	public static function dbUpdateFree($total, $free, $server_id){
 		$query = \OC_DB::prepare(
 				'UPDATE `*PREFIX*files_sharding_servers` SET `total` = ?, `free` = ? WHERE `id` = ?');
 		$result = $query->execute(Array($total, $free, $server_id));
