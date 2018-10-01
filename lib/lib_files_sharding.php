@@ -2339,9 +2339,9 @@ class Lib {
 		
 		$user = empty($user)?\OC_User::getUser():$user;
 		
-		if(($id || $parentId) && $owner){
+		//if(($id || $parentId) && $owner){
 			// For a shared directory get info from server holding the data
-			if(!self::onServerForUser($owner)){
+		if(!empty($owner) && !self::onServerForUser($owner)){
 				$dataServer = self::getServerForUser($owner, true);
 				if(!$dataServer){
 					$dataServer = self::getMasterInternalURL();
@@ -2364,6 +2364,12 @@ class Lib {
 					$pathinfo = pathinfo($path);
 					$data = self::ws('getFileInfoData',
 							array('user_id' => $user, 'path'=>urlencode($dirPath.'/'.$pathinfo['basename']), 'owner'=>$owner,
+									'group'=>urlencode($group)),
+							false, true, $dataServer);
+				}
+				else{
+					$data = self::ws('getFileInfoData',
+							array('user_id' => $user, 'path'=>urlencode($path), 'owner'=>$owner,
 									'group'=>urlencode($group)),
 							false, true, $dataServer);
 				}
@@ -2399,8 +2405,8 @@ class Lib {
 						session_status(), \OC_Log::WARN);
 				$info = \OC\Files\Filesystem::getFileInfo($path);
 			}
-		}
-		else{
+		//}
+		/*else{
 			// For non-shared directories, file information is kept on the slave
 			if(!empty($owner) && $owner!=$user){
 				$user_id = self::switchUser($owner);
@@ -2419,7 +2425,7 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'Getting info for '.$user.':'.\OC\Files\Filesystem::getRoot().
 					':'.$path, \OC_Log::WARN);
 			$info = \OC\Files\Filesystem::getFileInfo($path);
-		}
+		}*/
 		
 		if(isset($user_id) && $user_id){
 			self::restoreUser($user_id);
