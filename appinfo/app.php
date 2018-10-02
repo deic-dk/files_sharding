@@ -21,6 +21,7 @@ OC::$CLASSPATH['OCA\Files\Share_files_sharding\Api'] = 'files_sharding/lib/files
 if(OCA\FilesSharding\Lib::isMaster()){
 	// On master we overrule the default
 	OC_API::register('get', '/apps/files_sharing/api/v1/shares', array('\OCA\Files\Share_files_sharding\Api', 'getAllShares'), 'files_sharing');
+	OC_API::register('propfind', '/apps/files_sharing/api/v1/shares', array('\OCA\Files\Share_files_sharding\Api', 'getAllShares'), 'files_sharing');
 	OC_API::register('post', '/apps/files_sharing/api/v1/shares', array('\OCA\Files\Share_files_sharding\Api', 'createShare'), 'files_sharing');
 	OC_API::register('get', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'getShare'), 'files_sharing');
 	OC_API::register('put', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'updateShare'), 'files_sharding');
