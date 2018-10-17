@@ -56,8 +56,10 @@ $user_id = $_POST['user_id'];
 \OC_User::setUserId($user_id);
 \OC_Util::setupFS($user_id);
 
+$group = '';
 if(OCP\App::isEnabled('user_group_admin') && !empty($_POST['groupFolder'])){
 	$group = $_POST['groupFolder'];
+	OC_User_Group_Admin_Util::createGroupFolder($group);
 	\OC\Files\Filesystem::tearDown();
 	$groupDir = '/'.$user_id.'/user_group_admin/'.$group;
 	\OC\Files\Filesystem::init($user_id, $groupDir);

@@ -41,6 +41,12 @@ class Api {
 			$path = \OC\Files\Filesystem::getPath($share['item_source']);
 			$share['path'] = $path;
 		}*/
+		// Don't show group folders shared with group owner
+		foreach($itemShared as $key => $share){
+			if($share['file_target']=='/'){
+				unset($itemShared[$key]);
+			}
+		}
 		return $itemShared;
 	}
 
@@ -59,9 +65,11 @@ class Api {
 			return \OCP\Share::shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions);
 		}
 		else{
+			$itemPath = \OC\Files\Filesystem::getpath($itemSource);
 			return \OCA\FilesSharding\Lib::ws('share_action',
-					array('user_id' => \OC_User::getUser(), 'action' => 'share', 'itemType' => $itemType,'itemSource' => $itemSource,
-								'shareType' => $shareType, 'shareWith' => $shareWith, 'permissions' => $permissions), true, true);
+					array('user_id' => \OC_User::getUser(), 'action' => 'share', 'itemType' => $itemType,
+							'itemSource' => $itemSource, 'itemPath' => $itemPath, 'shareType' => $shareType,
+							'shareWith' => $shareWith, 'permissions' => $permissions), true, true);
 		}
 	}
 	
@@ -150,8 +158,6 @@ class Api {
 						$share['path'] = \OCA\FilesSharding\Lib::getFilePath($share['item_source']);
 					}
 				}
-				\OCP\Util::writeLog('files_sharding', 'Got item shared '.
-						$share['file_source'].'-->'.$share['path'], \OC_Log::INFO);
 				//
 				if ($share['item_type'] === 'file' && isset($share['path'])) {
 					$share['mimetype'] = \OC_Helper::getFileNameMimeType($share['path']);
@@ -161,6 +167,11 @@ class Api {
 				}
 				// Set group if in a group folder
 				$fileInfo = \OCA\FilesSharding\Lib::getFileInfo($share['path'], null, $share['item_source'], null);
+				\OCP\Util::writeLog('files_sharding', 'Got item shared '.
+						$share['file_source'].'-->'.$share['path'].'-->'.$fileInfo['path'], \OC_Log::INFO);
+				if(preg_match("|^/*user_group_admin/|", $fileInfo['path'])){
+					$share['group'] = preg_replace("|^/*user_group_admin/([^/]+)/.*|", "$1", $fileInfo['path']);
+				}
 				if($fileInfo['path']=='files' && \OCP\App::isEnabled('user_group_admin')){
 					$group = \OC_User_Group_Admin_Util::getGroup($share['item_source']);
 					\OCP\Util::writeLog('files_sharding', 'Got group for '.$share['item_source'].
@@ -325,12 +336,26 @@ class Api {
 				$shares = \OCA\FilesSharding\Lib::ws('getItemsSharedWith', array('user_id' => \OC_User::getUser(),
 						'itemType' => 'file'));
 			}
-			foreach ($shares as &$share) {
-				if ($share['item_type'] === 'file') {
+			foreach ($shares as $key=>&$share) {
+				// Don't show group folders shared with group owner
+				if($share['file_target']=='/' && empty($_GET['owned_group'])){
+					unset($shares[$key]);
+					continue;
+				}
+				if($share['item_type']==='file'){
 					$share['mimetype'] = \OC_Helper::getFileNameMimeType($share['file_target']);
 					if (\OC::$server->getPreviewManager()->isMimeSupported($share['mimetype'])) {
 						$share['isPreviewAvailable'] = true;
 					}
+				}
+				if(preg_match("|^/*user_group_admin/|", $share['path'])){
+					$share['group'] = preg_replace("|^/*user_group_admin/([^/]+)/*.*|", "$1", $share['path']);
+				}
+				// When owned_group is set, show only group folders shared with group owner
+				if(!empty($_GET['owned_group']) && $share['file_target']!='/' &&
+						(empty($share['group']) || $share['group']!=$_GET['owned_group'])){
+					unset($shares[$key]);
+					continue;
 				}
 			}
 			$result = new \OC_OCS_Result($shares);
