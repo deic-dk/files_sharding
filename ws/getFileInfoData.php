@@ -100,7 +100,7 @@ catch(\Exception $e){
 }
 restoreUser($user_id);
 
-if(!$info || !empty($id) && $info->getId()!=$id){
+if(empty($info) || !empty($id) && $info->getId()!=$id){
 	\OCP\Util::writeLog('files_sharding', 'File not found '.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
 	OCP\JSON::encodedPrint('');
 	exit;
