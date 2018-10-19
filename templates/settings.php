@@ -12,15 +12,15 @@
 		if(\OCP\App::isEnabled('files_accounting')){
 			$currency = OCA\Files_Accounting\Storage_Lib::getBillingCurrency();
 		}
-  	print('<input class="id" type="text" value="'.$id.'" placeholder="ID"> /
-  		<input class="url" type="text" value="'.$url.'" placeholder="URL"> /
-  		<input class="internal_url" type="text" value="'.$internal_url.'" placeholder="Internal URL"> /
-  		<input class="x509_dn" type="text" value="'.$x509_dn.'" placeholder="/My/X.509/DN"> /
-  		<input class="site" type="text" value="'.$site.'" placeholder="Site"> /'.
-  		'<input class="charge" type="text" value="'.$charge.'" placeholder="Charge/GB">'.
+  	print('<input class="id" type="text" value="'.$id.'" placeholder="ID" /> /
+  		<input class="url" type="text" value="'.$url.'" placeholder="URL" /> /
+  		<input class="internal_url" type="text" value="'.$internal_url.'" placeholder="Internal URL" /> /
+  		<input class="x509_dn" type="text" value="'.$x509_dn.'" placeholder="/My/X.509/DN" /> /
+  		<input class="site" type="text" value="'.$site.'" placeholder="Site" /> /'.
+  		'<input class="charge" type="text" value="'.$charge.'" placeholder="Charge/GB" />'.
   		(\OCP\App::isEnabled('files_accounting')?'<label>'.$currency.'</label>':'').' / '.
-  		'<input class="allow_local_login" type="checkbox"'.($allow_local_login==='yes'?' checked="checked"' : '').'> / '.
-  		'<input class="exclude_as_backup" type="checkbox"'.($exclude_as_backup==='yes'?' checked="checked"' : '').'>
+  		'<input class="allow_local_login" type="checkbox"'.($allow_local_login==='yes'?' checked="checked"' : '').' /> / '.
+  		'<input class="exclude_as_backup" type="checkbox"'.($exclude_as_backup==='yes'?' checked="checked"' : '').' />
   		/ <a class="edit_description" id="'.$id.'" href="#">Description</a>
   			<textarea class="description hidden" rows="3" cols="92" id="'.$id.'">'.$description.'</textarea>');
   } ?>
