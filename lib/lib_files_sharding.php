@@ -2383,13 +2383,13 @@ class Lib {
 				}
 			}
 			else{
-				if(!empty($owner) && $owner!=$user){
+				if(!empty($owner) && $owner!=\OC_User::getUser()){
 					$user_id = self::switchUser($owner);
 				}
 				if(!empty($group)){
-					$user_id = !empty($user_id)?$user_id:$user;
+					//$user_id = !empty($user_id)?$user_id:$user;
 					$groupOwner = \OC_User::getUser();
-					\OCP\Util::writeLog('files_sharding', 'Using group '.$groupOwner.':'.$group, \OC_Log::WARN);
+					\OCP\Util::writeLog('files_sharding', 'Using group '.$owner.':'.$groupOwner.':'.$group, \OC_Log::WARN);
 					\OC\Files\Filesystem::tearDown();
 					$groupDir = '/'.$groupOwner.'/user_group_admin/'.$group;
 					\OC\Files\Filesystem::init($groupOwner, $groupDir);
@@ -2401,7 +2401,8 @@ class Lib {
 					$parentPath = \OC\Files\Filesystem::getPath($parentId);
 					$path = $parentPath . '/' . basename($path);
 				}
-				\OCP\Util::writeLog('files_sharding', 'Getting info for '.$parentId.':'.$id.':'.$path.':'.$owner.':'.
+				\OCP\Util::writeLog('files_sharding', 'Getting info for '.$parentId.':'.$id.':'.$path.':'.
+						\OC_User::getUser().':'.$owner.':'.
 						session_status(), \OC_Log::WARN);
 				$info = \OC\Files\Filesystem::getFileInfo($path);
 			}
@@ -2432,10 +2433,10 @@ class Lib {
 		}
 		if(!empty($group)){
 			\OC\Files\Filesystem::tearDown();
-			\OC\Files\Filesystem::init($user, "/".$user."/files");
+			\OC\Files\Filesystem::init(\OC_User::getUser(), "/".\OC_User::getUser()."/files");
 		}
 		
-		\OCP\Util::writeLog('files_sharding', 'User now '.\OC_User::getUser().':'.$user.':'.':'.$owner, \OC_Log::INFO);
+		\OCP\Util::writeLog('files_sharding', 'User/info: '.\OC_User::getUser().':'.$user.':'.':'.$owner, \OC_Log::WARN);
 		
 		return $info;
 	}

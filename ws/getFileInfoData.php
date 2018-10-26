@@ -118,9 +118,11 @@ $data['internalPath'] = $info->getInternalPath();
 OCP\JSON::encodedPrint($data);
 
 function restoreUser($user_id){
+	// Not necessary for ws calls - which are one-off
+	return true;
 	// If not done, the user shared with will now be logged in as $owner
-	\OC_Util::teardownFS();
+	/*\OC_Util::teardownFS();
 	\OC_User::setUserId($user_id);
-	\OC_Util::setupFS($user_id);
+	\OC_Util::setupFS($user_id);*/
 }
 
