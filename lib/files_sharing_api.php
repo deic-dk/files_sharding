@@ -27,7 +27,7 @@ namespace OCA\Files\Share_files_sharding;
 
 class Api {
 	
-	public static function getItemShared($itemType, $itemSource){
+	public static function getAllItemsShared($itemType, $itemSource){
 		if(!\OCP\App::isEnabled('files_sharding') || \OCA\FilesSharding\Lib::isMaster()){
 			$itemShared = \OCP\Share::getItemShared($itemType, $itemSource);
 		}
@@ -37,10 +37,15 @@ class Api {
 			$itemShared = \OCA\FilesSharding\Lib::ws('getItemShared', array('user_id' => \OC_User::getUser(),
 					'itemType' => $itemType, 'itemSource' => empty($itemSource)?null:$itemSource));
 		}
+		return $itemShared;
+	}
+	
+	public static function getItemShared($itemType, $itemSource){
+		$itemShared = self::getAllItemsShared($itemType, $itemSource);
 		/*foreach($itemShared as &$share){
-			$path = \OC\Files\Filesystem::getPath($share['item_source']);
-			$share['path'] = $path;
-		}*/
+		 $path = \OC\Files\Filesystem::getPath($share['item_source']);
+		 $share['path'] = $path;
+		 }*/
 		// Don't show group folders shared with group owner
 		foreach($itemShared as $key => $share){
 			if($share['file_target']=='/'){
