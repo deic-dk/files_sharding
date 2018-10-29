@@ -38,7 +38,7 @@ function checkUserServerAccess(user_id, server_id){
 			window.location.pathname.indexOf('/public.php', window.location.pathname.length-'/public.php'.length)!==-1){
 		return false;
 	}
-	$(document).off('mousedown', checkUserServerAccess);
+	$(this).off('mousedown');
 	if(isChecking || !$('.viewcontainer:not(.hidden) .crumb.last').length){
 		return false;
 	}
@@ -166,6 +166,7 @@ function checkSecondFactor(token){
 		type: "GET",
 		success: function(result) {
 			if(result.status!="success"){
+				promptSecondFactor();
 				$('input.form-control').attr('placeholder', 'Wrong token. Try again.');
 			}
 		},
@@ -181,7 +182,7 @@ function promptSecondFactor(){
 		"Two-factor authentication",
 		function(arg){
 			if(arg){
-				var token = $('input.form-control').val();
+				var token = $('input.form-control').last().val();
 				checkSecondFactor(token);
 			}
 			else{
@@ -195,7 +196,10 @@ $(document).ready(function(){
 	//var checkAccessInterval = 10*1000;
 	//var checkAccessID = setInterval(checkUserServerAccess, checkAccessInterval);
 	if (-1==$.inArray(checkUserServerAccess, $(document).data('events').mousedown)) {
-		$(document).mousedown(function(){checkUserServerAccess()});
+		$(document).one('mousedown', function(e){
+			e.stopPropagation();
+			checkUserServerAccess();
+		});
 	}
 });
 
