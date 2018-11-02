@@ -2308,7 +2308,7 @@ class Lib {
 	}
 
 	public static function switchUser($owner){
-		\OCP\Util::writeLog('files_sharding', 'Logged in: '.\OC_User::isLoggedIn().', user: '.\OCP\USER::getUser(), \OC_Log::INFO);
+		\OCP\Util::writeLog('files_sharding', 'Logged in: '.\OC_User::isLoggedIn().', user: '.\OCP\USER::getUser(), \OC_Log::WARN);
 		$user_id = \OC_User::getUser();
 		if($owner && $owner!==$user_id){
 			\OC_Util::teardownFS();
@@ -2316,7 +2316,8 @@ class Lib {
 			//\OC::$session->reopen();
 			\OC_User::setUserId($owner);
 			\OC_Util::setupFS($owner);
-			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.\OCP\USER::getUser(), \OC_Log::INFO);
+			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.
+					\OCP\USER::getUser().' : '.\OC_User::getUserSession()->getUser()->getUID(), \OC_Log::WARN);
 			return $user_id;
 		}
 		else{
@@ -2436,7 +2437,8 @@ class Lib {
 			\OC\Files\Filesystem::init(\OC_User::getUser(), "/".\OC_User::getUser()."/files");
 		}
 		
-		\OCP\Util::writeLog('files_sharding', 'User/info: '.\OC_User::getUser().':'.$user.':'.':'.$owner, \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'User/info: '.\OC_User::getUser().':'.$user.':'.':'.
+				$owner.'/'.empty($info)?'':$info->getPath(), \OC_Log::WARN);
 		
 		return $info;
 	}

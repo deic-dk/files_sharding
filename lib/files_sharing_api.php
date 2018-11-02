@@ -180,7 +180,8 @@ class Api {
 				if($fileInfo['path']=='files' && \OCP\App::isEnabled('user_group_admin')){
 					$group = \OC_User_Group_Admin_Util::getGroup($share['item_source']);
 					\OCP\Util::writeLog('files_sharding', 'Got group for '.$share['item_source'].
-							':'.$fileInfo['path'].':'.serialize($group), \OC_Log::WARN);if(!empty($group)){
+							':'.$fileInfo['path'].':'.serialize($group), \OC_Log::WARN);
+					if(!empty($group)){
 						$share['group'] = $group['group'];
 						$share['path'] = $group['path'];
 					}
@@ -401,7 +402,8 @@ class Api {
 	public static function createShare($params) {
 		
 		\OCP\Util::writeLog('files_sharing', 'Creating share:'.serialize($params).
-				'-->'.serialize($_GET).'-->'.serialize($_POST), \OCP\Util::WARN);
+				'-->'.serialize($_GET).'-->'.serialize($_POST).'-->'.\OC\Files\Filesystem::getRoot(),
+				\OCP\Util::WARN);
 		$path = isset($_POST['path']) ? $_POST['path'] : null;
 
 		if($path === null) {
@@ -460,6 +462,7 @@ class Api {
 						$permissions
 						);
 			} catch (\Exception $e) {
+				\OCP\Util::writeLog('files_sharding', 'Sharing failed '.$e->getMessage(), \OC_Log::WARN);
 				return new \OC_OCS_Result(null, 403, $e->getMessage());
 			}
 		}
