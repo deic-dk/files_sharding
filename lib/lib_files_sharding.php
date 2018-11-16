@@ -216,7 +216,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT `allow_local_login` FROM `*PREFIX*files_sharding_servers` WHERE `url` LIKE ?');
 		$result = $query->execute(Array("http%://$node%"));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not determine local login permission, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
@@ -410,7 +410,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT `uid_owner` FROM `*PREFIX*share` WHERE `token` = ?');
 		$result = $query->execute(Array($token));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Could not determine share owner, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
@@ -436,7 +436,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_servers`');
 		$result = $query->execute(Array());
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get list of servers, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		return $results;
@@ -446,7 +446,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?');
 		$result = $query->execute(Array($id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get server '.$id.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)===0){
@@ -463,7 +463,7 @@ class Lib {
 		$query = \OC_DB::prepare($sql);
 		$result = $query->execute(Array());
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get list of sites, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		return $results;
@@ -496,7 +496,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*filecache` WHERE storage = ?');
 		$result = $query->execute(Array($numericStorageId));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Could not get user files, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(isset($old_user) && $old_user){
@@ -520,7 +520,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*filecache` WHERE storage = ? AND path = ?');
 		$result = $query->execute(Array($numericStorageId, $path));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get user file '.$path.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		\OCP\Util::writeLog('files_sharding','Found file: '.$numericStorageId. ' --> '.$path.' : '.serialize($results),
@@ -570,7 +570,7 @@ class Lib {
 				'INSERT INTO `*PREFIX*files_sharding_folder_servers` (`folder`, `gid`, `server_id`, `user_id`,  `priority`) VALUES (?, ?, ?, ?, ?)');
 		$result = $query->execute(Array($folder, $group, $server_id, $user_id, $priority));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not add data folder '.$folder.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 			return false;
 		}
 		$_SESSION['oc_data_folders'] = self::dbGetDataFoldersList($user_id);
@@ -624,7 +624,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_folder_servers` WHERE user_id = ?');
 		$result = $query->execute(Array($user_id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get list of data folders, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 			return [];
 		}
 		$results = $result->fetchAll();
@@ -652,7 +652,7 @@ class Lib {
 				'DELETE FROM `*PREFIX*files_sharding_folder_servers` WHERE `folder` = ? AND `user_id` = ?');
 		$result = $query->execute(Array($folder, $user_id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not remove data folder '.$folder.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 			return false;
 		}
 		$_SESSION['oc_data_folders'] = self::dbGetDataFoldersList($user_id);
@@ -706,7 +706,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT `url` FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?');
 		$result = $query->execute(Array($id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not look up URL for '.$id.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
@@ -727,7 +727,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT `internal_url` FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?');
 		$result = $query->execute(Array($id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not look up internal URL for '.$id.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
@@ -767,7 +767,8 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT `access` FROM `*PREFIX*files_sharding_user_servers` WHERE `server_id` = ? AND  `user_id` = ?');
 		$result = $query->execute(Array($serverId, $userId));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not check access for for '.
+					$userId.'/'.$serverId.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
@@ -784,7 +785,8 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT `priority` FROM `*PREFIX*files_sharding_user_servers` WHERE `server_id` = ? AND  `user_id` = ?');
 		$result = $query->execute(Array($serverId, $userId));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get priority for for '.$userId.'/'.$serverId.', '.
+					\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
@@ -801,7 +803,8 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_user_servers` WHERE `server_id` = ?');
 		$result = $query->execute(Array($serverId));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get users on '.$serverId.', '.
+					\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		return $results;
@@ -934,7 +937,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT `id` FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?');
 		$result = $query->execute(Array($id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get ID, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)===0){
@@ -958,7 +961,7 @@ class Lib {
 		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?');
 		$result = $query->execute(Array($id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not delete server '.$id.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		return $result ? true : false;
 	}
@@ -971,7 +974,8 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT `priority` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
 		$result = $query->execute(Array($user, $serverId));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not look up server priority for '.
+					$user.'/'.$serverId.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
@@ -1055,7 +1059,7 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT `id` FROM `*PREFIX*files_sharding_servers` WHERE `site` = ?');
 		$result = $query->execute(Array($site));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get id, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		\OCP\Util::writeLog('files_sharding', 'Number of servers for site '.$site.': '.count($results), \OC_Log::WARN);
@@ -1166,7 +1170,7 @@ class Lib {
 				'FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
 		$result = $query->execute(Array($user_id, $server_id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get user server, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		
@@ -1316,7 +1320,7 @@ class Lib {
 		$result = $lastSync>0?$query->execute(Array($user, $lastSync, $priority)):
 			$query->execute(Array($user, $priority));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get server_id, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
@@ -1337,7 +1341,7 @@ class Lib {
 				'SELECT `server_id` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `priority` >= 0 ORDER BY `priority` ASC');
 		$result = $query->execute(Array($user));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get old server IDs, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		foreach($results as $row){
@@ -1352,7 +1356,7 @@ class Lib {
 				'SELECT `server_id` FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `priority` < 0 ORDER BY `priority` DESC');
 		$result = $query->execute(Array($user));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get old server IDs, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		foreach($results as $row){
@@ -1371,7 +1375,7 @@ class Lib {
 		$query = \OC_DB::prepare($sql);
 		$result = $query->execute(Array($server_id, $user_id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get last sync, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		if(count($results)>1){
@@ -1441,7 +1445,7 @@ class Lib {
 			$result = $query->execute(Array($fol, $user_id));
 			$results = $result->fetchAll();
 			if(\OCP\DB::isError($result)){
-				\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+				\OCP\Util::writeLog('files_sharding', 'ERROR: could not get servers for folder, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 			}
 			$ret = array_merge($ret, $results);
 			array_pop($folders);
@@ -1523,7 +1527,7 @@ class Lib {
 				'UPDATE `*PREFIX*files_sharding_servers` SET `total` = ?, `free` = ? WHERE `id` = ?');
 		$result = $query->execute(Array($total, $free, $server_id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not update free, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		return $result;
 	}
@@ -1532,7 +1536,7 @@ class Lib {
 		$query = \OC_DB::prepare( "SELECT `free` FROM `*PREFIX*files_sharding_servers` WHERE `id` = ?" );
 		$result = $query->execute(array($server_id));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get free, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$row = $result->fetchRow();
 		return(empty($row)?0:($row['free']>0));
@@ -2290,25 +2294,27 @@ class Lib {
 		$query = \OC_DB::prepare('SELECT `file_target` FROM `*PREFIX*share` WHERE `item_source` = ?');
 		$result = $query->execute(array($item_source));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get share file target for '.$item_source.
+					', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$row = $result->fetchRow();
 		return($row['file_target']);
 	}
 	
 	
-	public static function getShareItemSource($item_source){
+	public static function getShareItemSource($file_source){
 		$query = \OC_DB::prepare('SELECT `item_source` FROM `*PREFIX*share` WHERE `file_source` = ?');
-		$result = $query->execute(array($item_source));
+		$result = $query->execute(array($file_source));
 		if(\OCP\DB::isError($result)){
-			\OCP\Util::writeLog('files_sharding', \OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get share item source for '.$file_source.
+					', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$row = $result->fetchRow();
 		return($row['item_source']);
 	}
 
 	public static function switchUser($owner){
-		\OCP\Util::writeLog('files_sharding', 'Logged in: '.\OC_User::isLoggedIn().', user: '.\OCP\USER::getUser(), \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'Logged in: '.\OC_User::isLoggedIn().', user: '.\OCP\USER::getUser(), \OC_Log::INFO);
 		$user_id = \OC_User::getUser();
 		if($owner && $owner!==$user_id){
 			\OC_Util::teardownFS();
@@ -2317,7 +2323,8 @@ class Lib {
 			\OC_User::setUserId($owner);
 			\OC_Util::setupFS($owner);
 			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.
-					\OCP\USER::getUser().' : '.\OC_User::getUserSession()->getUser()->getUID(), \OC_Log::WARN);
+					\OCP\USER::getUser().' : '.
+					(empty(\OC_User::getUserSession()->getUser())?'':\OC_User::getUserSession()->getUser()->getUID()), \OC_Log::INFO);
 			return $user_id;
 		}
 		else{
@@ -2403,8 +2410,7 @@ class Lib {
 					$path = $parentPath . '/' . basename($path);
 				}
 				\OCP\Util::writeLog('files_sharding', 'Getting info for '.$parentId.':'.$id.':'.$path.':'.
-						\OC_User::getUser().':'.$owner.':'.
-						session_status(), \OC_Log::WARN);
+						\OC_User::getUser().':'.$owner.':'.session_status(), \OC_Log::INFO);
 				$info = \OC\Files\Filesystem::getFileInfo($path);
 			}
 		//}
@@ -2437,8 +2443,8 @@ class Lib {
 			\OC\Files\Filesystem::init(\OC_User::getUser(), "/".\OC_User::getUser()."/files");
 		}
 		
-		\OCP\Util::writeLog('files_sharding', 'User/info: '.\OC_User::getUser().':'.$user.':'.':'.
-				$owner.'/'.empty($info)?'':$info->getPath(), \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'User/info: '.\OC_User::getUser().':'.$user.':'.
+				$owner.'/'.(empty($info)?'':$info->getPath()), \OC_Log::WARN);
 		
 		return $info;
 	}
