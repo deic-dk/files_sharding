@@ -11,7 +11,7 @@
 			}
 			?>
 		</select>
-		<div class="hidden" id="current_home_server" site=$_['user_home_site']><?php print $_['user_server_url']; ?></div>
+		<div class="hidden" id="current_home_server" site=<?php print $_['user_home_site']?>><?php print $_['user_server_url']; ?></div>
 	</div>
 	<div>
 		<label class="nowrap"><?php p($l->t('Backup site'));?>: </label>
@@ -36,7 +36,7 @@
 	</div>
 	<div>
 		<label class="nowrap"><?php p($l->t('URL for file-transfer (WebDAV) clients'));?>: </label>
-		<label class="nowrap home_server" id="<?php print($_['user_server_id']);?>"><?php print($_['user_server_url']);?>/files/</label>
+		<label class="nowrap" id="<?php print($_['user_server_id']);?>"><?php print($_['user_server_url']);?>/files/</label>
 	</div>
 	<div>
 		<label class="nowrap"><?php p($l->t('Backup server'));?>: </label>

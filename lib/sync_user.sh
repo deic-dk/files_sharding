@@ -46,6 +46,9 @@ shift $((OPTIND-1))
 
 if [ -n "$1" ]; then
 	folder="\"$1\""
+	if [ ! -e "$folder" ]; then
+		folder="$OC_LOCAL_DATA_ROOT/$folder"
+	fi
 elif [ -n "$user" ]; then
 	folder="$OC_LOCAL_DATA_ROOT/$user/files"
 fi

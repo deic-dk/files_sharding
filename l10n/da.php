@@ -1,6 +1,7 @@
 <?php
 $TRANSLATIONS = array(
 		"Your files have been backed up" => "Backup af dine filer er foretaget",
+		"Your files have been migrated" => "Dine filer er blevet migreret",
 		'Your files have been synchronized from %1$s to %2$s' =>
 			'Dine filer er blevet synkroniseret fra %1$s til %2$s',
 		'Your files have been migrated from %1$s to %2$s.<br><strong>Please change URL</strong> in the settings of your sync clients!' =>

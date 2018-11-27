@@ -1125,7 +1125,7 @@ class Lib {
 	 * @return boolean true on success, false on failure
 	 */
 	public static function dbSetServerForUser($user_id, $server_id, $priority=null, $access=null, $last_sync=0){
-		if(empty($priority)){
+		if(empty($priority) && $priority!==0 && $priority!=='0'){
 			$priority = self::dbGetUserServerPriority($server_id, $user_id);
 		}
 		if(empty($server_id)){
@@ -1636,14 +1636,14 @@ class Lib {
 		$serverId = self::dbLookupServerId($server);
 		$rows = self::dbGetServerUsers($serverId);
 		foreach($rows as $row){
-		// no matching process/running shell script, last_sync more than 20 hours ago and
+			// no matching process/running shell script, last_sync more than 20 hours ago and
 		// ( priority 0 and access 1: execute shell script with the user+(new) primary server OR
 		//   priority>0 and access 1: execute shell script with the user+backup server ).
 			if($row['last_sync'] < time() - self::$USER_SYNC_INTERVAL_SECONDS &&
-					($row['priority']===self::$USER_SERVER_PRIORITY_PRIMARY &&
-							$row['access']===self::$USER_ACCESS_READ_ONLY ||
-						$row['priority']>self::$USER_SERVER_PRIORITY_PRIMARY)){
-				// Need to pass the storate ID, so the user gets the same on the backup server
+					(((int)$row['priority'])===self::$USER_SERVER_PRIORITY_PRIMARY &&
+							((int)$row['access'])===self::$USER_ACCESS_READ_ONLY ||
+						((int)$row['priority'])>self::$USER_SERVER_PRIORITY_PRIMARY)){
+				// Need to pass the storage ID, so the user gets the same on the backup server
 				$loggedin_user = \OCP\USER::getUser();
 				if(isset($loggedin_user) && $row['user_id']!=$loggedin_user){
 					$old_user = self::switchUser($row['user_id']);
@@ -1768,17 +1768,17 @@ class Lib {
 				// Get exported metadata (by path) via remote metadata web API and insert metadata on synced files by using local metadata web API
 				// TODO: abstract this via a hook
 				if(\OCP\App::isEnabled('meta_data')){
-					$ok = $ok && \OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
+					/*$ok = $ok && */\OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
 				}
 				$access = self::$USER_ACCESS_ALL;
 				// Get group folders in files_accounting from previous primary server
 				if(\OCP\App::isEnabled('user_group_admin')){
-					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/group',
+					/*$ok = $ok && */self::syncDir($user, $serverURL.'/remote.php/group',
 							$user.'/user_group_admin');
 				}
 				// Get bills from previous primary server
 				if(\OCP\App::isEnabled('files_accounting')){
-					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/bills',
+					/*$ok = $ok && */self::syncDir($user, $serverURL.'/remote.php/bills',
 							$user.'/files_accounting');
 				}
 			}

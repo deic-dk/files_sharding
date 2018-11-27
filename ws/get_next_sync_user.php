@@ -35,7 +35,7 @@ $hostname = isset($_GET['hostname'])?$_GET['hostname']:$_SERVER['REMOTE_ADDR'];
 
 $ret = OCA\FilesSharding\Lib::dbGetNextSyncUser($hostname);
 
-$status = empty($ret)?'error: no user found':'success';
+$status = empty($ret)?'error: no user found for '.$hostname:'success';
 
 $ret['status'] = $status;
 

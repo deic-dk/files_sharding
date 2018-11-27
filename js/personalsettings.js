@@ -285,19 +285,20 @@ $(document).ready(function(){
 		}
 		saving = true;
 		var current_home_server = $('#filesShardingPersonalSettings #current_home_server').text();
+		var current_home_site = $('#filesShardingPersonalSettings #current_home_server').attr('site');
 		var new_home_server = $('#filesShardingPersonalSettings .home_server').text();
 		var home_server_id = $('#filesShardingPersonalSettings .home_server').attr('id');
 		var home_site = $('#filesShardingPersonalSettings div select.home_site').val() ;
 		var backup_server_id = $('#filesShardingPersonalSettings .backup_server').attr('id');
 		if(new_home_server!=current_home_server){
-  		OC.dialogs.confirm('Are you sure you want to change site to '+home_site+' ?', 'Change site?',
+  		OC.dialogs.confirm('Are you sure you want to change site from '+current_home_site+' to '+home_site+' ?', 'Change site?',
           function(res){
 	  				if(res){
 	  		  		OC.dialogs.notify('Your files will now be migrated. Please change your sync clients from\
 	  		  				'+current_home_server+' \
 	  		  				to\
-	  		  				'+new_home_server+'\
-	  		  				Your files will be set read-only until the migration is over. You will be logged out now. Log back in in a few hours.',
+	  		  				'+new_home_server+'.\
+	  		  				Your files will be set read-only until the migration is over. Please log out and log back in in a few hours.',
 	  		  				'Change server', function(e){set_home_server(home_server_id, backup_server_id);}, false);
 	  				}
 	  				saving = false;
