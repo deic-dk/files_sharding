@@ -1709,7 +1709,7 @@ class Lib {
 				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
 				break;
 			}
-			$syncedFiles = shell_exec(__DIR__."/sync_user.sh -u \"".$user."\" \"".$dir."\" \"".$url."\" | grep 'Synced files:' | awk -F ':' '{printf \$NF}'");
+			$syncedFiles = shell_exec(__DIR__."/sync_user.sh -u '".$user."' '".$dir."' ".$url." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'");
 			\OCP\Util::writeLog('files_sharding', 'Synced '.$syncedFiles.' files for '.$user.' from '.$server, \OC_Log::ERROR);
 			++$i;
 		}
@@ -1733,8 +1733,12 @@ class Lib {
 		if($servers[$key]['exclude_as_backup']==='yes'){
 			return null;
 		}
-		$publicServerURL = self::getServerForUser($user, false);
-		$serverURL = self::getServerForUser($user, true);
+		$publicServerURL = self::getServerForUser($user, false,
+				((int)$priority)===self::$USER_SERVER_PRIORITY_PRIMARY?self::$USER_SERVER_PRIORITY_BACKUP_1:
+				self::$USER_SERVER_PRIORITY_PRIMARY);
+		$serverURL = self::getServerForUser($user, true,
+				((int)$priority)===self::$USER_SERVER_PRIORITY_PRIMARY?self::$USER_SERVER_PRIORITY_BACKUP_1:
+				self::$USER_SERVER_PRIORITY_PRIMARY);
 		if(empty($serverURL)){
 			$serverURL = self::getMasterInternalURL();
 		}
@@ -1745,7 +1749,7 @@ class Lib {
 			return null;
 		}
 		$i = 0;
-		$ok = true;
+		$ok = false;
 		\OCP\Util::writeLog('files_sharding', 'Syncing with command: '.
 				__DIR__."/sync_user.sh -u '".$user."' -s ".$server, \OC_Log::WARN);
 		do{
@@ -1764,7 +1768,7 @@ class Lib {
 			$ok = true;
 			if($priority==self::$USER_SERVER_PRIORITY_PRIMARY){
 				// Get list of shared file mappings: ID -> path and update item_source on oc_share table on master with new IDs
-				$ok = $ok && self::updateUserSharedFiles($user);
+				/*$ok = $ok &&*/ self::updateUserSharedFiles($user);
 				// Get exported metadata (by path) via remote metadata web API and insert metadata on synced files by using local metadata web API
 				// TODO: abstract this via a hook
 				if(\OCP\App::isEnabled('meta_data')){
@@ -1778,7 +1782,7 @@ class Lib {
 				}
 				// Get bills from previous primary server
 				if(\OCP\App::isEnabled('files_accounting')){
-					/*$ok = $ok && */self::syncDir($user, $serverURL.'/remote.php/bills',
+					/*$ok = $ok && */self::syncDir($user, $serverURL.'/remote.php/usage',
 							$user.'/files_accounting');
 				}
 			}

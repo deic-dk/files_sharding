@@ -45,7 +45,8 @@ done
 shift $((OPTIND-1))
 
 if [ -n "$1" ]; then
-	folder="\"$1\""
+	#folder="\"$1\""
+	folder="$1"
 	if [ ! -e "$folder" ]; then
 		folder="$OC_LOCAL_DATA_ROOT/$folder"
 	fi
@@ -56,7 +57,7 @@ fi
 if [ -n "$server" ]; then
 	url="https://${server}$OC_REMOTE_BASE_DIR"
 elif [ -n "$2" ]; then
-		url="\"$2\""
+		url="$2"
 fi
 
 if [ -z "$folder" -o -z "$url" ]; then
@@ -81,7 +82,8 @@ else
 	password="-p '\"\"'"
 fi
 ls "$folder" >& /dev/null || mkdir -p "$folder"
-$OC_CMD --non-interactive --silent --trust -u "$user" $password "$folder" $url
+echo $OC_CMD --non-interactive --silent --trust -u \"$user\" $password \"$folder\" $url
+$OC_CMD --non-interactive --trust --silent -u "$user" $password "$folder" $url
 
 ## Create user if he does not exist
 php "$OC_ROOT/console.php" user:lastseen "$user" | grep 'not exist'
