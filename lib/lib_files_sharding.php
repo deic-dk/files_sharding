@@ -1998,7 +1998,7 @@ class Lib {
 			}
 		}
 		\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].
-				' ('.(empty($clientDNwSlashes)?'':$clientDNwSlashes).') not trusted', \OC_Log::WARN);
+				' ('.(empty($clientDNwSlashes)?'':$clientDNwSlashes).') not trusted --> '.$_SERVER['REQUEST_URI'], \OC_Log::WARN);
 		return false;
 	}
 	
