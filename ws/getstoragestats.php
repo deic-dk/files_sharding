@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../../../../../lib/base.php';
+require_once __DIR__ . '/../../../lib/base.php';
 
 if(!OCA\FilesSharding\Lib::checkIP()){
 	http_response_code(401);
@@ -16,4 +16,4 @@ $group = !empty($_GET['group'])?$_GET['group']:'';
 \OC_Util::setupFS();
 $ret = OCA\FilesSharding\Lib::buildFileStorageStatistics($dir, $owner, $id, $group);
 
-OCP\JSON::success(array('data' => $ret));
+OCP\JSON::success($ret);
