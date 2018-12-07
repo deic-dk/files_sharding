@@ -412,10 +412,11 @@ class Api {
 		}
 		
 		$fileSource = self::getFileId($path);
-		$itemSource = $fileSource;
-		$itemType = self::getItemType($path);
+		$itemSource = !empty($_GET['item_source'])?((int)$_GET['item_source']):$fileSource;
+		$itemType = !empty($_GET['item_type'])?$_GET['item_type']:self::getItemType($path);
 		
 		if($itemSource === null) {
+			\OCP\Util::writeLog('files_sharding', 'Not found: '.$path, \OC_Log::ERROR);
 			return new \OC_OCS_Result(null, 404, "wrong path, file/folder doesn't exist.");
 		}
 		
@@ -437,6 +438,7 @@ class Api {
 					OC\Files\Filesystem::mkdir($path);
 					//mkdir($file_path, '0770', true);
 				}
+				$fileSource = self::getFileId($path);
 			}
 		}
 		
@@ -488,7 +490,7 @@ class Api {
 			}
 			$newShare = self::lookupShare($itemType, $fileSource, $shareType, $shareWith);
 		}
-
+		
 		if(!empty($_GET) && !empty($_GET['item_source']) && \OCA\FilesSharding\Lib::isMaster()){
 			// Now we need to fix the entries in the database to match the original itemSource, otherwise the js view will
 			// not catch the shared items, i.e. getItems() from share.php will not.
