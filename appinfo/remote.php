@@ -130,6 +130,7 @@ $masterInternal = isset($parsedMasterInternal['host']) ? $parsedMasterInternal['
 // Serve
 if($redirected_from===$master || $redirected_from===$masterInternal || /*empty($redirected_from) ||*/
 		// Internal replication/backup sync clients
+		stripos($_SERVER['HTTP_USER_AGENT'], "(FreeBSD) mirall")!==false &&
 		OCA\FilesSharding\Lib::checkIP() ||
 		preg_match('|^/*sharingout/.*|', $reqPath)){
 	\OCP\Util::writeLog('files_sharding', 'Serving', \OC_Log::INFO);
