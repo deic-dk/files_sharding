@@ -72,10 +72,11 @@ if($path != '' && $mtime != '') {
 	$filemtime = \OC\Files\Filesystem::filemtime($path);
 	if($mtime != $filemtime) {
 		// Then the file has changed since opening
-		OCP\JSON::error(array('data' => array( 'message' => $l->t('Cannot save file as it has been modified since opening'))));
+		OCP\JSON::error(array('data' => array( 'message' =>
+				($l->t('Cannot save file as it has been modified since opening')).$mtime.' != '.$filemtime)));
 		OCP\Util::writeLog(
 			'files_texteditor',
-			"File: ".$path." modified since opening.",
+				"File: ".$path." modified since opening. ".$mtime.' != '.$filemtime,
 			OCP\Util::ERROR
 		);
 	} else {
