@@ -682,7 +682,7 @@ class Lib {
 		if ($fileInfo) {
 			$fileId = $fileInfo['fileid'];
 		}
-		\OCP\Util::writeLog('files_sharding', 'Got ID '.$fileId.' for path '.$path, \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'Got ID '.$fileId.' for path '.$path, \OC_Log::INFO);
 		return $fileId;
 	}
 
