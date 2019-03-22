@@ -120,7 +120,8 @@ class FileSessionHandler {
 		if(empty($session['user_id'])){
 			\OC_Log::write('files_sharding',"NO user_id, cannot proceed", \OC_Log::WARN);
 			//return null;
-			$logout_url = $masterinturl."index.php?logout=true";
+			$masterurl = Lib::getMasterURL();
+			$logout_url = $masterurl."index.php?logout=true";
 			header('Location: ' . $logout_url);
 			exit;
 		}

@@ -29,7 +29,7 @@ $user_host = $parse['host'];
 
 $same = OCA\FilesSharding\Lib::onServerForUser($user_id)?1:0;
 
-$ret = Array('url' => $url, 'same' => $same, 'status' => $status, 'message' => $msg);
+$ret = Array('url' => $url, 'host' => $user_host, 'user' => $user_id, 'same' => $same, 'status' => $status, 'message' => $msg);
 
 \OCP\Util::writeLog('files_sharding', 'Returning user server '.OCP\JSON::encode($ret), \OCP\Util::INFO);
 

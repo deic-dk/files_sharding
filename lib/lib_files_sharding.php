@@ -2345,6 +2345,21 @@ class Lib {
 		\OC_User::setUserId($user_id);
 		\OC_Util::setupFS($user_id);
 	}
+	
+	// Get logged-in user session on master
+	public static function getUserSession($sessionId){
+		include_once('files_sharding/lib/filesessionhandler.php');
+		$handler = new FileSessionHandler('/tmp');
+		$encoded_session = $handler->getSession($sessionId);
+		if(!empty($encoded_session)){
+			$session = \Session::unserialize($encoded_session);
+			\OC_Log::write('files_sharding', 'Session '.serialize($session), \OC_Log::WARN);
+			return $session;
+		}
+		else{
+			return null;
+		}
+	}
 
 	public static function getFileInfo($path, $owner, $id, $parentId, $user = '', $group=''){
 		$info = null;
