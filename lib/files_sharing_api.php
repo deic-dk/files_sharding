@@ -165,8 +165,9 @@ class Api {
 				}
 				$share['path'] = \OCA\FilesSharding\Lib::getFilePath($localfileid);
 				$fileInfo = \OCA\FilesSharding\Lib::getFileInfo($share['path'], null, $localfileid, null);
+				$share['path'] = "/".ltrim($share['path'], "/");
 				//
-				if ($share['item_type'] === 'file' && isset($share['path'])) {
+				if($share['item_type'] === 'file' && isset($share['path'])) {
 					$share['mimetype'] = \OC_Helper::getFileNameMimeType($share['path']);
 					if (\OC::$server->getPreviewManager()->isMimeSupported($share['mimetype'])) {
 						$share['isPreviewAvailable'] = true;
