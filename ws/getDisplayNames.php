@@ -31,12 +31,25 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 $search = $_GET['search'];
 $limit = isset($_GET['limit'])?$_GET['limit']:null;
 $offset = isset($_GET['offset'])?$_GET['offset']:null;
+$exact = isset($_GET['exact'])?$_GET['exact']=='yes'||$_GET['exact']=='true':false;
 
-$users = OC_User::getDisplayNames($search, $limit, $offset);
-if(\OCP\App::isEnabled('user_alias')){
+$userName = OC_User::getDisplayName($search);
+$users = [];
+
+if($exact){
+	$users[$search] = $userName;
+}
+else{
+	$users = OC_User::getDisplayNames($search, $limit, $offset);
+	if(!empty($userName) && empty($users[$search])){
+		$users[$search] = $userName;
+	}
+}
+if(!$exact && \OCP\App::isEnabled('user_alias')){
 	require_once('user_alias/lib/user_alias.php');
 	$users += OC_User_Alias::getAliases($search, $limit, $offset);
 }
+
 
 \OCP\Util::writeLog('files_sharding', 'Returning users '.serialize($users), \OC_Log::WARN);
 

@@ -117,6 +117,11 @@ switch ($_POST['action']) {
 				// Now set parent to -1 to prevent showing the item in the file listing
 				$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `parent` = ? WHERE `item_source` = ?');
 				$query->execute(array(-1, $_POST['itemSource']));
+				// Also get rid of the $shareTypeGroupUserUnique entries made by share.php because the generated
+				// target does not match the shared target
+				// Notice that \OC\Share\Constants::$shareTypeGroupUserUnique is protected, so we hardcode 2.
+				$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `share_type` = ? AND `uid_owner` = ? AND `item_source` = ?');
+				$query->execute(array(2, $user_id, $_POST['itemSource']));
 				// FO: Allow any string to be used as token.
 				if(isset($_POST['token']) && !empty($_POST['token'])){
 					checkTokenExists($_POST['token'], $_POST['itemSource']);

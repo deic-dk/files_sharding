@@ -78,7 +78,8 @@ switch ($_GET['fetch']) {
 					$_GET['itemSource'],
 					OCP\Share::FORMAT_NONE,
 					null,
-					true
+					true,
+					$user_id
 				);
 			} else {
 				$reshare = false;
@@ -89,13 +90,21 @@ switch ($_GET['fetch']) {
 					$_GET['itemSource'],
 					OCP\Share::FORMAT_NONE,
 					null,
-					true
+					true,
+					$user_id
 				);
 			} else {
 				$shares = false;
 			}
-			\OCP\Util::writeLog('sharing', 'SHARES: '.$user_id.':'.$_GET['itemSource'].'-->'.serialize($shares), \OCP\Util::WARN);
-			OC_JSON::success(array('data' => array('reshare' => $reshare, 'shares' => $shares)));
+			$myshares = [];
+			foreach($shares as $share){
+				\OCP\Util::writeLog('sharing', 'SHARE: '.$user_id.':'.$_GET['itemSource'].
+						'-->'.$share['path'].'-->'.$share['uid_owner'], \OCP\Util::WARN);
+				if($share['uid_owner'] == $user_id){
+					$myshares[] = $share;
+				}
+			}
+			OC_JSON::success(array('data' => array('reshare' => $reshare, 'shares' => $myshares)));
 		}
 		break;
 	case 'getShareFromId':
