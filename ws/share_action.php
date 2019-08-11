@@ -65,6 +65,11 @@ if(OCP\App::isEnabled('user_group_admin') && !empty($_POST['groupFolder'])){
 	\OC\Files\Filesystem::init($user_id, $groupDir);
 }
 
+if(isset($_POST['myItemSource'])&&$$_POST['myItemSource']){
+	// On the master, file_source holds the id of the dummy file
+	$_POST['itemSource'] = OCA\FilesSharding\Lib::getFileSource($_POST['myItemSource'], $_POST['itemType']);
+}
+
 switch ($_POST['action']) {
 	case 'share':
 		if (isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])) {
@@ -150,8 +155,9 @@ switch ($_POST['action']) {
 			//$file_path = urldecode($_POST['itemPath']);
 			//$return = OCP\Share::unshare($_POST['itemType'], $_POST['itemSource'], $_POST['shareType'], $shareWith);
 			//$itemMasterSource = OCA\FilesSharding\Lib::getFileId($file_path, $user_id);
-			$itemMasterSource = OCA\FilesSharding\Lib::getFileSource($_POST['itemSource'], $_POST['itemType'], false);
-			$return = OCP\Share::unshare($_POST['itemType'], $itemMasterSource, $_POST['shareType'], $shareWith);
+			//$itemMasterSource = OCA\FilesSharding\Lib::getFileSource($_POST['itemSource'], $_POST['itemType'], false);
+			\OCP\Util::writeLog('sharing', "Unsharing " . $_POST['itemSource'], \OCP\Util::WARN);
+			$return = OCP\Share::unshare($_POST['itemType'], $_POST['itemSource'], $_POST['shareType'], $shareWith);
 			($return) ? OC_JSON::success() : OC_JSON::error();
 		}
 		break;

@@ -35,7 +35,9 @@ class Api {
 			\OCP\Util::writeLog('files_sharding', 'OCA\Files\Share_files_sharding::getItemShared '.
 					\OC_User::getUser().":".$itemType.":".$itemSource, \OC_Log::WARN);
 			$itemShared = \OCA\FilesSharding\Lib::ws('getItemShared', array('user_id' => \OC_User::getUser(),
-					'itemType' => $itemType, 'itemSource' => empty($itemSource)?null:$itemSource));
+					'itemType' => $itemType, 'itemSource' => empty($itemSource)?null:$itemSource,
+					'myItemSource' => empty($itemSource)?null:$itemSource
+			));
 		}
 		return $itemShared;
 	}
@@ -61,7 +63,8 @@ class Api {
 		}
 		else{
 			return \OCA\FilesSharding\Lib::ws('getItemSharedWithBySource', array('user_id' => \OC_User::getUser(),
-					'itemType' => $itemType,'itemSource' => $itemSource));
+					'itemType' => $itemType,'itemSource' => $itemSource,
+					'myItemSource' => empty($itemSource)?null:$itemSource));
 		}
 	}
 	
@@ -106,7 +109,8 @@ class Api {
 		}
 		else{
 			return \OCA\FilesSharding\Lib::ws('share_action',
-					array('user_id' => \OC_User::getUser(), 'action' => 'unshare', 'itemType' => $itemType,'itemSource' => $itemSource,
+					array('user_id' => \OC_User::getUser(), 'action' => 'unshare',
+							'itemType' => $itemType,'itemSource' => $itemSource, 'myItemSource' => $itemSource,
 							'shareType' => $shareType, 'shareWith' => $shareWith), true, true);
 		}
 	}
@@ -684,8 +688,8 @@ class Api {
 			$shareWith = null;
 		}
 
-		$items = self::getItemShared($itemType, $fileSource);
-		\OCP\Util::writeLog('files_sharing', 'Updating '.$fileSource.'-->'.serialize($items), \OCP\Util::WARN);
+		$items = self::getItemShared($itemType, $itemSource);
+		\OCP\Util::writeLog('files_sharing', 'Updating '.$itemType.':'.$itemSource.':'.$fileSource.'-->'.serialize($items), \OCP\Util::WARN);
 		
 		$checkExists = false;
 		foreach ($items as $item) {
@@ -696,13 +700,13 @@ class Api {
 		}
 
 		if (!$checkExists) {
-			return  new \OC_OCS_Result(null, 404, "share doesn't exists, can't change password");
+			return  new \OC_OCS_Result(null, 404, "share doesn't exist, can't change password");
 		}
 
 		try {
 			$result = self::shareItem(
 					$itemType,
-					$fileSource,
+					$itemSource,
 					\OCP\Share::SHARE_TYPE_LINK,
 					$shareWith,
 					$permissions
@@ -799,7 +803,7 @@ echo '<?xml version="1.0"?>
 	/**
 	 * get itemType
 	 * @param string $path
-	 * @return string type 'file', 'folder' or null of file/folder doesn't exists
+	 * @return string type 'file', 'folder' or null of file/folder doesn't exist
 	 */
 	private static function getItemType($path) {
 		$view = new \OC\Files\View('/'.\OCP\User::getUser().'/files');

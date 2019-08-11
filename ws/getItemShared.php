@@ -37,6 +37,11 @@ $user_id = $_GET['user_id'];
 
 \OCP\Util::writeLog('files_sharding', 'Getting item shared '.\OC_User::getUser().":".$itemType.":".$itemSource, \OC_Log::WARN);
 
+if(isset($_GET['myItemSource'])&&$_GET['myItemSource']){
+	// On the master, file_source holds the id of the dummy file
+	$itemSource = OCA\FilesSharding\Lib::getFileSource($_GET['myItemSource'], $_GET['itemType']);
+}
+
 $itemShared = \OCP\Share::getItemShared($itemType, empty($itemSource)?null:$itemSource);
 
 // Nope - this should be done on the calling slave

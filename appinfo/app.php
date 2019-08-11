@@ -34,6 +34,13 @@ else{
 	OC_API::register('get', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'getShare'), 'files_sharding');
 	OC_API::register('put', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'updateShare'), 'files_sharding');
 	OC_API::register('delete', '/apps/files_sharing/api/v1/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'deleteShare'), 'files_sharding');
+
+	OC_API::register('get', '/apps/files_sharing/api/v1_sharding/shares', array('\OCA\Files\Share_files_sharding\Api', 'getAllShares'), 'files_sharding');
+	OC_API::register('post', '/apps/files_sharing/api/v1_sharding/shares', array('\OCA\Files\Share_files_sharding\Api', 'createShare'), 'files_sharding');
+	OC_API::register('get', '/apps/files_sharing/api/v1_sharding/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'getShare'), 'files_sharding');
+	OC_API::register('put', '/apps/files_sharing/api/v1_sharding/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'updateShare'), 'files_sharding');
+	OC_API::register('delete', '/apps/files_sharing/api/v1_sharding/shares/{id}', array('\OCA\Files\Share_files_sharding\Api', 'deleteShare'), 'files_sharding');
+	
 }
 // Make the Nextcloud sync client happy - nacked in .htaccess instead
 /*OC_API::register('get', '/apps/files/api/v1/thumbnail', array('\OCA\Files\Share_files_sharding\Api', 'getThumbnail'), 'files_sharding');

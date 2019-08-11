@@ -35,6 +35,10 @@ $user_id = $_GET['user_id'];
 \OC_User::setUserId($user_id);
 \OC_Util::setupFS($user_id);
 
+if(isset($_GET['myItemSource'])&&$_GET['myItemSource']){
+	// On the master, file_source holds the id of the dummy file
+	$itemSource = OCA\FilesSharding\Lib::getFileSource($_GET['myItemSource'], $_GET['itemType']);
+}
 
 $itemShared = \OCP\Share::getItemSharedWithBySource($itemType, $itemSource);
 

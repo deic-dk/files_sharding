@@ -2002,6 +2002,15 @@ class Lib {
 		return false;
 	}
 	
+	/**
+	 * On the master, item_source is the fileid of the item slave,
+	 * file_source is the fileid of the dummy item created on the master.
+	 * 
+	 * @param unknown $itemSource
+	 * @param string $itemType
+	 * @param boolean $sharedWithMe
+	 * @return unknown
+	 */
 	public static function getFileSource($itemSource, $itemType='file', $sharedWithMe=false) {
 		if($sharedWithMe){
 			$master_to_slave_id_map = \OCP\Share::getItemsSharedWith($itemType);
@@ -2016,6 +2025,22 @@ class Lib {
 			}
 		}
 		return $itemSource;
+	}
+	
+	public static function getItemSource($fileSource, $itemType='file', $sharedWithMe=false) {
+		if($sharedWithMe){
+			$master_to_slave_id_map = \OCP\Share::getItemsSharedWith($itemType);
+		}
+		else{
+			$master_to_slave_id_map = \OCP\Share::getItemsShared($itemType);
+		}
+		foreach($master_to_slave_id_map as $item1=>$data1){
+			if($master_to_slave_id_map[$item1]['file_source'] == $itemSource){
+				$ret = $master_to_slave_id_map[$item1]['item_source'];
+				return $ret;
+			}
+		}
+		return $fileSource;
 	}
 	
 	/**
