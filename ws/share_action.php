@@ -65,7 +65,7 @@ if(OCP\App::isEnabled('user_group_admin') && !empty($_POST['groupFolder'])){
 	\OC\Files\Filesystem::init($user_id, $groupDir);
 }
 
-if(isset($_POST['myItemSource'])&&$$_POST['myItemSource']){
+if(isset($_POST['myItemSource'])&&$_POST['myItemSource']){
 	// On the master, file_source holds the id of the dummy file
 	$_POST['itemSource'] = OCA\FilesSharding\Lib::getFileSource($_POST['myItemSource'], $_POST['itemType']);
 }
