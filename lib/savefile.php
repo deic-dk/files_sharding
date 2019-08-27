@@ -70,7 +70,7 @@ $l = OC_L10N::get('files_texteditor');
 if($path != '' && $mtime != '') {
 	// Get file mtime
 	$filemtime = \OC\Files\Filesystem::filemtime($path);
-	if($mtime != $filemtime) {
+	/*if($mtime != $filemtime) { // This fires randomly. No idea why the file's mtime is changed spontaneously
 		// Then the file has changed since opening
 		OCP\JSON::error(array('data' => array( 'message' =>
 				($l->t('Cannot save file as it has been modified since opening')).$mtime.' != '.$filemtime)));
@@ -79,7 +79,7 @@ if($path != '' && $mtime != '') {
 				"File: ".$path." modified since opening. ".$mtime.' != '.$filemtime,
 			OCP\Util::ERROR
 		);
-	} else {
+	} else {*/
 		// File same as when opened, save file
 		if(\OC\Files\Filesystem::isUpdatable($path)) {
 			$filecontents = iconv(mb_detect_encoding($filecontents), "UTF-8", $filecontents);
@@ -99,7 +99,7 @@ if($path != '' && $mtime != '') {
 				OCP\Util::ERROR
 				);
 		}
-	}
+	//}
 } else if($path == '') {
 	OCP\JSON::error(array('data' => array( 'message' => $l->t('File path not supplied'))));
 	OCP\Util::writeLog('files_texteditor','No file path supplied', OCP\Util::ERROR);
