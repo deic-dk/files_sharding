@@ -18,6 +18,7 @@
 
 .home_site {
 	margin-top: 12px;
+	margin-right: 12px;
 }
 
 .oc-dialog ul {
@@ -27,4 +28,25 @@
 
 .backup_server, .home_server {
 	font-weight: bold;
+}
+
+.sharding-help-popup {
+	margin-top: 4%;
+	font-family: inherit;
+	font-size: 85%;
+	overflow-y: hidden;
+}
+
+.sharding-help-popup h1 {
+	font-size: 120%;
+	font-weight: bold;
+}
+
+.sharding-help-popup li {
+    margin-left: 5%;
+    list-style-type: circle;
+ }
+
+.sharding-help-popup a {
+    color: #0376a3;
 }

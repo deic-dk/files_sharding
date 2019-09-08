@@ -1,5 +1,6 @@
-<div class='pay-popup'>
+<div class='sharding-help-popup'>
 	<?php 
+		$fromEmail = \OCP\Config::getSystemValue('fromemail', '');
 		$user =  \OCP\User::getUser();
 		$charge = \OCA\Files_Accounting\Storage_Lib::getChargeForUserServers($user);
 		$currency = \OCA\Files_Accounting\Storage_Lib::getBillingCurrency();
@@ -12,7 +13,13 @@
 	with servers in geographical proximity of your home institution."));?></p>
 
 	<p><?php print_unescaped($l->t("To change home site, you must <i>first</i> choose a backup site, and then wait for the first
-	backup to occur (24 hours max). After that, you can change your home site to your backup site."));?></p> 
+	backup to finish (24 hours max). After that, you can change your home site to your backup site."));?></p> 
+
+	<p><?php print_unescaped($l->t("When changing home site, a final sync will be performed and in the meantime 
+access will set to read-only on both the old and the new home server. 
+In case of sync problems, the access may stay read-only on the new server. 
+You can change this manually, but please notice that you may be missing some files. 
+So please also get <a href='mailto: %s'>in touch</a> with us, so we can resolve any problems.", $fromEmail));?></p>
 
 	<h4><?php print_unescaped($l->t("Which site to choose"));?></h4>
 	
@@ -37,11 +44,10 @@
 					"<br />".$server['description']."</p>";
 		}
 	}
-	$fromEmail = \OCP\Config::getSystemValue('fromemail', '');
 	?>
 	
 	<h4><?php print_unescaped($l->t("Questions?"));?></h4>
-	<?php print_unescaped($l->t("If you need more help, please contact"));?>
+	<?php print_unescaped($l->t("If you need more help, please contact us at"));?>
 	<a target="_blank" href="mailto:<?php echo $fromEmail; ?>">
 	<?php echo $fromEmail; ?></a>. 
 </div>

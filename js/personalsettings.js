@@ -124,14 +124,15 @@ function get_backup_server(site){
 	});
 }
 
-function set_home_server(home_server_id, backup_server_id){
+function set_home_server(home_server_id, backup_server_id, home_server_access){
 	
 	$.ajax(OC.linkTo('files_sharding','ajax/set_home_server.php'), {
-		 type:'POST',
-		  data:{
-			  home_server_id: home_server_id,
-			  backup_server_id: backup_server_id
-		 },
+		type:'POST',
+		data:{
+			home_server_id: home_server_id,
+			backup_server_id: backup_server_id,
+			home_server_access: home_server_access
+		},
 		 dataType:'json',
 		 success: function(s){
 			 OC.msg.finishedSaving('#setHomeServerMsg', {status: 'success', data: {message: "Site selection saved"}});
@@ -290,6 +291,7 @@ $(document).ready(function(){
 		var home_server_id = $('#filesShardingPersonalSettings .home_server').attr('id');
 		var home_site = $('#filesShardingPersonalSettings div select.home_site').val() ;
 		var backup_server_id = $('#filesShardingPersonalSettings .backup_server').attr('id');
+		var home_server_access = $('#filesShardingPersonalSettings div select.home_server_access').val() ;
 		if(new_home_server!=current_home_server){
   		OC.dialogs.confirm('Are you sure you want to change site from '+current_home_site+' to '+home_site+' ?', 'Change site?',
           function(res){
@@ -298,7 +300,8 @@ $(document).ready(function(){
 	  		  				'+current_home_server+' \
 	  		  				to\
 	  		  				'+new_home_server+'.\
-	  		  				Your files will be set read-only until the migration is over. Please log out and log back in in a few hours.',
+	  		  				Your files will be set read-only on both your old and the new home server until the migration is over. \
+	  		  				Please log out and log back in in a few hours.',
 	  		  				'Change server', function(e){set_home_server(home_server_id, backup_server_id);}, false);
 	  				}
 	  				saving = false;
@@ -306,7 +309,7 @@ $(document).ready(function(){
        );
 		}
 		else{
-			set_home_server(home_server_id, backup_server_id);
+			set_home_server(home_server_id, backup_server_id, home_server_access);
 			saving = false;
 		}
 	});
@@ -350,11 +353,13 @@ $(document).ready(function(){
 		if($('.sharding-help').length){
 			return false;
 		};
-		var html = "<div><h3>"+t("files_sharding", "Choosing home and backup site")+"</h3>\
+		dialog_html = "<div><h3>"+t("files_sharding", "Choosing home and backup site")+"</h3>\
 				<a class='oc-dialog-close close svg'></a>\
 				<div class='sharding-help'></div></div>";
-		$(html).dialog({
-			  dialogClass: "oc-dialog",
+				
+		 $(dialog_html).dialog({
+			 	autoOpen: true,
+			  dialogClass: "files_sharding-oc-dialog",
 			  resizeable: true,
 			  draggable: true,
 			  modal: false,
@@ -369,10 +374,10 @@ $(document).ready(function(){
 				}]
 			});
 
-		//$('body').append('<div class="modalOverlay"></div>');
+		$('body').append('<div class="modalOverlay"></div>');
 
 		$('.oc-dialog-close').live('click', function() {
-			$(".oc-dialog").remove();
+			$(".files_sharding-oc-dialog").remove();
 			$('.modalOverlay').remove();
 		});
 

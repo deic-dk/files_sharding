@@ -125,7 +125,9 @@ class FileSessionHandler {
 			header('Location: ' . $logout_url);
 			exit;
 		}
-		if(isset($session['user_id']) && !$this->ocUserDatabase->userExists($session['user_id'])) {
+		if(isset($session['user_id']) && !\OC_User::userExists($session['user_id'])) {
+			\OC_Log::write('files_sharding',"User ".$session['user_id']." does not exist, creating.",
+					\OC_Log::WARN);
 			if(!empty($session['oc_mail']) && $session['user_id']!=$session['oc_mail'] &&
 					\OC_User::userExists($session['oc_mail'])){
 						\OCA\FilesSharding\Lib::migrateUser($session['oc_mail'], $session['user_id']);

@@ -3,11 +3,6 @@
 OCP\JSON::checkAppEnabled('files_sharding');
 OCP\User::checkLoggedIn();
 
-//OCP\Util::addscript('files_sharding', 'personalsettings');
-//OCP\Util::addStyle('files_sharding', 'personalsettings');
-
-$errors = Array();
-
 $tmpl = new OCP\Template('files_sharding', 'datasettings');
 
 $user_id = OCP\USER::getUser();
@@ -21,10 +16,12 @@ else{
 	$user_server_url = OCA\FilesSharding\Lib::dbLookupServerURL($user_server_id);
 }
 $user_home_site = OCA\FilesSharding\Lib::dbGetSite($user_server_id);
+$user_home_server_access = OCA\FilesSharding\Lib::dbGetUserServerAccess($user_server_id, $user_id);
 
 $tmpl->assign('user_server_id', $user_server_id);
 $tmpl->assign('user_server_url', $user_server_url);
 $tmpl->assign('user_home_site', $user_home_site);
+$tmpl->assign('user_home_server_access', $user_home_server_access);
 
 // List of sites to choose for backup
 $user_server_internal_url = OCA\FilesSharding\Lib::dbLookupInternalServerURL($user_server_id);
@@ -34,7 +31,7 @@ if($internalIpIsNumeric){
 	$tmpl->assign('sites_list', OCA\FilesSharding\Lib::dbGetSitesList(true));
 }
 else{
-	// We cannot backup from sites that do  not have a numeric internal IP.
+	// We cannot back up from sites that do  not have a numeric internal IP.
 	// Non-numeric internal IP sites are those not on the trusted net, i.e.
 	// the command-line sync client used, cannot be authenticated by IP.
 	// The command-line sync client unfortunately cannot use a client certificate for authentication.
@@ -47,12 +44,15 @@ if(!empty($user_backup_server_id)){
 	$user_backup_site = OCA\FilesSharding\Lib::dbGetSite($user_backup_server_id);
 	$user_backup_server_lastsync = OCA\FilesSharding\Lib::dbLookupLastSync($user_backup_server_id, $user_id);
 	$user_backup_server_nextsync = (empty($user_backup_server_lastsync)?time():$user_backup_server_lastsync) + OCA\FilesSharding\Lib::$USER_SYNC_INTERVAL_SECONDS;
+	$user_backup_server_access = OCA\FilesSharding\Lib::dbGetUserServerAccess($user_backup_server_id, $user_id);
 	$tmpl->assign('user_backup_server_id', $user_backup_server_id);
 	$tmpl->assign('user_backup_server_url', $user_backup_server_url);
 	$tmpl->assign('user_backup_site', $user_backup_site);
 	$tmpl->assign('user_backup_server_lastsync', $user_backup_server_lastsync);
 	$tmpl->assign('user_backup_server_nextsync', $user_backup_server_nextsync);
+	$tmpl->assign('user_backup_server_access', $user_backup_server_access);
 }
+
 $yesterday = time() - 24*60*60;
 $synced_user_backup_server_id = OCA\FilesSharding\Lib::dbLookupServerIdForUser($user_id, 1, $yesterday);
 if(!empty($synced_user_backup_server_id)){

@@ -13,8 +13,8 @@ if(\OCP\App::isEnabled('activity')){
 class SyncUser extends \OC\BackgroundJob\TimedJob {
 	
 	public function __construct() {
-		// Run all 15 Minutes
-		$this->setInterval(15 * 60);
+		// Run all 5 Minutes
+		$this->setInterval(5 * 60);
 	}
 	
 	protected function run($argument) {
@@ -55,6 +55,34 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 							'sync_finished',
 							array($server, $thisServerId), '', '', $user, \OCA\FilesSharding\Lib::TYPE_SERVER_SYNC,
 							\OCA\UserNotification\Data::PRIORITY_MEDIUM, $user);
+				}
+			}
+			else{
+				if(\OCP\App::isEnabled('user_notification')){
+					\OCA\UserNotification\Data::send('files_sharding',
+							$l->t('There was a problem backing up your files. Please check your filenames for disallowed characters (/, newline)'), array(),
+							'migration_finished',
+							array($server, $thisServerId), '', '', $user, \OCA\FilesSharding\Lib::TYPE_SERVER_SYNC,
+							\OCA\UserNotification\Data::PRIORITY_HIGH, $user);
+				}
+				$userEmail = \OCP\Config::getUserValue($user, 'settings', 'email');
+				$realName = User::getDisplayName($user);
+				$systemEmail = \OCP\Config::getSystemValue('fromemail', '');
+				$defaults = new \OCP\Defaults();
+				$senderName = $defaults->getName();
+				$subject = "ERROR: User backup problem";
+				$message = "File of ".$user." could not be backed up. Check the log and inform him/her :".
+						$realName."<".$userEmail.">";
+				// Inform ourselves
+				try {
+					\OCP\Util::sendMail(
+							$systemEmail, $senderName,
+							$subject, $message,
+							$systemEmail, $senderName
+							);
+				}
+				catch(\Exception $e){
+					\OCP\Util::writeLog('Files_Accounting', 'A problem occurred while sending e-mail. '.$e, \OCP\Util::ERROR);
 				}
 			}
 		}

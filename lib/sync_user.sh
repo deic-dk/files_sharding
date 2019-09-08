@@ -5,6 +5,8 @@ OC_ROOT="/usr/local/www/owncloud"
 OC_LOCAL_DATA_ROOT="/tank/data/owncloud"
 OC_REMOTE_BASE_DIR="/remote.php/webdav/"
 
+SYNC_TIMEOUT=7200s
+
 export OWNCLOUD_MAX_PARALLEL=1
 
 #
@@ -83,7 +85,14 @@ else
 fi
 ls "$folder" >& /dev/null || mkdir -p "$folder"
 echo $OC_CMD --non-interactive --silent --trust -u \"$user\" $password \"$folder\" $url
-$OC_CMD --non-interactive --trust --silent -u "$user" $password "$folder" $url
+timeout $SYNC_TIMEOUT $OC_CMD --non-interactive --trust --silent -u "$user" $password "$folder" $url
+
+RET=$?
+
+if [ "$RET" != "0" ]; then
+	echo "ERROR: Synchronization timed out" 2>&1
+	exit $RET
+fi
 
 ## Create user if he does not exist
 php "$OC_ROOT/console.php" user:lastseen "$user" | grep 'not exist'

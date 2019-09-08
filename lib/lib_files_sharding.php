@@ -53,6 +53,29 @@ class Lib {
 	
 	private static $SECOND_FACTOR_CACHE_KEY_PREFIX = 'oc_second_factor';
 	
+	public static function getServerAccessText($access){
+		$l = new \OC_L10N('files_sharding');
+		$ret = $l->t("Read/write");
+		switch($access){
+			case self::$USER_ACCESS_ALL:
+				$ret = $l->t("Read/write");
+				break;
+			case self::$USER_ACCESS_READ_ONLY:
+				$ret = $l->t("Read only");
+				break;
+			case self::$USER_ACCESS_TWO_FACTOR:
+				$ret = $l->t("Read/write with two-factor authentication");
+				break;
+			case self::$USER_ACCESS_TWO_FACTOR_FORCED:
+				$ret = $l->t("Read/write with two-factor authentication forced");
+				break;
+			case self::$USER_ACCESS_NONE:
+				$ret = $l->t("None");
+				break;
+		}
+		return $ret;
+	}
+	
 	public static function getCookieDomain(){
 		if(self::$cookiedomain===''){
 			self::$cookiedomain = \OCP\Config::getSystemValue('cookiedomain', '');
@@ -1704,13 +1727,28 @@ class Lib {
 	 */
 	private static function syncDir($user, $url, $dir){
 		$i = 0;
+		$output=[];
+		$ret = 0;
 		do{
 			if($i>self::$MAX_SYNC_ATTEMPTS){
 				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
 				break;
 			}
-			$syncedFiles = shell_exec(__DIR__."/sync_user.sh -u '".$user."' '".$dir."' ".$url." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'");
-			\OCP\Util::writeLog('files_sharding', 'Synced '.$syncedFiles.' files for '.$user.' from '.$server, \OC_Log::ERROR);
+			
+			$syncedFiles = exec(__DIR__."/sync_user.sh -u '".$user."' '".$dir."' ".$url." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'",
+					$output, $ret);
+			
+			if($ret==0){
+				\OCP\Util::writeLog('files_sharding', 'Synced '.$syncedFiles.' files for '.$user.' from '.$url, \OC_Log::WARN);
+			}
+			elseif($ret==124){
+				\OCP\Util::writeLog('files_sharding', 'Timeout while syncing files for '.$user.
+						' from '.$url.' : '.implode("\n", $output), \OC_Log::ERROR);
+				break;
+			}
+			else{
+				\OCP\Util::writeLog('files_sharding', 'Problem syncing '.$syncedFiles.' files for '.$user.' from '.$url, \OC_Log::WARN);
+			}
 			++$i;
 		}
 		while(!is_numeric($syncedFiles) || is_numeric($syncedFiles) && $syncedFiles!=0);
@@ -1749,6 +1787,8 @@ class Lib {
 			return null;
 		}
 		$i = 0;
+		$output = [];
+		$ret = 0;
 		$ok = false;
 		\OCP\Util::writeLog('files_sharding', 'Syncing with command: '.
 				__DIR__."/sync_user.sh -u '".$user."' -s ".$server, \OC_Log::WARN);
@@ -1757,11 +1797,26 @@ class Lib {
 				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
 				break;
 			}
-			$syncedFiles = shell_exec(__DIR__."/sync_user.sh -u '".$user."' -s ".$server." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'");
-			\OCP\Util::writeLog('files_sharding', 'Synced '.$syncedFiles.' files for '.$user.' from '.$server, \OC_Log::ERROR);
+			
+			$syncedFiles = exec(__DIR__."/sync_user.sh -u '".$user."' -s ".$server." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'",
+					$output, $ret);
+			
+			if($ret==0){
+				\OCP\Util::writeLog('files_sharding', 'Synced '.$syncedFiles.' files for '.$user.' from '.$server, \OC_Log::WARN);
+			}
+			elseif($ret==124){
+				\OCP\Util::writeLog('files_sharding', 'Timeout while syncing files for '.$user.
+						' from '.$server.' : '.implode("\n", $output), \OC_Log::ERROR);
+				break;
+			}
+			else{
+				\OCP\Util::writeLog('files_sharding', 'Problem syncing '.$syncedFiles.' files for '.$user.' from '.$server, \OC_Log::WARN);
+			}
+			
 			++$i;
 		}
 		while(!is_numeric($syncedFiles) || is_numeric($syncedFiles) && $syncedFiles!=0);
+		
 		if($syncedFiles==0 && $i<=self::$MAX_SYNC_ATTEMPTS){
 			// Update last_sync, set r/w if this is a new primary server
 			$access = null;
@@ -1772,17 +1827,17 @@ class Lib {
 				// Get exported metadata (by path) via remote metadata web API and insert metadata on synced files by using local metadata web API
 				// TODO: abstract this via a hook
 				if(\OCP\App::isEnabled('meta_data')){
-					/*$ok = $ok && */\OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
+					$ok = $ok && \OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
 				}
 				$access = self::$USER_ACCESS_ALL;
 				// Get group folders in files_accounting from previous primary server
 				if(\OCP\App::isEnabled('user_group_admin')){
-					/*$ok = $ok && */self::syncDir($user, $serverURL.'/remote.php/group',
+					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/group',
 							$user.'/user_group_admin');
 				}
 				// Get bills from previous primary server
 				if(\OCP\App::isEnabled('files_accounting')){
-					/*$ok = $ok && */self::syncDir($user, $serverURL.'/remote.php/usage',
+					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/usage',
 							$user.'/files_accounting');
 				}
 			}
@@ -1855,8 +1910,8 @@ class Lib {
 	}
 	
 	public static function setPasswordHash($user_id, $pwHash) {
-		$oldHash = self::dbGetPwHash($user_id);
-		if(!$oldHash){
+		//$oldHash = self::dbGetPwHash($user_id);
+		if(!\OC_User::userExists($user_id)){
 			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*users` (`uid`, `password`) VALUES (?, ?)');
 			$result = $query->execute(array($user_id, $pwHash));
 		}
@@ -2642,7 +2697,7 @@ class Lib {
 			\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
 		}
 		
-		$l = new \OC_L10N('files');
+		$l = new \OC_L10N('files_sharding');
 		
 		// information about storage capacities
 		//$storageInfo = \OC_Helper::getStorageInfo($dir);

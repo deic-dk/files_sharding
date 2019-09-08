@@ -18,7 +18,9 @@ if(!empty($_POST['home_server_id'])){
 	OC_Log::write('files_sharding',"Setting home server: ".$user_id.":".$home_server_id, OC_Log::WARN);
 	if(!OCA\FilesSharding\Lib::dbSetServerForUser($user_id, $home_server_id,
 			OCA\FilesSharding\Lib::$USER_SERVER_PRIORITY_PRIMARY,
-			OCA\FilesSharding\Lib::$USER_ACCESS_READ_ONLY)){
+			(!empty($_POST['home_server_access'])||$_POST['home_server_access']==="0"?
+					$_POST['home_server_access']:
+					OCA\FilesSharding\Lib::$USER_ACCESS_READ_ONLY))){
 		$ret['error'] = "Failed setting home server ".$home_server_id;
 	}
 	else{

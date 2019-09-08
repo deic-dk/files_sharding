@@ -1,5 +1,5 @@
 <fieldset id="filesShardingPersonalSettings" class="section">
-	<h2><?php p($l->t('Data location'));?></h2>
+	<h2><?php $l = new \OC_L10N('files_sharding'); p($l->t('Data location'));?></h2>
 	<a id="sharding-info" class="custom-popup"><?php p($l->t("What's this?"));?></a>
 	<div class="home_site">
 		<label class="nowrap"><?php p($l->t('Home site'));?>: </label>
@@ -12,6 +12,17 @@
 			?>
 		</select>
 		<div class="hidden" id="current_home_server" site=<?php print $_['user_home_site']?>><?php print $_['user_server_url']; ?></div>
+		<?php p($l->t('Access'));?>:
+		<select class="home_server_access">
+		<?php
+		for($access=0; $access<5; ++$access){
+			print '<option value="'.$access.
+			($access==$_['user_home_server_access']?'" selected="selected"':'"').
+			'">'.OCA\FilesSharding\Lib::getServerAccessText($access).
+				'</option>';
+		}
+		?>
+		</select>
 	</div>
 	<div>
 		<label class="nowrap"><?php p($l->t('Backup site'));?>: </label>
@@ -29,6 +40,10 @@
 			}
 			?>
 		</select>
+		<?php if(!empty($_['user_backup_server_access'])){
+			p($l->t('Access').": ".OCA\FilesSharding\Lib::getServerAccessText(
+					$_['user_backup_server_access']));
+		}?>
 	</div>
 	<div>
 		<label class="nowrap"><?php p($l->t('URL for sync clients'));?>: </label>
