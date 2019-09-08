@@ -1910,8 +1910,8 @@ class Lib {
 	}
 	
 	public static function setPasswordHash($user_id, $pwHash) {
-		//$oldHash = self::dbGetPwHash($user_id);
-		if(!\OC_User::userExists($user_id)){
+		$oldHash = self::dbGetPwHash($user_id);
+		if(!$oldHash && $oldHash!==""){
 			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*users` (`uid`, `password`) VALUES (?, ?)');
 			$result = $query->execute(array($user_id, $pwHash));
 		}
