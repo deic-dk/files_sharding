@@ -45,7 +45,7 @@ So please also get <a href='mailto: %s'>in touch</a> with us, so we can resolve 
 		"Hvis du ændrer dit hjemme-site vi en sidste synkronisering blive udført og i mellemtiden 
 vil adgangs-tilladelserne blive sat til read-only på både den nye og den gamle hjemme-server. 
 Du kan ændre dette manuelt, men hvis du gør det kan der mangle filer på den ny hjemme-server. 
-Derfor, så <a href='mailto: %s'>kontakt</a> venligst også os, så vi kan undersøge problemet."
+Derfor, så <a href='mailto: %s'>kontakt</a> venligst også os, så vi kan undersøge problemet.",
 		"Which site to choose" => "Valg af site",
 		"When choosing a home site, you might want to consider the following" =>
 		"Ved valg af hjemme-site, kan du overveje følgende",
@@ -70,6 +70,6 @@ Derfor, så <a href='mailto: %s'>kontakt</a> venligst også os, så vi kan under
 		"Read/write with two-factor authentication" => "Læse- og skriveadgang med to-faktor autentificering",
 		"Read/write with two-factor authentication forced" => "Læse- og skriveadgang med påkrævet to-faktor autentificering",
 		"None" => "Ingen",
-		"Access" => "Adgang",
+		"Access" => "Adgang"
 );
 $PLURAL_FORMS = "nplurals=2; plural=(n != 1);";
