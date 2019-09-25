@@ -87,7 +87,8 @@ class Api {
 		}
 		else{
 			return \OCA\FilesSharding\Lib::ws('share_action',
-					array('user_id' => \OC_User::getUser(), 'action' => 'setPermissions', 'itemType' => $itemType,'itemSource' => $itemSource,
+					array('user_id' => \OC_User::getUser(), 'action' => 'setPermissions',
+							'itemType' => $itemType, 'itemSource' => $itemSource, 'myItemSource' => $itemSource,
 								'shareType' => $shareType, 'shareWith' => $shareWith, 'permissions' => $permissions), true, true);
 		}
 	}
