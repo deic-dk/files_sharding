@@ -102,7 +102,7 @@ if(OCA\FilesSharding\Lib::inDataFolder($reqPath, $user, $group)){
 	// If not, assign a new server to this folder.
 	// For this request we still create the folder on this server, but for subsequent requests in this folder
 	// we will then redirect.
-	if(strtolower($_SERVER['REQUEST_METHOD'])=='mkcol' && OCP\App::isEnabled('files_sharding')){
+	if(strtolower(strtolower($_SERVER['REQUEST_METHOD']))=='mkcol' && OCP\App::isEnabled('files_sharding')){
 		$newServerUrl = OCA\FilesSharding\Lib::setServerForFolder($reqPath, $user, $group);
 		// Also create the folder on the new server
 		$arr = array('user_id'=>$user, 'dir'=>urlencode(dirname($reqPath)), 'foldername'=>urlencode(basename($reqPath)),
