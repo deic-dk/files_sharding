@@ -124,7 +124,7 @@ function disableWrite(){
 		e.preventDefault();
 		return false;
 	});
-	var style = $('<style>#controls #upload,  #controls #new, .select-all, .fileselect, .action.delete, .fileactions-wrap, .app-gallery .right, li[data-id="meta_data"], li[data-id="importer_index"] , li[data-id="uploader"] { display: none; }</style>');
+	var style = $('<style>#controls #upload,  #controls #new, .select-all, .fileselect, .action.delete, .fileactions-wrap, .app-gallery .right, li[data-id="meta_data"], li[data-id="importer_index"] , li[data-id="uploader"] , li[data-id="notes"] { display: none; }</style>');
 	$('html > head').append(style);
   //$("a").draggable('disable');
   //$(".user-menu").draggable('disable');
