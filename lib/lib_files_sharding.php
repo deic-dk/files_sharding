@@ -418,8 +418,9 @@ class Lib {
 		}
 		
 		if(isset(self::$WS_CACHE_CALLS[$script])){
-			\OCP\Util::writeLog('files_sharding', 'Caching response for '.apc_exists($cache_key).': '.$script.'-->'.$cache_key, \OC_Log::WARN);
-			apc_store($cache_key, $json_response, (int)self::$WS_CACHE_CALLS[$script]);
+			if(apc_add($cache_key, $json_response, (int)self::$WS_CACHE_CALLS[$script])){
+				\OCP\Util::writeLog('files_sharding', 'Caching response for '.apc_exists($cache_key).': '.$script.'-->'.$cache_key, \OC_Log::WARN);
+			}
 		}
 		else{
 			\OCP\Util::writeLog('files_sharding', 'NOT caching response for '.$script.'-->'.$cache_key, \OC_Log::WARN);
