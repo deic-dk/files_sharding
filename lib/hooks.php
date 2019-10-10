@@ -94,6 +94,7 @@ class Hooks {
 		}
 	}
 	
+	// NOT USED
 	public static function setup($options) {
 		// Don't load shares when called via webdav or cron
 		if(empty($_SERVER['REQUEST_URI']) ||

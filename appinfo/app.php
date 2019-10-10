@@ -115,7 +115,7 @@ if(OCA\FilesSharding\Lib::isMaster()){
 }
 
 //\OCP\Util::connectHook('OC_Filesystem', 'setup', 'OCA\FilesSharding\Hooks', 'setup');
-\OCP\Util::connectHook('OC_Filesystem', 'post_initMountPoints', 'OCA\FilesSharding\Hooks', 'setup');
+//\OCP\Util::connectHook('OC_Filesystem', 'post_initMountPoints', 'OCA\FilesSharding\Hooks', 'setup');
 
 OCP\Util::connectHook('OC', 'initSession', 'OCA\FilesSharding\Hooks', 'initSession');
 OCP\Util::connectHook('OC_User', 'logout', 'OCA\FilesSharding\Hooks', 'logout');

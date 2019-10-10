@@ -67,7 +67,8 @@ if(OCP\App::isEnabled('user_group_admin') && !empty($_POST['groupFolder'])){
 
 if(isset($_POST['myItemSource'])&&$_POST['myItemSource']){
 	// On the master, file_source holds the id of the dummy file
-	$_POST['itemSource'] = OCA\FilesSharding\Lib::getFileSource($_POST['myItemSource'], $_POST['itemType']);
+	//$_POST['itemSource'] = OCA\FilesSharding\Lib::getFileSource($_POST['myItemSource'], $_POST['itemType']);
+	$masterItemSource = OCA\FilesSharding\Lib::getFileSource($_POST['myItemSource'], $_POST['itemType']);
 }
 
 switch ($_POST['action']) {
@@ -75,6 +76,22 @@ switch ($_POST['action']) {
 		if (isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])) {
 			try {
 				// TODO: Get rid of this hack
+				
+				/*
+				if(!empty($_POST['groupFolder']) && !empty($itemMasterSource) && OC\Files\Filesystem::file_exists($file_path)){
+					$fields = "(`share_type`, `share_with`, `uid_owner`, `parent`, `item_type`, ".
+					"`item_source`, `item_target`, `file_source`, `file_target`, `permissions`, ".
+					"`stime`, `accepted`, `expiration`, `token`, `mail_send`)";
+					$values = [$shareType, $shareWith, $user_id, -1, $_POST['itemType'], 
+							$_POST['itemSource'], "/".$itemMasterSource, $itemMasterSource, $file_path, $_POST['permissions'],
+							time(), 0, null, null, 0];
+					$query = \OC_DB::prepare('INSERT INTO `*PREFIX*share`' . $fields .
+							' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+					$query->execute($values);
+					break;
+				}
+				*/
+				
 				// Create file/folder if not there
 				$file_path = urldecode($_POST['itemPath']);
 				if(($_POST['itemType'] === 'file' or $_POST['itemType'] === 'folder')){
@@ -103,6 +120,15 @@ switch ($_POST['action']) {
 				if ($shareType === OCP\Share::SHARE_TYPE_LINK && $shareWith == '') {
 					$shareWith = null;
 				}
+				
+				// If the user has migrated, a group folder will already have been shared - but now with the
+				// file_source on the old home server. Just unshare it.
+				$checkItemSource = OCA\FilesSharding\Lib::getItemSource($itemMasterSource, $_POST['itemType']);
+				if($checkItemSource!=$itemMasterSource && $checkItemSource!=$_POST['myItemSource']){
+					\OCP\Util::writeLog('sharing', "Unsharing group folder " . $itemMasterSource, \OCP\Util::WARN);
+					OCP\Share::unshare($_POST['itemType'], $itemMasterSource, $_POST['shareType'], $shareWith);
+				}
+				
 				$token = OCP\Share::shareItem(
 						$_POST['itemType'],
 						$itemMasterSource,
@@ -156,8 +182,8 @@ switch ($_POST['action']) {
 			//$return = OCP\Share::unshare($_POST['itemType'], $_POST['itemSource'], $_POST['shareType'], $shareWith);
 			//$itemMasterSource = OCA\FilesSharding\Lib::getFileId($file_path, $user_id);
 			//$itemMasterSource = OCA\FilesSharding\Lib::getFileSource($_POST['itemSource'], $_POST['itemType'], false);
-			\OCP\Util::writeLog('sharing', "Unsharing " . $_POST['itemSource'], \OCP\Util::WARN);
-			$return = OCP\Share::unshare($_POST['itemType'], $_POST['itemSource'], $_POST['shareType'], $shareWith);
+			\OCP\Util::writeLog('sharing', "Unsharing " . $masterItemSource, \OCP\Util::WARN);
+			$return = OCP\Share::unshare($_POST['itemType'], $masterItemSource, $_POST['shareType'], $shareWith);
 			($return) ? OC_JSON::success() : OC_JSON::error();
 		}
 		break;
@@ -165,7 +191,7 @@ switch ($_POST['action']) {
 		if (isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])) {
 			$return = OCP\Share::setPermissions(
 					$_POST['itemType'],
-					$_POST['itemSource'],
+					$masterItemSource,
 					$_POST['shareType'],
 					$_POST['shareWith'],
 					$_POST['permissions']
@@ -177,7 +203,7 @@ switch ($_POST['action']) {
 		if (isset($_POST['date'])) {
 			try {
 				$shareTime = isset($_POST['shareTime']) ? $_POST['shareTime'] : null;
-				$return = OCP\Share::setExpirationDate($_POST['itemType'], $_POST['itemSource'], $_POST['date'], $shareTime);
+				$return = OCP\Share::setExpirationDate($_POST['itemType'], $masterItemSource, $_POST['date'], $shareTime);
 				($return) ? OC_JSON::success() : OC_JSON::error();
 			} catch (\Exception $e) {
 				OC_JSON::error(array('data' => array('message' => $e->getMessage())));
@@ -188,7 +214,7 @@ switch ($_POST['action']) {
 		$l = OC_L10N::get('core');
 		$shareType = (int) $_POST['shareType'];
 		$itemType = $_POST['itemType'];
-		$itemSource = $_POST['itemSource'];
+		$itemSource = $masterItemSource;
 		$recipient = $_POST['recipient'];
 		
 		if($shareType === \OCP\Share::SHARE_TYPE_USER) {
@@ -216,7 +242,7 @@ switch ($_POST['action']) {
 		}
 		break;
 	case 'informRecipientsDisabled':
-		$itemSource = $_POST['itemSource'];
+		$itemSource = $masterItemSource;
 		$shareType = $_POST['shareType'];
 		$itemType = $_POST['itemType'];
 		$recipient = $_POST['recipient'];

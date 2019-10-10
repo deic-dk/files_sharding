@@ -50,7 +50,7 @@ $itemShared = \OCP\Share::getItemShared($itemType, empty($itemSource)?null:$item
 	$share['path'] = $path;
 }*/
 
-\OCP\Util::writeLog('files_sharding', 'Returning item shared '.serialize($itemShared), \OC_Log::WARN);
+\OCP\Util::writeLog('files_sharding', 'Returning item shared '.$itemSource.'-->'.serialize($itemShared), \OC_Log::WARN);
 
 OCP\JSON::encodedPrint($itemShared);
 

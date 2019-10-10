@@ -2090,7 +2090,7 @@ class Lib {
 			$master_to_slave_id_map = \OCP\Share::getItemsShared($itemType);
 		}
 		foreach($master_to_slave_id_map as $item1=>$data1){
-			if($master_to_slave_id_map[$item1]['file_source'] == $itemSource){
+			if($master_to_slave_id_map[$item1]['file_source'] == $fileSource){
 				$ret = $master_to_slave_id_map[$item1]['item_source'];
 				return $ret;
 			}
