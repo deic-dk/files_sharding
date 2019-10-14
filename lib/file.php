@@ -163,7 +163,7 @@ class OC_Shard_Backend_File implements OCP\Share_Backend_File_Dependent {
 				$file['uid_owner'] = $item['uid_owner'];
 				$file['displayname_owner'] = $item['displayname_owner'];
 
-				$storage = \OC\Files\Filesystem::getStorage('/');
+				$storage = \OC\Files\Filesystem::getStorage('/'.\OCP\User::getUser().'/');
 				$cache = $storage->getCache();
 				if ($item['encrypted'] or ($item['unencrypted_size'] > 0 and $cache->getMimetype($item['mimetype']) === 'httpd/unix-directory')) {
 					$file['size'] = $item['unencrypted_size'];

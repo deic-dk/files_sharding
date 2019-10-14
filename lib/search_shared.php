@@ -33,7 +33,7 @@ class SearchShared extends \OC_Search_Provider {
 			return array();
 		}
 		$serverUsers = Lib::getServerUsers($sharedItems);
-		$storage = \OC\Files\Filesystem::getStorage('/');
+		$storage = \OC\Files\Filesystem::getStorage('/'.$user_id.'/');
 		$cache = $storage->getCache();
 		$results = array();
 		$allServers = Lib::getServersList();
