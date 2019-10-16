@@ -55,31 +55,62 @@ class SearchShared extends \OC_Search_Provider {
 							continue;
 						}
 						if(isset($item['fileid']) && isset($match['id']) && $item['fileid']==$match['id']){
-							$match['server'] = $server['internal_url'];
+							//$match['server'] = $server['internal_url'];
 							$match['owner'] = $owner;
 							if(in_array($match, $res)){
 								continue;
 							}
+							$match['link'] = $match['link'].(strpos($match['link'], '?')===false?'?':'&').
+								'owner='.$owner.'&id='.$item['fileid'];
 							$res[] = $match;
 							continue;
+						}
+						if($match['type']==='metadata' &&
+								isset($match['fileid']) && isset($item['fileid']) && $item['fileid']==$match['fileid']){
+									$match['link'] = $match['link'].(strpos($match['link'], '?')===false?'?':'&').
+									'owner='.$owner.'&id='.$item['fileid'];
+							$res[] = $match;
 						}
 						// Check if match is in a shared folder or subfolders thereof
 						if(isset($item['owner_path']) && $cache->getMimetype($item['mimetype']) === 'httpd/unix-directory'){
 							$len = strlen($item['owner_path'])+1;
 							\OCP\Util::writeLog('search', 'Matching '.$match['link'].':'.$item['owner_path'].' --> '.$server['internal_url'].
-										' --> '.$owner, \OC_Log::WARN);
+									' --> '.$owner, \OC_Log::WARN);
 							if(substr($match['link'], 0, $len)===$item['owner_path'].'/'){
-								$match['server'] = $server['internal_url'];
+								//$match['server'] = $server['internal_url'];
 								$match['owner'] = $owner;
 								if(in_array($match, $res)){
 									continue;
+								}
+								if(!empty($match['parentdir'])&&!empty($match['parentid'])){
+									$match['link'] = \OCP\Util::linkTo(
+											'files',
+											'index.php',
+											array('dir' => $match['parentdir'], 'owner' => $owner, 'id' => $match['parentid'])
+									);
+								}
+								elseif($match['type']==='metadata'){
+									$match['link'] = \OCP\Util::linkTo(
+											'files',
+											'index.php',
+											array('dir' => dirname($match['link']), 'file' => basename($match['link']),
+												'owner' => $owner, 'id' => $match['fileid'])
+									);
+								}
+								elseif(!empty($match['id'])){
+									$match['link'] = \OCP\Util::linkTo(
+											'files',
+											'index.php',
+											array('dir' => dirname($match['link']), 'file' => basename($match['link']),
+													'owner' => $owner, 'id' => $match['id'])
+									);
 								}
 								$res[] = $match;
 								continue;
 							}
 						}
 					}
-					if($match['type']==='tag' && $match['public']==='1'|| $match['type']==='metadata'){
+					if($match['type']==='tag' && $match['public']==='1'){
 						\OCP\Util::writeLog('search', 'Matched '.serialize($match), \OC_Log::WARN);
 						$res[] = $match;
 					}

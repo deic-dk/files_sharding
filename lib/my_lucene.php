@@ -297,12 +297,14 @@ class MyLucene extends \OC_Search_Provider {
 		}
 		
 		$id = \OCA\FilesSharding\Lib::getFileId($hit->path);
-		
+		$user_id = \OCP\USER::getUser();
 		$ret = new \OC_Search_Result(
 				$id,
 			basename($hit->path) . ' ('. dirname($hit->path) . ', '
 				. \OCP\Util::humanFileSize($hit->size)
-				. ', Score: ' . number_format($hit->score, 2).')',
+			 /*. ', Score: ' . number_format($hit->score, 2).*/
+				. ', owner: ' . \OCP\User::getDisplayName($user_id).
+				')',
 			$hit->path,//$url,
 			$type
 		);
