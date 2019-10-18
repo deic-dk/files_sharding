@@ -317,9 +317,9 @@ class Lib {
 	 * Map of calls to be cached => seconds to live.
 	 */
 	private static $WS_CACHE_CALLS = array('getItemsSharedWith'=>10, 'get_data_folders'=>10,
-			'get_user_server'=>30, 'getFileTags'=>20, 'share_fetch'=>10, 'getShareByToken'=>10,
+			'get_user_server'=>30, 'getFileTags'=>10, 'share_fetch'=>10, 'getShareByToken'=>10,
 			'searchTagsByIDs'=>10, 'searchTags'=>10, 'getItemsSharedWithUser'=>10,
-			'get_server_id'=>60, 'get_servers'=>15, 'getTaggedFiles'=>30, 'get_user_server_access'=>30,
+			'get_server_id'=>60, 'get_servers'=>20, 'getTaggedFiles'=>30, 'get_user_server_access'=>30,
 			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, 'getCharge'=>30,
 			'accountedYears'=>60, 'getUserGroups'=>10, 'lookupServerId'=>60);
 	
