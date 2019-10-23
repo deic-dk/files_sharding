@@ -2893,13 +2893,4 @@ class Lib {
 		fclose($fp);
 	}
 	
-	function myexit(){
-		if (isset($rootLinkItem['uid_owner']) && $rootLinkItem['uid_owner']!=$user ) {
-			OC_Util::tearDownFS();
-			\OC_User::setUserId($user);
-			OC_Util::setupFS($user);
-		}
-		exit();
-	}
-	
 }
