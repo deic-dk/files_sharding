@@ -2840,7 +2840,7 @@ class Lib {
 			// we output the whole content?
 			header('HTTP/1.1 416 Requested Range Not Satisfiable');
 			// (?) Echo some info to the client?
-			myexit();
+			return;
 		}
 		// If the range starts with an '-' we start from the beginning
 		// If not, we forward the file pointer
@@ -2865,7 +2865,7 @@ class Lib {
 			OCP\Util::writeLog('share', 'ERROR: Bad range', \OCP\Util::ERROR);
 			header('HTTP/1.1 416 Requested Range Not Satisfiable');
 			// (?) Echo some info to the client?
-			myexit();
+			return;
 		}
 		$start  = empty($c_start)?0:$c_start;
 		$end    = $c_end;
