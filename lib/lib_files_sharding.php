@@ -2862,7 +2862,7 @@ class Lib {
 		$c_end = ($c_end > $end) ? $end : $c_end;
 		// Validate the requested range and return an error if it's not correct.
 		if($c_start > $c_end || $c_start > $size - 1 || $c_end >= $size){
-			OCP\Util::writeLog('share', 'ERROR: Bad range', \OCP\Util::ERROR);
+			\OCP\Util::writeLog('share', 'ERROR: Bad range', \OCP\Util::ERROR);
 			header('HTTP/1.1 416 Requested Range Not Satisfiable');
 			// (?) Echo some info to the client?
 			return;
