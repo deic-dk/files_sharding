@@ -2483,9 +2483,11 @@ class Lib {
 				}
 				if($data){
 					\OCP\Util::writeLog('files_sharding', 'Getting file info for '.$data['path'].'-->'.serialize($data), \OC_Log::WARN);
-					$configDataDirectory = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT."/data");
-					\OC\Files\Filesystem::mount('\OC\Files\Storage\Local', array('datadir'=>$configDataDirectory), '/');
-					$storage = \OC\Files\Filesystem::getStorage($data['path']);
+					//$configDataDirectory = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT."/data");
+					//\OC\Files\Filesystem::mount('\OC\Files\Storage\Local', array('datadir'=>$configDataDirectory), '/');
+					//$storage = \OC\Files\Filesystem::getStorage($data['path']);
+					include_once('files_sharding/lib/shardedstorage.php');
+					$storage = new \OC\Files\Storage\Sharded(array('userid'=>$user));
 					$info = new \OC\Files\FileInfo($data['path'], $storage, $data['internalPath'], $data);
 					\OCP\Util::writeLog('files_sharding', 'Returning file info for '.$data['path'].'-->'.serialize($data), \OC_Log::WARN);
 				}
