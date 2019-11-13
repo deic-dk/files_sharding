@@ -1736,7 +1736,7 @@ class Lib {
 				break;
 			}
 			
-			$syncedFiles = exec(__DIR__."/sync_user.sh -u '".$user."' '".$dir."' ".$url." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'",
+			$syncedFiles = exec("LANG=en_US.UTF-8 ".__DIR__."/sync_user.sh -u '".$user."' '".$dir."' ".$url." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'",
 					$output, $ret);
 			
 			if($ret==0){
@@ -1799,7 +1799,7 @@ class Lib {
 				break;
 			}
 			
-			$syncedFiles = exec(__DIR__."/sync_user.sh -u '".$user."' -s ".$server." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'",
+			$syncedFiles = exec("LANG=en_US.UTF-8 ".__DIR__."/sync_user.sh -u '".$user."' -s ".$server." | grep 'Synced files:' | awk -F ':' '{printf \$NF}'",
 					$output, $ret);
 			
 			if($ret==0){
