@@ -61,7 +61,7 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 				if(\OCP\App::isEnabled('user_notification')){
 					\OCA\UserNotification\Data::send('files_sharding',
 							$l->t('There was a problem backing up your files. Please check your filenames for disallowed characters (/, newline)'), array(),
-							'migration_finished',
+							'sync_problem_encountered',
 							array($server, $thisServerId), '', '', $user, \OCA\FilesSharding\Lib::TYPE_SERVER_SYNC,
 							\OCA\UserNotification\Data::PRIORITY_HIGH, $user);
 				}

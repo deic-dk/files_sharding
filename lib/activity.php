@@ -87,6 +87,10 @@ class ServerSync_Activity implements IExtension {
 				}
 				return (string) $this->l->t('Your files have been migrated to %1$s.<br><strong>Please change URL</strong> in the settings of your sync clients!',
 					$newparams);
+			case 'sync_problem_encountered':
+				$newparams = $params;
+				return (string) $this->l->t('Your files have NOT been fully backed up.',
+						$newparams);
 			default:
 				return false;
 		}
