@@ -2428,10 +2428,10 @@ class Lib {
 	}
 	
 	// Get logged-in user session on master
-	public static function getUserSession($sessionId){
+	public static function getUserSession($sessionId, $forceLogout=true){
 		include_once('files_sharding/lib/filesessionhandler.php');
 		$handler = new FileSessionHandler('/tmp');
-		$encoded_session = $handler->getSession($sessionId);
+		$encoded_session = $handler->getSession($sessionId, $forceLogout);
 		if(!empty($encoded_session)){
 			$session = \Session::unserialize($encoded_session);
 			\OC_Log::write('files_sharding', 'Session '.serialize($session), \OC_Log::WARN);

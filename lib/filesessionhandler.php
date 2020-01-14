@@ -85,7 +85,7 @@ class FileSessionHandler {
 		return true;
 	}
 	
-	function getSession($id){
+	function getSession($id, $forceLogout=true){
 		$ch = curl_init();
 		$masterinturl = Lib::getMasterInternalURL();
 		$url = $masterinturl . "apps/files_sharding/ws/get_session.php";
@@ -117,7 +117,7 @@ class FileSessionHandler {
 		}
 		$session = \Session::unserialize($res->{'session'});
 		//\OC_Log::write('files_sharding',"Got session ".$session['user_id'].":".$session['oc_mail'].":".join("|", $session['oc_groups']).":".$session['oc_display_name'].":".serialize($session), \OC_Log::WARN);
-		if(empty($session['user_id'])){
+		if(empty($session['user_id']) && $forceLogout){
 			\OC_Log::write('files_sharding',"NO user_id, cannot proceed", \OC_Log::WARN);
 			//return null;
 			$masterurl = Lib::getMasterURL();
@@ -131,22 +131,24 @@ class FileSessionHandler {
 			header('Location: ' . $logout_url);
 			exit;
 		}
-		if(isset($session['user_id']) && !$this->ocUserDatabase->userExists($session['user_id'])) {
-			\OC_Log::write('files_sharding',"User ".$session['user_id']." does not exist, creating.",
-					\OC_Log::WARN);
-			if(!empty($session['oc_mail']) && $session['user_id']!=$session['oc_mail'] &&
-					\OC_User::userExists($session['oc_mail'])){
-						\OCA\FilesSharding\Lib::migrateUser($session['oc_mail'], $session['user_id']);
+		if(isset($session['user_id'])){
+			if(!$this->ocUserDatabase->userExists($session['user_id'])) {
+				\OC_Log::write('files_sharding',"User ".$session['user_id']." does not exist, creating.",
+						\OC_Log::WARN);
+				if(!empty($session['oc_mail']) && $session['user_id']!=$session['oc_mail'] &&
+						\OC_User::userExists($session['oc_mail'])){
+							\OCA\FilesSharding\Lib::migrateUser($session['oc_mail'], $session['user_id']);
+				}
+				$this->createUser($session['user_id'], $session['oc_storage_id'], $session['oc_numeric_storage_id']);
+				$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'],
+						$session['oc_groups'], $session['oc_quota'], $session['oc_freequota']);
 			}
-			$this->createUser($session['user_id'], $session['oc_storage_id'], $session['oc_numeric_storage_id']);
-			$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'],
-					$session['oc_groups'], $session['oc_quota'], $session['oc_freequota']);
-		}
-		else{
-			\OC_Log::write('files_sharding',"User already exists, syncing: ".$session['user_id']."/".
-					$session['oc_display_name'], \OC_Log::WARN);
-			$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'],
-					$session['oc_groups'], $session['oc_quota'], $session['oc_freequota']);
+			else{
+				\OC_Log::write('files_sharding',"User already exists, syncing: ".$session['user_id']."/".
+						$session['oc_display_name'], \OC_Log::WARN);
+				$this->setupUser($session['user_id'], $session['oc_mail'], $session['oc_display_name'],
+						$session['oc_groups'], $session['oc_quota'], $session['oc_freequota']);
+			}
 		}
 		return $res->{'session'};
 	}
