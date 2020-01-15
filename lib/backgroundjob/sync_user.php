@@ -66,7 +66,7 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 							\OCA\UserNotification\Data::PRIORITY_HIGH, $user);
 				}
 				$userEmail = \OCP\Config::getUserValue($user, 'settings', 'email');
-				$realName = User::getDisplayName($user);
+				$realName = \User::getDisplayName($user);
 				$systemEmail = \OCP\Config::getSystemValue('fromemail', '');
 				$defaults = new \OCP\Defaults();
 				$senderName = $defaults->getName();
