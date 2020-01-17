@@ -1,6 +1,7 @@
 #!/usr/local/bin/bash
 
-OC_CMD="/usr/local/bin/owncloudcmd"
+#OC_CMD="/usr/local/bin/owncloudcmd"
+RCLONE_CMD="/usr/local/bin/rclone"
 OC_ROOT="/usr/local/www/owncloud"
 OC_LOCAL_DATA_ROOT="/tank/data/owncloud"
 OC_REMOTE_BASE_DIR="/remote.php/webdav/"
@@ -34,10 +35,32 @@ function create_user(){
 	mysql -u${dbuser} -p${dbpassword};
 }
 
+# From https://gist.github.com/cdown/1163649
+function urlencode() {
+    # urlencode <string>
+
+    local length="${#1}"
+    for (( i = 0; i < length; i++ )); do
+        local c="${1:i:1}"
+        case $c in
+            [a-zA-Z0-9.~_-]) printf "$c" ;;
+            *) printf '%s' "$c" | xxd -p -c1 |
+                   while read c; do printf '%%%s' "$c"; done ;;
+        esac
+    done
+}
+
+function urldecode() {
+    # urldecode <string>
+
+    local url_encoded="${1//+/ }"
+    printf '%b' "${url_encoded//%/\\x}"
+}
+
 while getopts "u:p:s:" flag; do
 case "$flag" in
     u) user="$OPTARG";;
-    p) pass="$OPTARG";;
+    p) password="$OPTARG";;
     s) server="$OPTARG";;
     \?) echo "Invalid option: -$OPTARG" >&2; usage;;
 		*) usage;;
@@ -47,11 +70,7 @@ done
 shift $((OPTIND-1))
 
 if [ -n "$1" ]; then
-	#folder="\"$1\""
 	folder="$1"
-	if [ ! -e "$folder" ]; then
-		folder="$OC_LOCAL_DATA_ROOT/$folder"
-	fi
 elif [ -n "$user" ]; then
 	folder="$OC_LOCAL_DATA_ROOT/$user/files"
 fi
@@ -77,15 +96,23 @@ fi
 # Get number of files to begin with
 files_start=`find "$folder" | wc -l`
 
-## Sync files
-if [ -z "$pass" ]; then
-	password=""
-else
-	password="-p '\"\"'"
-fi
 ls "$folder" >& /dev/null || mkdir -p "$folder"
-echo $OC_CMD --non-interactive --silent --trust -u \"$user\" $password \"$folder\" $url
-timeout $SYNC_TIMEOUT $OC_CMD --non-interactive --trust --silent -u "$user" $password "$folder" $url
+
+echo $url | grep @
+if [ $? -eq 0 -o -z $user ]; then
+	base_url=`echo $url | sed -E 's|(.*://[^/]+)/.*|\1|'`
+else
+	# Apparently not necessary
+	#user=`urlencode $user`
+	#password=`urlencode $password`
+	base_url=`echo $url | sed -E "s|(.*://)([^/]+)/.*|\1$user:$password@\2|"`
+fi
+
+remote_path=`echo $url | sed -E 's|.*://[^/]+||'`
+
+## Sync files
+echo timeout $SYNC_TIMEOUT $RCLONE_CMD sync --no-check-certificate --webdav-url $base_url :webdav:$remote_path "$folder" 
+timeout $SYNC_TIMEOUT $RCLONE_CMD sync --no-check-certificate --webdav-url $base_url :webdav:$remote_path "$folder" 
 
 RET=$?
 
