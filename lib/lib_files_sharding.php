@@ -1818,11 +1818,13 @@ class Lib {
 		}
 		while(!is_numeric($syncedFiles) || is_numeric($syncedFiles) && $syncedFiles!=0);
 		
+		$ret = null;
+		$access = null;
 		if($syncedFiles==0 && $i<=self::$MAX_SYNC_ATTEMPTS){
-			// Update last_sync, set r/w if this is a new primary server
-			$access = null;
+			// Set r/w if this is a new primary server
 			$ok = true;
 			if($priority==self::$USER_SERVER_PRIORITY_PRIMARY){
+				$access = self::$USER_ACCESS_ALL;
 				// Get list of shared file mappings: ID -> path and update item_source on oc_share table on master with new IDs
 				/*$ok = $ok &&*/ self::updateUserSharedFiles($user);
 				// Get exported metadata (by path) via remote metadata web API and insert metadata on synced files by using local metadata web API
@@ -1830,7 +1832,6 @@ class Lib {
 				if(\OCP\App::isEnabled('meta_data')){
 					$ok = $ok && \OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
 				}
-				$access = self::$USER_ACCESS_ALL;
 				// Get group folders in files_accounting from previous primary server
 				if(\OCP\App::isEnabled('user_group_admin')){
 					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/group',
@@ -1842,13 +1843,16 @@ class Lib {
 							$user.'/files_accounting');
 				}
 			}
-			$now = time();
 			if($ok){
-				self::setServerForUser($user, null, $priority, $access, $now);
-				return $publicServerURL;
+				$ret = $publicServerURL;
 			}
 		}
-		return null;
+		$now = time();
+		// Update last_sync in any case. If we only update on success, another attempt
+		// will be made in 5 minutes. Ungortunate if the server times out because of load.
+		// Let's give the server 24h to recover...
+		self::setServerForUser($user, null, $priority, $access, $now);
+		return $ret;
 	}
 	
 	public static function deleteUser($user) {

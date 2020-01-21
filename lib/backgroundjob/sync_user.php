@@ -71,7 +71,7 @@ class SyncUser extends \OC\BackgroundJob\TimedJob {
 				$defaults = new \OCP\Defaults();
 				$senderName = $defaults->getName();
 				$subject = "ERROR: User backup problem";
-				$message = "File of ".$user." could not be backed up. Check the log and inform him/her :".
+				$message = "Files of ".$user." could not be backed up. Check the log and inform him/her :".
 						$realName."<".$userEmail.">";
 				// Inform ourselves
 				try {
