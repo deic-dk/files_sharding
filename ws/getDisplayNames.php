@@ -33,16 +33,16 @@ $limit = isset($_GET['limit'])?$_GET['limit']:null;
 $offset = isset($_GET['offset'])?$_GET['offset']:null;
 $exact = isset($_GET['exact'])?$_GET['exact']=='yes'||$_GET['exact']=='true':false;
 
-$userName = OC_User::getDisplayName($search);
+$displayName = OC_User::getDisplayName($search);
 $users = [];
 
 if($exact){
-	$users[$search] = $userName;
+	$users[$search] = $displayName;
 }
 else{
 	$users = OC_User::getDisplayNames($search, $limit, $offset);
-	if(!empty($userName) && empty($users[$search])){
-		$users[$search] = $userName;
+	if(!empty($displayName) && empty($users[$search]) && OC_User::userExists($search)){
+		$users[$search] = $displayName;
 	}
 }
 if(!$exact && \OCP\App::isEnabled('user_alias')){
