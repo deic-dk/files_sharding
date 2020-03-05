@@ -1962,8 +1962,7 @@ class Lib {
 	}
 	
 	public static function checkCert(){
-		if(!empty(self::getWSCert()) &&
-				!empty($_SERVER['SSL_CLIENT_VERIFY']) &&
+		if(!empty($_SERVER['SSL_CLIENT_VERIFY']) &&
 				($_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS' || $_SERVER['SSL_CLIENT_VERIFY']=='NONE')){
 			$issuerDN = !empty($_SERVER['SSL_CLIENT_I_DN'])?$_SERVER['SSL_CLIENT_I_DN']:
 			(!empty($_SERVER['REDIRECT_SSL_CLIENT_I_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_I_DN']:'');
@@ -1975,8 +1974,9 @@ class Lib {
 			foreach($servers as $server){
 				\OC_Log::write('files_sharding','Checking subject '.$server['x509_dn'].
 						'<->'.$clientDNwSlashes, \OC_Log::INFO);
+				// TODO: better also check that the IP matches the IP registered for this DN
 				if($server['x509_dn']===$clientDNwSlashes){
-					\OC_Log::write('files_sharding','Subject OK', \OC_Log::INFO);
+					\OC_Log::write('files_sharding','Subject '.$server['x509_dn'].' OK', \OC_Log::INFO);
 					return true;
 				}
 			}
