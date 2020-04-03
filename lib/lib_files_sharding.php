@@ -321,7 +321,7 @@ class Lib {
 			'searchTagsByIDs'=>10, 'searchTags'=>10, 'getItemsSharedWithUser'=>10,
 			'get_server_id'=>60, 'get_servers'=>20, 'getTaggedFiles'=>30, 'get_user_server_access'=>30,
 			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, 'getCharge'=>30,
-			'accountedYears'=>60, 'getUserGroups'=>10, 'lookupServerId'=>60);
+			'accountedYears'=>60, 'getUserGroups'=>10, 'lookupServerId'=>60, 'getServePublicUrl'=>60);
 	
 	public static function getWSCert(){
 		if(empty(self::$wsCert)){
