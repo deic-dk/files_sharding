@@ -29,7 +29,7 @@ function deleteCookie(name, path, domain) {
 	path = (path ? ";path=" + path : "");
 	domain = (domain ? ";domain=" + domain : "");
 	var expiration = "Thu, 01-Jan-1970 00:00:01 GMT";
-  document.cookie = name + "=" + path + domain + ";expires=" + expiration;
+  document.cookie = name + "=" + path + domain + ";expires=" + expiration+"sameSite=none; secure";
 }
 
 // Check access (r/o if on a backup server, or if on new main server and migrating)
