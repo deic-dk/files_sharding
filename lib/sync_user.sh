@@ -6,7 +6,7 @@ OC_ROOT="/usr/local/www/owncloud"
 OC_LOCAL_DATA_ROOT="/tank/data/owncloud"
 OC_REMOTE_BASE_DIR="/remote.php/webdav/"
 
-SYNC_TIMEOUT=14400s
+SYNC_TIMEOUT=28800s
 
 export OWNCLOUD_MAX_PARALLEL=1
 
