@@ -1730,6 +1730,10 @@ class Lib {
 		$i = 0;
 		$output=[];
 		$ret = 0;
+		// groups and/or usage dir may not exist (yet)
+		if(!\OC\Files\Filesystem::file_exists($dir)){
+			return 0;
+		}
 		do{
 			if($i>self::$MAX_SYNC_ATTEMPTS){
 				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
@@ -1830,6 +1834,7 @@ class Lib {
 				// Get exported metadata (by path) via remote metadata web API and insert metadata on synced files by using local metadata web API
 				// TODO: abstract this via a hook
 				if(\OCP\App::isEnabled('meta_data')){
+					include_once('metadata/lib/tags.php');
 					$ok = $ok && \OCA\meta_data\Tags::updateUserFileTags($user, $serverURL);
 				}
 				// Get group folders in files_accounting from previous primary server
