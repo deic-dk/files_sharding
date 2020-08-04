@@ -35,7 +35,7 @@ class Lib {
 	const TYPE_SERVER_SYNC = 'server_sync';
 	
 	public static $USER_SYNC_INTERVAL_SECONDS = 86400; // 24 hours
-	private static $MAX_SYNC_ATTEMPTS = 3;
+	private static $MAX_SYNC_ATTEMPTS = 1;
 	
 	// To use X.509 authentification for trusted WS calls, set the following paths
 	// in the config file: wscertificate, wsprivatekey, wscacertificate
@@ -1735,7 +1735,7 @@ class Lib {
 			return 0;
 		}
 		do{
-			if($i>self::$MAX_SYNC_ATTEMPTS){
+			if($i>=self::$MAX_SYNC_ATTEMPTS){
 				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
 				break;
 			}
@@ -1756,8 +1756,9 @@ class Lib {
 			}
 			++$i;
 		}
-		while(!is_numeric($syncedFiles) || is_numeric($syncedFiles) && $syncedFiles!=0);
-		return $syncedFiles===0 && $i<=self::$MAX_SYNC_ATTEMPTS;
+		// Some may have files that change while sync is running - let's just trust rclone...
+		while(!is_numeric($syncedFiles) /*|| is_numeric($syncedFiles) && $syncedFiles!=0*/);
+		return /*$syncedFiles===0 && */$i<self::$MAX_SYNC_ATTEMPTS;
 	}
 	
 	/**
@@ -1798,7 +1799,7 @@ class Lib {
 		\OCP\Util::writeLog('files_sharding', 'Syncing with command: '.
 				__DIR__."/sync_user.sh -u '".$user."' -s ".$server, \OC_Log::WARN);
 		do{
-			if($i>self::$MAX_SYNC_ATTEMPTS){
+			if($i>=self::$MAX_SYNC_ATTEMPTS){
 				\OCP\Util::writeLog('files_sharding', 'ERROR: Syncing not working. Giving up after '.$i.' attempts.', \OC_Log::ERROR);
 				break;
 			}
@@ -1820,14 +1821,16 @@ class Lib {
 			
 			++$i;
 		}
-		while(!is_numeric($syncedFiles) || is_numeric($syncedFiles) && $syncedFiles!=0);
+		// Some may have files that change while sync is running - let's just trust rclone for other cases than migration
+		while($priority!=self::$USER_SERVER_PRIORITY_PRIMARY && !is_numeric($syncedFiles) ||
+				$priority==self::$USER_SERVER_PRIORITY_PRIMARY && is_numeric($syncedFiles) && $syncedFiles!=0);
 		
 		$ret = null;
 		$access = null;
-		if($syncedFiles==0 && $i<=self::$MAX_SYNC_ATTEMPTS){
-			// Set r/w if this is a new primary server
+		if(/*$syncedFiles==0 && */$i<self::$MAX_SYNC_ATTEMPTS){
+			// Set r/w if this is a new primary server. Here we insist that all files must be copied over.
 			$ok = true;
-			if($priority==self::$USER_SERVER_PRIORITY_PRIMARY){
+			if($priority==self::$USER_SERVER_PRIORITY_PRIMARY && $syncedFiles==0){
 				$access = self::$USER_ACCESS_ALL;
 				// Get list of shared file mappings: ID -> path and update item_source on oc_share table on master with new IDs
 				/*$ok = $ok &&*/ self::updateUserSharedFiles($user);
