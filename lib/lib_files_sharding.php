@@ -1758,7 +1758,7 @@ class Lib {
 		}
 		// Some may have files that change while sync is running - let's just trust rclone...
 		while(!is_numeric($syncedFiles) /*|| is_numeric($syncedFiles) && $syncedFiles!=0*/);
-		return /*$syncedFiles===0 && */$i<self::$MAX_SYNC_ATTEMPTS;
+		return /*$syncedFiles===0 && */$i=<self::$MAX_SYNC_ATTEMPTS;
 	}
 	
 	/**
@@ -1827,7 +1827,7 @@ class Lib {
 		
 		$ret = null;
 		$access = null;
-		if(/*$syncedFiles==0 && */$i<self::$MAX_SYNC_ATTEMPTS){
+		if(/*$syncedFiles==0 && */$i=<self::$MAX_SYNC_ATTEMPTS){
 			// Set r/w if this is a new primary server. Here we insist that all files must be copied over.
 			$ok = true;
 			if($priority==self::$USER_SERVER_PRIORITY_PRIMARY && $syncedFiles==0){
