@@ -2461,7 +2461,7 @@ class Lib {
 		
 		//if(($id || $parentId) && $owner){
 			// For a shared directory get info from server holding the data
-		if(!empty($owner) && !self::onServerForUser($owner)){
+			if(!empty($owner) && !self::onServerForUser($owner)){
 				$dataServer = self::getServerForUser($owner, true);
 				if(!$dataServer){
 					$dataServer = self::getMasterInternalURL();
@@ -2552,7 +2552,7 @@ class Lib {
 		if(isset($user_id) && $user_id){
 			self::restoreUser($user_id);
 		}
-		if(!empty($group)){
+		if(!empty($group) && self::onServerForUser($owner)){
 			\OC\Files\Filesystem::tearDown();
 			\OC\Files\Filesystem::init(\OC_User::getUser(), "/".\OC_User::getUser()."/files");
 		}
@@ -2587,6 +2587,7 @@ class Lib {
 				}
 			}
 		}
+		\OCP\Util::writeLog('files_sharding', 'Data server '.$dataServer.':'.$group, \OC_Log::WARN);
 		if(!empty($dataServer)){
 			return self::putFile($tmpFile, $dataServer, $dirOwner, $endPath, $group);
 		}
