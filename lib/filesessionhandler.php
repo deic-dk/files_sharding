@@ -33,7 +33,7 @@ class FileSessionHandler {
 	}
 
 	function read($id){
-		$data = null;
+		$data = '';
 		if(is_readable("$this->savePath/sess_$id")){
 			$data = (string)@file_get_contents("$this->savePath/sess_$id");
 			$parsed_data = \Session::unserialize($data);
