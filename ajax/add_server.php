@@ -1,7 +1,11 @@
 <?php
 
-OCP\JSON::checkAppEnabled('files_sharding');
-OCP\JSON::checkLoggedIn();
+require_once __DIR__ . '/../../../lib/base.php';
+
+//OCP\JSON::checkAppEnabled('files_sharding');
+
+//OCP\JSON::checkLoggedIn();
+OC_Util::checkAdminUser();
 
 $id = $_POST['id'];
 $url = $_POST['url'];
