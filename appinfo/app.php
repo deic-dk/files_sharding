@@ -114,6 +114,12 @@ if(OCA\FilesSharding\Lib::isMaster()){
 	return;
 }
 
+if(empty($_COOKIE[\OCA\FilesSharding\Lib::$MASTER_LOGIN_COOKIE]) &&
+		empty($_COOKIE[\OCA\FilesSharding\Lib::$LOGIN_OK_COOKIE]) &&
+		empty($_COOKIE['SimpleSAMLAuthToken'])){
+	return;
+}
+
 //\OCP\Util::connectHook('OC_Filesystem', 'setup', 'OCA\FilesSharding\Hooks', 'setup');
 //\OCP\Util::connectHook('OC_Filesystem', 'post_initMountPoints', 'OCA\FilesSharding\Hooks', 'setup');
 

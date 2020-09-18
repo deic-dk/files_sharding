@@ -24,9 +24,14 @@ class Lib {
 	public static $USER_SERVER_PRIORITY_BACKUP_1 = 1;
 	public static $USER_SERVER_PRIORITY_BACKUP_2 = 2;
 	
+	// Short-lived cookie to guarantee recent login and redirect
 	public static $LOGIN_OK_COOKIE = 'oc_ok';
+	// Relatively short-lived cookie to cache positive answer to access query to master
 	public static $ACCESS_OK_COOKIE = 'oc_access_ok';
 	public static $ACCESS_OK_COOKIE_SECONDS = 600;
+	// Session cookie to inform that login has been performed on master, i.e. that
+	// we're not in stand-alone mode
+	public static $MASTER_LOGIN_COOKIE = 'oc_master_login';
 	
 	public static $NOT_IN_DATA_FOLDER = 0;
 	public static $IN_DATA_FOLDER = 1;

@@ -46,6 +46,10 @@ class FileSessionHandler {
 		}
 		if(!empty($parsed_data['user_id']) && !empty($data)){
 			\OC_Log::write('files_sharding',"Session data: ".$data, \OC_Log::DEBUG);
+			// This appears to be necessary with PHP 7.2, but not with PHP 5.6...
+			if(defined('PHP_MAJOR_VERSION') && PHP_MAJOR_VERSION >= 7){
+				$this->write($id, $data);
+			}
 			return $data;
 		}
 		if(!Lib::getAllowLocalLogin($_SERVER['HTTP_HOST'])){
