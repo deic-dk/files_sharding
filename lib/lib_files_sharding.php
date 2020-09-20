@@ -2701,7 +2701,7 @@ class Lib {
 		if(!empty($id)){
 			// Check if this shared dir originates in a group dir
 			$dir = \OC\Files\Filesystem::getPath($id);
-			$glen = count('/user_group_admin/');
+			$glen = strlen('/user_group_admin/');
 			if(\OCP\App::isEnabled('user_group_admin') &&
 					substr($dir, 0, $glen)==='/user_group_admin/'){
 				$gIndex = strpos($dir, '/', $glen);
