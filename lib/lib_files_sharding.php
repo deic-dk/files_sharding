@@ -131,7 +131,8 @@ class Lib {
 			$parse = parse_url($user_server_internal);
 			$user_host_internal = $parse['host'];
 			\OCP\Util::writeLog('files_sharding', 'onServerForUser: '.$user_id.':'.$user_host.
-					':'.$user_host_internal.':'.(empty($_SERVER['HTTP_HOST'])?'':$_SERVER['HTTP_HOST']), \OC_Log::INFO);
+					':'.$user_host_internal.':'.(empty($_SERVER['HTTP_HOST'])?'':$_SERVER['HTTP_HOST']).
+					':'.(empty($_SERVER['SERVER_NAME'])?'':$_SERVER['SERVER_NAME']), \OC_Log::WARN);
 		}
 		if(empty($user_server)){
 			// If no server has been set for the user, he can logically only be on the master
@@ -150,9 +151,9 @@ class Lib {
 		}
 		return 
 				isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST']===$user_host ||
-						$_SERVER['HTTP_HOST']===$user_host_internal) ||
+				isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']===$user_host_internal) ||
 				isset($_SERVER['SERVER_NAME']) && ($_SERVER['SERVER_NAME']===$user_host ||
-						$_SERVER['SERVER_NAME']===$user_host_internal);
+				isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME']===$user_host_internal);
 	}
 	
 	public static function isMaster(){
