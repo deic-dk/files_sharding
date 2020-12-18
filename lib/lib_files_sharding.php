@@ -161,7 +161,7 @@ class Lib {
 		self::getMasterInternalURL();
 		if(!empty(self::$masterinternalurl)){
 			$parse = parse_url(self::$masterinternalurl);
-			$masterinternalip =  $parse['host'];
+			$masterinternalip = $parse['host'];
 		}
 		if(empty($_SERVER['HTTP_HOST']) && empty($_SERVER['SERVER_NAME'])){
 			// Running off cron
@@ -170,8 +170,10 @@ class Lib {
 			return isset($masterNameArr[0]) && $myShortName == $masterNameArr[0];
 		}
 		return empty(self::$masterfq) && empty($masterinternalip) ||
-				isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST']===self::$masterfq || $_SERVER['HTTP_HOST']===$masterinternalip) ||
-				isset($_SERVER['SERVER_NAME']) && ($_SERVER['SERVER_NAME']===self::$masterfq || $_SERVER['SERVER_NAME']===$masterinternalip);
+				isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST']===self::$masterfq ||
+						isset($masterinternalip) && $_SERVER['HTTP_HOST']===$masterinternalip) ||
+				isset($_SERVER['SERVER_NAME']) && ($_SERVER['SERVER_NAME']===self::$masterfq ||
+						isset($masterinternalip) && $_SERVER['SERVER_NAME']===$masterinternalip);
 	}
 	
 	public static function getMasterURL(){
@@ -1978,7 +1980,7 @@ class Lib {
 	public static function checkCert(){
 		if(!empty($_SERVER['SSL_CLIENT_VERIFY']) &&
 				($_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS' || $_SERVER['SSL_CLIENT_VERIFY']=='NONE')){
-			$issuerDN = !empty($_SERVER['SSL_CLIENT_I_DN'])?$_SERVER['SSL_CLIENT_I_DN']:
+			//$issuerDN = !empty($_SERVER['SSL_CLIENT_I_DN'])?$_SERVER['SSL_CLIENT_I_DN']:
 			(!empty($_SERVER['REDIRECT_SSL_CLIENT_I_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_I_DN']:'');
 			$clientDN = !empty($_SERVER['SSL_CLIENT_S_DN'])?$_SERVER['SSL_CLIENT_S_DN']:
 			(!empty($_SERVER['REDIRECT_SSL_CLIENT_S_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_S_DN']:'');
@@ -2072,7 +2074,7 @@ class Lib {
 			}
 		}
 		\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].
-				' ('.(empty($clientDNwSlashes)?'':$clientDNwSlashes).') not trusted --> '.$_SERVER['REQUEST_URI'], \OC_Log::WARN);
+				' not trusted --> '.$_SERVER['REQUEST_URI'], \OC_Log::WARN);
 		return false;
 	}
 	
