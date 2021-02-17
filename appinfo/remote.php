@@ -39,6 +39,15 @@ $INGEST_BASE = OC::$WEBROOT."/ingest";
 $ADDCERT_BASE = OC::$WEBROOT."/addcert";
 $REMOVECERT_BASE = OC::$WEBROOT."/removecert";
 
+// User VLANs allowing private data transfers to/from Kube containers
+$tnet = \OCP\Config::getSystemValue('uservlannet', '');
+$tnet = trim($tnet);
+$tnets = explode(' ', $tnet);
+$uservlannets = array_map('trim', $tnets);
+if(count($uservlannets)==1 && substr($uservlannets[0], 0, 10)==='USER_VLAN_'){
+	$uservlannets = [];
+}
+
 $requestFix = new URL\Normalizer($_SERVER['REQUEST_URI']);
 $requestUri = $requestFix->normalize();
 
@@ -148,8 +157,15 @@ else{
 	$serverInternal = isset($parsedInternalUrl['host']) ? $parsedInternalUrl['host'] : null;
 	if(!empty($_SERVER['HTTP_HOST']) && !empty($server) && $server===$_SERVER['HTTP_HOST'] ||
 			!empty($_SERVER['SERVER_NAME']) && !empty($server) && $server===$_SERVER['SERVER_NAME'] ||
+			/*proxying shared files or backing up*/
 			!empty($_SERVER['HTTP_HOST']) && !empty($serverInternal) && $serverInternal===$_SERVER['HTTP_HOST'] ||
-			!empty($_SERVER['SERVER_NAME']) && !empty($serverInternal) && $serverInternal===$_SERVER['SERVER_NAME']){
+			!empty($_SERVER['SERVER_NAME']) && !empty($serverInternal) && $serverInternal===$_SERVER['SERVER_NAME'] ||
+			/*/storage to kube*/
+			!empty($_SERVER['HTTP_HOST']) && !empty($uservlannets) &&
+			array_sum(array_map(function($net){return strpos($_SERVER['HTTP_HOST'], $net)===0?1:0;}, $uservlannets))>0 ||
+			!empty($_SERVER['SERVER_NAME']) && !empty($uservlannets) &&
+			array_sum(array_map(function($net){return strpos($_SERVER['SERVER_NAME'], $net)===0?1:0;}, $uservlannets))>0
+			){
 		\OCP\Util::writeLog('files_sharding', 'Serving, '.$server, \OC_Log::INFO);
 		include('chooser/appinfo/remote.php');
 	}
