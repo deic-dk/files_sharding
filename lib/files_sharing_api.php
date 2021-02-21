@@ -178,6 +178,16 @@ class Api {
 						$share['isPreviewAvailable'] = true;
 					}
 				}
+				elseif($share['item_type'] === 'folder') {
+					$share['mimetype'] = 'httpd/unix-directory';
+				}
+				if(!empty($share['token'])) {
+					$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https" : "http";
+					$share['url'] = $protocol.'://'.$_SERVER['HTTP_HOST'].'/shared/'.$share['token'];
+				}
+				else{
+					unset($share['token']);
+				}
 				// Set group if in a group folder
 				\OCP\Util::writeLog('files_sharding', 'Got item shared '.
 						$localfileid.'-->'.$share['path'].'-->'.$fileInfo['path'], \OC_Log::WARN);
@@ -235,6 +245,13 @@ class Api {
 			if ($getSpecificShare === true) {
 				foreach ($shares as $share) {
 					if ($share['id'] === (int) $params['id']) {
+						if(!empty($share['token'])) {
+							$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https" : "http";
+							$share['url'] = $protocol.'://'.$_SERVER['HTTP_HOST'].'/shared/'.$share['token'];
+						}
+						else{
+							unset($share['token']);
+						}
 						$shares = array('element' => $share);
 						break;
 					}
@@ -242,6 +259,13 @@ class Api {
 			} else {
 				$path = $params['path'];
 				foreach ($shares as $key => $share) {
+					if(!empty($share['token'])) {
+						$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https" : "http";
+						$shares[$key]['url'] = $protocol.'://'.$_SERVER['HTTP_HOST'].'/shared/'.$share['token'];
+					}
+					else{
+						unset($shares[$key]['token']);
+					}
 					$shares[$key]['path'] = $path;
 				}
 			}
@@ -360,6 +384,9 @@ class Api {
 					if (\OC::$server->getPreviewManager()->isMimeSupported($share['mimetype'])) {
 						$share['isPreviewAvailable'] = true;
 					}
+				}
+				elseif($share['item_type'] === 'folder') {
+					$share['mimetype'] = 'httpd/unix-directory';
 				}
 				if(preg_match("|^/*user_group_admin/|", $share['path'])){
 					$share['group'] = preg_replace("|^/*user_group_admin/([^/]+)/*.*|", "$1", $share['path']);
@@ -518,11 +545,18 @@ class Api {
 			// Yes, shareItem modifies the ID for links. Go figure...
 			\OCP\Util::writeLog('files_sharing', 'SUCCESS, '.
 					$newShare['id'].'-->'.(empty($newShare['token'])?'':$newShare['token']), \OCP\Util::WARN);
+			if(!empty($_REQUEST['format'])&&$_REQUEST['format']=='json'){
+				header("Content-Type: application/json; charset=utf-8");
+				echo '{"ocs":{"meta":{"status":"ok","statuscode":200,"message":"OK"}, "data":{"id":"'.
+						$newShare['id'].'"'.(empty($newShare['token'])?'':', "token":"'.$newShare['token'].'"').'}}}';
+			}
+			else{
+				header("Content-Type: application/xml; charset=utf-8");
 			echo '<?xml version="1.0"?>
 <ocs>
  <meta>
   <status>ok</status>
-  <statuscode>100</statuscode>
+  <statuscode>200</statuscode>
   <message/>
  </meta>
  <data>
@@ -531,7 +565,7 @@ class Api {
   <token>'.$newShare['token'].'</token>').
   '
  </data>
-</ocs>';
+</ocs>';}
 		//return new \OC_OCS_Result($data);
 		exit();
 		}
@@ -725,15 +759,22 @@ class Api {
 		
 		if($result) {
 			\OCP\Util::writeLog('files_sharing', 'SUCCESS', \OCP\Util::WARN);
-echo '<?xml version="1.0"?>
+			if(!empty($_REQUEST['format'])&&$_REQUEST['format']=='json'){
+				header("Content-Type: application/json; charset=utf-8");
+				echo '{"ocs":{"meta":{"status":"ok","statuscode":200,"message":"OK"}}}';
+			}
+			else{
+				header("Content-Type: application/xml; charset=utf-8");
+				echo '<?xml version="1.0"?>
 <ocs>
  <meta>
   <status>ok</status>
-  <statuscode>100</statuscode>
-  <message/>
+  <statuscode>200</statuscode>
+  <message><OK/message>
  </meta>
  <data/>
 </ocs>';
+			}
 			// This is to prevent the registered files_sharing action to kick in
 			// and try to modify an ID that no longer exists.
 			// Yes, shareItem modifies the ID for links. Go figure...
