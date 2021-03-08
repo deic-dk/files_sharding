@@ -83,7 +83,7 @@ try{
 			switchUser($owner);
 		}
 		if(!empty($group)){
-			$path = \OC\Files\Filesystem::normalizePath('/'.$group.$path);
+			$path = \OC\Files\Filesystem::normalizePath('/'.trim($group, '/').'/'.trim($path, '/'));
 			$fs = \OCP\Files::getStorage('user_group_admin');
 			\OCP\Util::writeLog('User_Group_Admin', 'DIR: '.$path, \OCP\Util::WARN);
 			$info = $fs->getFileInfo($path);

@@ -33,6 +33,7 @@ $FILES_BASE = OC::$WEBROOT."/files";
 $GRID_BASE = OC::$WEBROOT."/grid";
 $PUBLIC_BASE = OC::$WEBROOT."/public";
 $GROUP_BASE = OC::$WEBROOT."/group";
+$SHARINGIN_BASE_NC = OC::$WEBROOT."/sharingin/remote.php/webdav";
 $SHARINGIN_BASE = OC::$WEBROOT."/sharingin";
 $SHARINGOUT_BASE = OC::$WEBROOT."/sharingout";
 $INGEST_BASE = OC::$WEBROOT."/ingest";
@@ -68,6 +69,9 @@ elseif(strpos($requestUri, $GROUP_BASE."/")===0){
 	$baseuri = $GROUP_BASE;
 	$group = preg_replace("|^".$GROUP_BASE."/|", "", $requestUri);
 	$group = preg_replace("|/.*$|", "", $group);
+}
+elseif(strpos($requestUri, $SHARINGIN_BASE_NC."/")===0){
+	$baseuri = $SHARINGIN_BASE_NC;
 }
 elseif(strpos($requestUri, $SHARINGIN_BASE."/")===0){
 	$baseuri = $SHARINGIN_BASE;

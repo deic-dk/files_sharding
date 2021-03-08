@@ -32,7 +32,7 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 
 $ret = OCA\FilesSharding\Lib::dbGetServersList();
 
-\OCP\Util::writeLog('files_sharding', 'Returning servers '.serialize($ret), \OC_Log::WARN);
+\OCP\Util::writeLog('files_sharding', 'Returning servers '.serialize($ret), \OC_Log::INFO);
 
 OCP\JSON::encodedPrint($ret);
 

@@ -321,6 +321,65 @@ class Lib {
 		return $status;
 	}
 	
+	public static function propfind($url, $prop='', $username='', $password='', $tryCertAuth=false){
+		$curl = curl_init($url);
+		curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PROPFIND");
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, TRUE);
+		curl_setopt($curl, CURLOPT_UNRESTRICTED_AUTH, TRUE);
+		if(!empty($username)){
+			curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+			curl_setopt($curl, CURLOPT_USERPWD, "$username:$password");
+			//curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+			curl_setopt($curl, CURLOPT_HEADER, false);
+			\OCP\Util::writeLog('files_sharding', 'Authenticating '.$url.':'.$username.':'.$password, \OC_Log::WARN);
+		}
+		
+		if($tryCertAuth && !empty(self::getWSCert())){
+			\OCP\Util::writeLog('files_sharding', 'Authenticating '.$url.':'.$username.':'.$password.' with cert '.self::$wsCert.
+					' and key '.self::$wsKey, \OC_Log::WARN);
+			curl_setopt($curl, CURLOPT_CAINFO, self::$wsCACert);
+			curl_setopt($curl, CURLOPT_SSLCERT, self::$wsCert);
+			curl_setopt($curl, CURLOPT_SSLKEY, self::$wsKey);
+			//curl_setopt($curl, CURLOPT_SSLCERTPASSWD, '');
+			//curl_setopt($curl, CURLOPT_SSLKEYPASSWD, '');
+		}
+		
+		// Make sure there's always a basic auth header, so a username can be found even
+		// when using the server cert as client cert (backup sync)
+		$header = array(
+				'HTTP/1.1',
+				'Content-type: text/plain',
+				'Authorization: Basic ' . base64_encode("$username:$password")
+		);
+		curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
+		
+		$data = curl_exec($curl);
+		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+		if($status===0 || $status>=300 || $data===null || $data===false){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: bad response from '.$url.' : '.$status.' : '.$data, \OC_Log::ERROR);
+			return null;
+		}
+		if(!empty($prop)){
+			\OCP\Util::writeLog('files_sharding', 'Parsing data '.$data, \OC_Log::DEBUG);
+			$dom = new \DOMDocument();
+			$dom->loadXML($data);
+			$xpath = new \DOMXpath($dom);
+			$xpath->registerNamespace('ns', 'http://sabredav.org/ns');
+			$xpath->registerNamespace('ns', 'http://nextcloud.org/ns');
+			$xpath->registerNamespace('ns', 'http://owncloud.org/ns');
+			$ret = $xpath->evaluate('string(//d:response/d:propstat/d:prop/'.$prop.')');
+			$ret = trim($ret, '"');
+			return $ret;
+		}
+		else{
+			return $data;
+		}
+	}
+	
 	/*
 	 * Map of calls to be cached => seconds to live.
 	 */
@@ -2138,7 +2197,7 @@ class Lib {
 		// TODO: consider using \OCP\Share::getUsersSharingFile instead
 		foreach($itemsSharedWithUser as $data){
 			\OCP\Util::writeLog('files_sharding', 'Checking access of '.$user_id. ' to '.
-					$itemSource.'<->'.$data['itemsource'], \OC_Log::WARN);
+					$itemSource.'<->'.$data['itemsource'], \OC_Log::INFO);
 			if((int)$data['itemsource'] === (int)$itemSource){
 				$ret = true;
 				break;
@@ -2502,14 +2561,13 @@ class Lib {
 							false, true, $dataServer);
 				}
 				if($data){
-					\OCP\Util::writeLog('files_sharding', 'Getting file info for '.$data['path'].'-->'.serialize($data), \OC_Log::WARN);
 					//$configDataDirectory = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT."/data");
 					//\OC\Files\Filesystem::mount('\OC\Files\Storage\Local', array('datadir'=>$configDataDirectory), '/');
 					//$storage = \OC\Files\Filesystem::getStorage($data['path']);
 					include_once('files_sharding/lib/shardedstorage.php');
 					$storage = new \OC\Files\Storage\Sharded(array('userid'=>$user));
 					$info = new \OC\Files\FileInfo($data['path'], $storage, $data['internalPath'], $data);
-					\OCP\Util::writeLog('files_sharding', 'Returning file info for '.$data['path'].'-->'.serialize($data), \OC_Log::WARN);
+					\OCP\Util::writeLog('files_sharding', 'Returning file info for '.$data['path'].'-->'.serialize($data), \OC_Log::INFO);
 				}
 			}
 			else{
