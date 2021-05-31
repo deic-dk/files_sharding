@@ -549,7 +549,7 @@ class Lib {
 	public static function dbGetSitesList($onlyBackupSites=false){
 		$sql = "SELECT DISTINCT `site` FROM `*PREFIX*files_sharding_servers`";
 		if($onlyBackupSites){
-			$sql .= " WHERE `exclude_as_backup` != 'yes'";
+			$sql .= " WHERE `exclude_as_backup` != 'yes' AND `site` != 'none' AND `site` IS NOT NULL AND `site` <> ''";
 		}
 		$query = \OC_DB::prepare($sql);
 		$result = $query->execute(Array());
