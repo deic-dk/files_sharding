@@ -2676,7 +2676,8 @@ class Lib {
 			$dataDir = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT . "/data");
 			$fullEndPath = $dataDir.'/'.
 				//(empty($group)?\OCP\USER::getUser().'/':'/').
-				\OCP\USER::getUser().'/'.
+				//\OCP\USER::getUser().'/'.
+			(empty($dataServer)?'/':\OCP\USER::getUser().'/').
 				trim(\OC\Files\Filesystem::getRoot(), '/').'/'.trim($endPath, '/');
 			\OCP\Util::writeLog('files_sharding', 'Moving tmp file: '.$tmpFile.'->'.$dataDir.'->'.$endPath.'->'.
 					\OC\Files\Filesystem::getRoot().'->'.$fullEndPath.':'.\OCP\USER::getUser(), \OC_Log::WARN);
