@@ -392,7 +392,7 @@ class Api {
 					$share['group'] = preg_replace("|^/*user_group_admin/([^/]+)/*.*|", "$1", $share['path']);
 				}
 				// When owned_group is set, show only group folders shared with group owner
-				if(!empty($_GET['owned_group']) && $share['file_target']!='/' &&
+				if(!empty($_GET['owned_group']) && /*$share['file_target']!='/' &&*/
 						(empty($share['group']) || $share['group']!=$_GET['owned_group'])){
 					unset($shares[$key]);
 					continue;
