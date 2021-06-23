@@ -1090,8 +1090,11 @@ class Lib {
 	public static function dbChooseSiteForUser($mail, $schacHomeOrganization, $organizationName,
 			$entitlement){
 		// Keep non-nationals on master (they will be harder to support on sharding issues)
+		// Keep cancer.dk users on master - they use a common, large shared folder - try to give them
+		// decent performance.
+		// TODO: make placement of users/domains doable from the admin web interface
 		$masterfq = self::getMasterHostName();
-		if(substr($mail,-3)!==substr($masterfq,-3)){
+		if(substr($mail,-3)!==substr($masterfq,-3) || substr($mail,-10)==='@cancer.dk'){
 			return self::getMasterSite();
 		}
 		$servers = self::dbGetServersList();
@@ -1128,9 +1131,12 @@ class Lib {
 	public static function dbChooseServerForUser($user_id, $user_email, $site, $priority, $exclude_server_id){
 		
 		// Keep non-nationals on master (they will be harder to support on sharding issues)
+		// Keep cancer.dk users on master - they use a common, large shared folder - try to give them
+		// decent performance.
+		// TODO: make placement of users/domains doable from the admin web interface
 		if(!empty($user_email)){
 			$masterfq = self::getMasterHostName();
-			if(substr($user_email,-3)!==substr($masterfq,-3)){
+			if(substr($user_email,-3)!==substr($masterfq,-3) || substr($user_email,-10)==='@cancer.dk'){
 				$masterHostName = self::getMasterHostName();
 				$masterID = self::dbLookupServerId($masterHostName);
 				// We could also just have returned null, as the default is master
