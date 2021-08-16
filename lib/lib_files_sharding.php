@@ -2892,6 +2892,94 @@ class Lib {
 		$query->execute(array($olduid));
 	}
 	
+	public static function serveFiles($files, $dir, $owner='', $id='', $group=''){
+		$user_id = \OCP\USER::getUser();
+		$files_list = json_decode($files);
+		// in case we get only a single file
+		if(!is_array($files_list)) {
+			$files_list = array(urldecode($files));
+		}
+		else{
+			$files_list = array_map(urldecode, $files_list);
+		}
+		
+		\OCP\Util::writeLog('files_sharding', 'files '.count($files_list).':'.$dir.':'.$files, \OC_Log::WARN);
+		
+		if(!empty($owner) && $owner!=$user_id){
+			\OC_Util::tearDownFS();
+			$group_dir_owner = $owner;
+			\OC_User::setUserId($owner);
+			\OC_Util::setupFS($owner);
+		}
+		if(!empty($group) && !empty($group_dir_owner)){
+			\OC\Files\Filesystem::tearDown();
+			$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
+			\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
+		}
+		if(!empty($id)){
+			$path = \OC\Files\Filesystem::getPath($id);
+			$dir = substr($path, 0, strrpos($path, '/'));
+		}
+		
+		// Now serve the file(s)
+		if(isset($_SERVER['HTTP_RANGE']) && count($files_list)==1){
+			//ob_start();
+			$path = empty($path)?$dir.'/'.$files_list[0]:$path;
+			$fullPath = \OC\Files\Filesystem::getLocalFile($path);
+			OCP\Util::writeLog('files_sharding', 'HTTP_RANGE: '.$_SERVER['HTTP_RANGE'], \OCP\Util::WARN);
+			$mimetype = \OC_Helper::getSecureMimeType(\OC\Files\Filesystem::getMimeType($path));
+			\OCA\FilesSharding\Lib::rangeServe($fullPath, $mimetype);
+			//ob_end_flush();
+		}
+		elseif(count($files_list)>1){
+			// Bypass the use of zipstreamer as it produces archives not readable by the archive utility on macs
+			$fullDirPath = \OC\Files\Filesystem::getLocalFile($dir);
+			\OCP\Util::writeLog('files_sharding', 'Zipping '.$fullDirPath.':'.$path.':'.$dir.
+					"CMD: cd '".$fullDirPath."'; zip -r - '".implode($files_list, "' '")."'", \OC_Log::WARN);
+			sendZipHeaders(basename($fullDirPath).".zip");
+			print(passthru("cd '".$fullDirPath."'; zip -r - '".implode($files_list, "' '")."'"));
+		}
+		elseif(count($files_list)==1){
+			// Bypass the use of zipstreamer as it produces archives not readable by the archive utility on macs
+			$path = empty($path)?$dir.'/'.$files_list[0]:$path;
+			$fullPath = \OC\Files\Filesystem::getLocalFile($path);
+			$info = \OC\Files\Filesystem::getFileInfo($path);
+			\OCP\Util::writeLog('files_sharding', 'TYPE '.$fullPath.':'.$path.':'.$dir.' --> '.(empty($info)?"":$info->getType()), \OC_Log::WARN);
+			if($info->getType()=='dir'){
+				self::sendZipHeaders(basename($fullPath).".zip");
+				print(passthru("cd '".dirname($fullPath)."'; zip -r - '".basename($fullPath)."'"));
+			}
+			else{
+				OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
+			}
+		}
+		else{
+			// RANGE is only for serving single media files
+			OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
+		}
+		
+		// This has no effect when downloading zip archives via zipstreamer,
+		// as OC_Files::get calls ob_end and returns
+		if(!empty($owner) && $owner!=$user_id || !empty($group) && !empty($group_dir_owner)){
+			\OC_Util::tearDownFS();
+			\OC_User::setUserId($user_id);
+			\OC_Util::setupFS($user_id);
+		}
+	}
+	
+	// From zipstreamer
+	private static function sendZipHeaders($archiveName){
+		header('Pragma: public');
+		header('Last-Modified: ' . gmdate('D, d M Y H:i:s T'));
+		header('Expires: 0');
+		header('Accept-Ranges: bytes');
+		header('Connection: Keep-Alive');
+		header('Content-Type: application/zip');
+		header( 'Content-Disposition: attachment; filename*=UTF-8\'\'' . rawurlencode($archiveName)
+				. '; filename="' . rawurlencode($archiveName) . '"' );
+		header('Content-Transfer-Encoding: binary');
+	}
+	
 	// From https://mobiforge.com/design-development/content-delivery-mobile-devices#byte-ranges
 	public static function rangeServe($file, $mimetype) {
 		$fp = @fopen($file, 'rb');
