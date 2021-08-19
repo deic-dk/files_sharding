@@ -2926,7 +2926,7 @@ class Lib {
 			//ob_start();
 			$path = empty($path)?$dir.'/'.$files_list[0]:$path;
 			$fullPath = \OC\Files\Filesystem::getLocalFile($path);
-			OCP\Util::writeLog('files_sharding', 'HTTP_RANGE: '.$_SERVER['HTTP_RANGE'], \OCP\Util::WARN);
+			\OCP\Util::writeLog('files_sharding', 'HTTP_RANGE: '.$_SERVER['HTTP_RANGE'], \OCP\Util::WARN);
 			$mimetype = \OC_Helper::getSecureMimeType(\OC\Files\Filesystem::getMimeType($path));
 			\OCA\FilesSharding\Lib::rangeServe($fullPath, $mimetype);
 			//ob_end_flush();
@@ -2950,12 +2950,12 @@ class Lib {
 				print(passthru("cd '".dirname($fullPath)."'; zip -r - '".basename($fullPath)."'"));
 			}
 			else{
-				OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
+				\OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
 			}
 		}
 		else{
 			// RANGE is only for serving single media files
-			OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
+			\OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
 		}
 		
 		// This has no effect when downloading zip archives via zipstreamer,
