@@ -2936,7 +2936,7 @@ class Lib {
 			$fullDirPath = \OC\Files\Filesystem::getLocalFile($dir);
 			\OCP\Util::writeLog('files_sharding', 'Zipping '.$fullDirPath.':'.$path.':'.$dir.
 					"CMD: cd '".$fullDirPath."'; zip -r - '".implode($files_list, "' '")."'", \OC_Log::WARN);
-			sendZipHeaders(basename($fullDirPath).".zip");
+			self::sendZipHeaders(basename($fullDirPath).".zip");
 			print(passthru("cd '".$fullDirPath."'; zip -r - '".implode($files_list, "' '")."'"));
 		}
 		elseif(count($files_list)==1){
