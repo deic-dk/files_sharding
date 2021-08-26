@@ -162,6 +162,7 @@ class OC_Shard_Backend_File implements OCP\Share_Backend_File_Dependent {
 				$file['etag'] = $item['etag'];
 				$file['uid_owner'] = $item['uid_owner'];
 				$file['displayname_owner'] = $item['displayname_owner'];
+				$file['permissions'] = $item['permissions'];
 
 				$storage = \OC\Files\Filesystem::getStorage('/'.\OCP\User::getUser().'/');
 				$cache = $storage->getCache();

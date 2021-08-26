@@ -2190,7 +2190,7 @@ class Lib {
 	 * @param unknown $itemSource - The file ID on the home/slave server hosting
 	 *                               the physical file
 	 * @param string $itemType
-	 * @return boolean true if the user has read access to the file
+	 * @return boolean permissions if the user has access to the file, otherwise false
 	 */
 	public static function checkReadAccess($user_id, $itemSource, $itemType=null){
 		if(empty($user_id) || empty($itemSource)){
@@ -2205,7 +2205,9 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'Checking access of '.$user_id. ' to '.
 					$itemSource.'<->'.$data['itemsource'], \OC_Log::INFO);
 			if((int)$data['itemsource'] === (int)$itemSource){
-				$ret = true;
+				//$ret = true;
+				\OCP\Util::writeLog('files_sharding', 'DATA: '.serialize($data), \OC_Log::WARN);
+				$ret = $data['permissions'];
 				break;
 			}
 		}
@@ -2226,8 +2228,9 @@ class Lib {
 			if(empty($fileInfo['parent']) || $itemSource==$fileInfo['parent'] || empty($fileInfo['path'])){
 				break;
 			}
-			if(self::checkReadAccess($user_id, $itemSource/*$fileInfo->getId()*/, $fileType)){
-				$ret = true;
+			$res = self::checkReadAccess($user_id, $itemSource/*$fileInfo->getId()*/, $fileType);
+			if(!empty($res)){
+				$ret = $res;
 				break;
 			}
 			\OC_Log::write('files_sharding', 'Parent: '.$itemSource.'-->'.$fileInfo['fileid'].'-->'.$fileInfo['parent'], \OC_Log::WARN);

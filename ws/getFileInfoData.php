@@ -72,25 +72,25 @@ if($id){
 
 \OCP\Util::writeLog('files_sharding', 'Path: '.$path, \OC_Log::WARN);
 try{
-	if(!empty($owner) && $owner!=$user_id &&
-			!\OCA\FilesSharding\Lib::checkReadAccessRecursively($user_id, $id, $owner, $group, $path)){
-				\OCP\Util::writeLog('files_sharding', 'Not allowed '.$user_id.'/'.$owner.'-->'.$id.':'.$path, \OC_Log::WARN);
-		restoreUser($user_id);
-		//throw new Exception('Not allowed. '.$id);
-	}
-	else{
-		if(!empty($owner) && $owner!=$user_id){
-			switchUser($owner);
-		}
-		if(!empty($group)){
-			$path = \OC\Files\Filesystem::normalizePath('/'.trim($group, '/').'/'.trim($path, '/'));
-			$fs = \OCP\Files::getStorage('user_group_admin');
-			\OCP\Util::writeLog('User_Group_Admin', 'DIR: '.$path, \OCP\Util::WARN);
-			$info = $fs->getFileInfo($path);
+	if(!empty($owner) && $owner!=$user_id){
+		$permissions = \OCA\FilesSharding\Lib::checkReadAccessRecursively($user_id, $id, $owner, $group, $path);
+		if(empty($permissions)){
+			\OCP\Util::writeLog('files_sharding', 'Not allowed '.$user_id.'/'.$owner.'-->'.$id.':'.$path.'-->'.$permissions, \OC_Log::WARN);
+			restoreUser($user_id);
+			//throw new Exception('Not allowed. '.$id);
 		}
 		else{
-			$info = \OC\Files\Filesystem::getFileInfo($path);
+			switchUser($owner);
 		}
+	}
+	if(!empty($group)){
+		$path = \OC\Files\Filesystem::normalizePath('/'.trim($group, '/').'/'.trim($path, '/'));
+		$fs = \OCP\Files::getStorage('user_group_admin');
+		\OCP\Util::writeLog('User_Group_Admin', 'DIR: '.$path, \OCP\Util::WARN);
+		$info = $fs->getFileInfo($path);
+	}
+	else{
+		$info = \OC\Files\Filesystem::getFileInfo($path);
 	}
 }
 catch(\Exception $e){
@@ -107,6 +107,9 @@ if(empty($info) || !empty($id) && $info->getId()!=$id){
 }
 
 $data = $info->getData();
+if(!empty($permissions)){
+	$data['permissions'] = $permissions;
+}
 //$data['directory'] = $path;
 $data['path'] = $info->getpath();
 //$data['storage'] = $info->getStorage();
