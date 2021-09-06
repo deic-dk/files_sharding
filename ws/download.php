@@ -14,12 +14,8 @@ $id = isset($_GET['id']) ? $_GET['id'] : '';
 $dirId = isset($_GET['dir_id']) ? $_GET['dir_id'] : '';
 $group = isset($_GET['group']) ? $_GET['group'] : '';
 
-if(!empty($dirId)){
-	$dir = \OC\Files\Filesystem::getPath($dirId);
-}
-
 // TODO: Check of user_id is allowed to read files - perhaps already done by get().
 //       --- Well, in general user_id will not exist on the same node as owner.
 
 
-\OCA\FilesSharding\Lib::serveFiles($files, $dir, $owner, $id, $group);
+\OCA\FilesSharding\Lib::serveFiles($files, $dir, $owner, $id, $group, $dirId);

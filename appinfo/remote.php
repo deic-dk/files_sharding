@@ -57,46 +57,76 @@ $group = '';
 $baseUri = OC::$WEBROOT."/remote.php/davs";
 // Known aliases
 if(strpos($requestUri, $SHARED_BASE."/")===0){
-	$baseuri = $SHARED_BASE;
+	$baseUri = $SHARED_BASE;
 }
 elseif(strpos($requestUri, $GRID_BASE."/")===0){
-	$baseuri = $GRID_BASE;
+	$baseUri = $GRID_BASE;
 }
 elseif(strpos($requestUri, $PUBLIC_BASE."/")===0){
-	$baseuri = $PUBLIC_BASE;
+	$baseUri = $PUBLIC_BASE;
 }
 elseif(strpos($requestUri, $GROUP_BASE."/")===0){
-	$baseuri = $GROUP_BASE;
+	$baseUri = $GROUP_BASE;
 	$group = preg_replace("|^".$GROUP_BASE."/|", "", $requestUri);
 	$group = preg_replace("|/.*$|", "", $group);
 }
 elseif(strpos($requestUri, $SHARINGIN_BASE_NC."/")===0){
-	$baseuri = $SHARINGIN_BASE_NC;
+	$baseUri = $SHARINGIN_BASE_NC;
 }
 elseif(strpos($requestUri, $SHARINGIN_BASE."/")===0){
-	$baseuri = $SHARINGIN_BASE;
+	$baseUri = $SHARINGIN_BASE;
 }
 elseif(strpos($requestUri, $SHARINGOUT_BASE."/")===0){
-	$baseuri = $SHARINGOUT_BASE;
+	$baseUri = $SHARINGOUT_BASE;
 }
 elseif(strpos($requestUri, $INGEST_BASE."/")===0){
-	$baseuri = $INGEST_BASE;
-}
-elseif(strpos($requestUri, $PUBLIC_BASE."/")===0){
-	$baseuri = $PUBLIC_BASE;
+	$baseUri = $INGEST_BASE;
 }
 elseif(strpos($requestUri, $ADDCERT_BASE."/")===0){
-	$baseuri = $ADDCERT_BASE;
+	$baseUri = $ADDCERT_BASE;
 }
 elseif(strpos($requestUri, $REMOVECERT_BASE."/")===0){
-	$baseuri = $REMOVECERT_BASE;
+	$baseUri = $REMOVECERT_BASE;
 }
 
 $reqPath = preg_replace('|^'.$baseUri.'|', "", $requestUri);
 
 if(strpos($requestUri, $PUBLIC_BASE."/")===0){
-	$token = preg_replace("/^\/([^\/]+)\/*/", "$1", $reqPath);
-	$user = OCA\FilesSharding\Lib::getShareOwner($token);
+	$token = preg_replace("/^\/([^\/]+)$/", "$1", $reqPath);
+	if(empty($token) || $token==$reqPath){
+		$token = preg_replace("/^\/([^\/]+)\/.*$/", "$1", $reqPath);
+	}
+	if(!empty($token) && $token!=$reqPath){
+		$res = OCA\FilesSharding\Lib::getPublicShare($token);
+		if(!empty($res) && !empty($res['uid_owner'])){
+			$user = $res['uid_owner'];
+			$sharePath = OCA\FilesSharding\Lib::getFilePath($res['item_source'], $user);
+			$baseUri = $PUBLIC_BASE."/".$token;
+			$reqPath = preg_replace('|^'.$baseUri.'|', "", $requestUri);
+			$_SERVER['BASE_DIR'] = '/files/'.'/'.$sharePath.$reqPath;
+			$baseUri = $requestUri;
+			$_SERVER['BASE_URI'] = $baseUri;
+		}
+	}
+	if(empty($user)){
+		// getPublicShare failed. This may or may not be a share from a group folder. Just try.
+		$token = preg_replace("/^\/([^\/]+)\/([^\/]+)\/*.*$/", "$2", $reqPath);
+		$group = preg_replace("/^\/([^\/]+)\/([^\/]+)\/*.*$/", "$1", $reqPath);
+		if(!empty($group) && !empty($token) && $token!=$reqPath){
+			$res = OCA\FilesSharding\Lib::getPublicShare($token);
+			if(!empty($res) && !empty($res['uid_owner'])){
+				$user = $res['uid_owner'];
+				$sharePath = OCA\FilesSharding\Lib::getFilePath($res['item_source'], $user, urldecode($group));
+				\OC_User::setUserId($user);
+				$baseUri = $PUBLIC_BASE."/".$group."/".$token;
+				$reqPath = preg_replace('|^'.$baseUri.'|', "", $requestUri);
+				$_SERVER['BASE_DIR'] = '/'.$user.'/user_group_admin/'.urldecode($group).$sharePath.$reqPath;
+				$baseUri = $requestUri;
+				$_SERVER['BASE_URI'] = $baseUri;
+			}
+			\OCP\Util::writeLog('files_sharding', 'Request user: '.$user.'-->'.$baseUri.'-->'.serialize($res), \OC_Log::WARN);
+		}
+	}
 }
 else{
 	if(!empty($_SERVER['PHP_AUTH_USER'])){
@@ -107,8 +137,10 @@ else{
 	}
 }
 
+\OCP\Util::writeLog('files_sharding', 'Request path: '.$reqPath.'-->'.$_SERVER['BASE_DIR'].'-->'.$requestUri.'-->'.$baseUri.'-->'.$PUBLIC_BASE, \OC_Log::WARN);
+
 // Sharded paths take first priority
-if(OCA\FilesSharding\Lib::inDataFolder($reqPath, $user, $group)){
+if(!empty($user) && OCA\FilesSharding\Lib::inDataFolder($reqPath, $user, $group)){
 	$serverUrl = OCA\FilesSharding\Lib::getServerForFolder($reqPath, $user, false);
 	$serverInternalUrl = OCA\FilesSharding\Lib::getServerForFolder($reqPath, $user, true);
 	// Check if this is a MKCOL and if there's enough space.
@@ -121,7 +153,7 @@ if(OCA\FilesSharding\Lib::inDataFolder($reqPath, $user, $group)){
 		$arr = array('user_id'=>$user, 'dir'=>urlencode(dirname($reqPath)), 'foldername'=>urlencode(basename($reqPath)),
 				'group'=>urlencode($group));
 		if(!empty($newServerUrl) && (empty($serverUrl) || $newServerUrl!=$serverUrl)){
-			$result = \OCA\FilesSharding\Lib::ws('newfolder', $arr, true, true, $newServerUrl);
+			\OCA\FilesSharding\Lib::ws('newfolder', $arr, true, true, $newServerUrl);
 		}
 	}
 }
@@ -175,7 +207,7 @@ else{
 	}
 	// Redirect
 	elseif(isset($server)){
-		OC_Log::write('files_sharding','Redirecting to: ' . $server .' :: '. $baseuri .' :: '.$reqPath.' :: '.$requestUri, OC_Log::WARN);
+		OC_Log::write('files_sharding','Redirecting to: ' . $server .' :: '. $baseUri .' :: '.$reqPath.' :: '.$requestUri, OC_Log::WARN);
 		// In the case of a move request, a header will contain the destination
 		// with hard-wired host name. Change this host name on redirect.
 		if(!empty($_SERVER['HTTP_DESTINATION'])){

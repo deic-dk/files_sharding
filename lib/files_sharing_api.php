@@ -76,7 +76,7 @@ class Api {
 			$itemPath = \OC\Files\Filesystem::getpath($itemSource);
 			return \OCA\FilesSharding\Lib::ws('share_action',
 					array('user_id' => \OC_User::getUser(), 'action' => 'share', 'itemType' => $itemType,
-							'itemSource' => $itemSource, 'itemPath' => $itemPath, 'shareType' => $shareType,
+							'itemSource' => $itemSource, 'itemPath' => urlencode($itemPath), 'shareType' => $shareType,
 							'shareWith' => $shareWith, 'permissions' => $permissions), true, true);
 		}
 	}

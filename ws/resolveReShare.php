@@ -8,6 +8,7 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 }
 
 $linkItem = json_decode($_POST['linkItem'], true);
+$group = empty($_POST['group'])?'':$_POST['group'];
 
 $rootLinkItem = \OCA\FilesSharding\Lib::resolveReShare($linkItem);
 
@@ -15,7 +16,14 @@ $rootLinkItem = \OCA\FilesSharding\Lib::resolveReShare($linkItem);
 OCP\JSON::checkUserExists($rootLinkItem['uid_owner']);
 // Setup FS with owner
 OC_Util::tearDownFS();
-OC_Util::setupFS($rootLinkItem['uid_owner']);
+if(!empty($group)){
+	//\OC\Files\Filesystem::tearDown();
+	$groupDir = '/'.$rootLinkItem['uid_owner'].'/user_group_admin/'.$group;
+	\OC\Files\Filesystem::init($rootLinkItem['uid_owner'], $groupDir);
+}
+else{
+	OC_Util::setupFS($rootLinkItem['uid_owner']);
+}
 // The token defines the target directory (security reasons)
 $path = \OC\Files\Filesystem::getPath($linkItem['file_source']);
 $rootLinkItem['path'] = $path;

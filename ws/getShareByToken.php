@@ -29,6 +29,7 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 }
 
 $token = $_GET['t'];
+$group = empty($_GET['g'])?'':$_GET['g'];
 $checkPasswordProtection = false;
 if(isset($_GET['checkPasswordProtection'])){
 	$checkPasswordProtection = $_GET['checkPasswordProtection']==='1';
@@ -42,6 +43,12 @@ if(!empty($public_link_authenticated)){
 }
 
 $linkItem = OCP\Share::getShareByToken($token, $checkPasswordProtection);
+if(empty($linkItem) && !empty($group)){
+	\OC\Files\Filesystem::tearDown();
+	$groupDir = '/'.$this->authUser.'/user_group_admin/'.$group;
+	\OC\Files\Filesystem::init($this->authUser, $groupDir);
+	$linkItem = OCP\Share::getShareByToken($token, $checkPasswordProtection);
+}
 
 \OCP\Util::writeLog('files_sharding', 'Returning linkItem '.serialize($linkItem), \OC_Log::WARN);
 

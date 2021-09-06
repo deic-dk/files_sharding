@@ -124,7 +124,7 @@ switch ($_POST['action']) {
 				// If the user has migrated, a group folder will already have been shared - but now with the
 				// file_source on the old home server. Just unshare it.
 				$checkItemSource = OCA\FilesSharding\Lib::getItemSource($itemMasterSource, $_POST['itemType']);
-				if($checkItemSource!=$itemMasterSource && $checkItemSource!=$_POST['myItemSource']){
+				if($checkItemSource!=$itemMasterSource && !empty($_POST['myItemSource']) && $checkItemSource!=$_POST['myItemSource']){
 					\OCP\Util::writeLog('sharing', "Unsharing group folder " . $itemMasterSource, \OCP\Util::WARN);
 					OCP\Share::unshare($_POST['itemType'], $itemMasterSource, $_POST['shareType'], $shareWith);
 				}

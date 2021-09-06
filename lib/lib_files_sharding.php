@@ -496,9 +496,19 @@ class Lib {
 		$response = json_decode($json_response, $array);
 		return $response;
 	}
-
-	public static function getShareOwner($token) {
-		$query = \OC_DB::prepare('SELECT `uid_owner` FROM `*PREFIX*share` WHERE `token` = ?');
+	
+	public static function getPublicShare($token) {
+		if(self::isMaster()){
+			return self::dbGetPublicShare($token);
+		}
+		else{
+			$ret = self::ws('get_public_share', Array('token'=>$token),false, true, null, null, true);
+			return $ret;
+		}
+	}
+	
+	public static function dbGetPublicShare($token) {
+		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*share` WHERE `token` = ?');
 		$result = $query->execute(Array($token));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', 'ERROR: Could not determine share owner, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
@@ -508,10 +518,10 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for token: '.$token, \OCP\Util::ERROR);
 		}
 		foreach($results as $row){
-			return($row['uid_owner']);
+			return($row);
 		}
 		\OCP\Util::writeLog('files_sharding', 'ERROR: share not found: '.$token, \OC_Log::ERROR);
-		return null;
+		return [];
 	}
 	
 	public static function getServersList(){
@@ -777,12 +787,20 @@ class Lib {
 		return $fileId;
 	}
 
-	public static function getFilePath($id, $owner=null) {
+	public static function getFilePath($id, $owner=null, $group=null) {
 		if(isset($owner) && $owner!=\OCP\USER::getUser()){
 			$user_id = self::switchUser($owner);
 		}
+		if(!empty($group)){
+			if(empty($owner)){
+				$owner = \OC_User::getUser();
+			}
+			\OC\Files\Filesystem::tearDown();
+			$groupDir = '/'.$owner.'/user_group_admin/'.$group;
+			\OC\Files\Filesystem::init($owner, $groupDir);
+		}
 		$ret = \OC\Files\Filesystem::getpath($id);
-		if(isset($user_id) && $user_id){
+		if(isset($user_id) && $user_id || !empty($group)){
 			self::restoreUser($user_id);
 		}
 		return $ret;
@@ -2684,12 +2702,11 @@ class Lib {
 		else{
 			$dataDir = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT . "/data");
 			$fullEndPath = $dataDir.'/'.
-				//(empty($group)?\OCP\USER::getUser().'/':'/').
-				//\OCP\USER::getUser().'/'.
+				\OCP\USER::getUser().'/'.
 			(empty($dataServer)?'/':\OCP\USER::getUser().'/').
 				trim(\OC\Files\Filesystem::getRoot(), '/').'/'.trim($endPath, '/');
 			\OCP\Util::writeLog('files_sharding', 'Moving tmp file: '.$tmpFile.'->'.$dataDir.'->'.$endPath.'->'.
-					\OC\Files\Filesystem::getRoot().'->'.$fullEndPath.':'.\OCP\USER::getUser(), \OC_Log::WARN);
+					\OC\Files\Filesystem::getRoot().'->'.$fullEndPath.':'.file_exists($tmpFile).':'.\OCP\USER::getUser(), \OC_Log::WARN);
 			$ret = rename($tmpFile, $fullEndPath);
 		}
 		
@@ -2895,7 +2912,7 @@ class Lib {
 		$query->execute(array($olduid));
 	}
 	
-	public static function serveFiles($files, $dir, $owner='', $id='', $group=''){
+	public static function serveFiles($files, $dir, $owner='', $id='', $group='', $dirId=''){
 		$user_id = \OCP\USER::getUser();
 		$files_list = json_decode($files);
 		// in case we get only a single file
@@ -2903,11 +2920,12 @@ class Lib {
 			$files_list = array(urldecode($files));
 		}
 		else{
-			$files_list = array_map(urldecode, $files_list);
+			$files_list = array_map('urldecode', $files_list);
 		}
 		
 		\OCP\Util::writeLog('files_sharding', 'files '.count($files_list).':'.$dir.':'.$files, \OC_Log::WARN);
 		
+		$group_dir_owner = $user_id;
 		if(!empty($owner) && $owner!=$user_id){
 			\OC_Util::tearDownFS();
 			$group_dir_owner = $owner;
@@ -2922,6 +2940,10 @@ class Lib {
 		if(!empty($id)){
 			$path = \OC\Files\Filesystem::getPath($id);
 			$dir = substr($path, 0, strrpos($path, '/'));
+		}
+		
+		if(empty($id) && !empty($dirId)){
+			$dir = \OC\Files\Filesystem::getPath($dirId);
 		}
 		
 		// Now serve the file(s)
