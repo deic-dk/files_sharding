@@ -127,6 +127,21 @@ if(strpos($requestUri, $PUBLIC_BASE."/")===0){
 			\OCP\Util::writeLog('files_sharding', 'Request user: '.$user.'-->'.$baseUri.'-->'.serialize($res), \OC_Log::WARN);
 		}
 	}
+	// If share is password protected, check password
+	if(!empty($res) && !empty($res['share_with'])){
+		$forcePortable = (CRYPT_BLOWFISH != 1);
+		$hasher = new PasswordHash(8, $forcePortable);
+		if(!($hasher->CheckPassword($_SERVER['PHP_AUTH_PW'].OC_Config::getValue('passwordsalt', ''),
+				$res['share_with']))) {
+					header('HTTP/1.0 403 Forbidden');
+					exit();
+				}
+	}
+	// If share is readonly, set $_SERVER['READ_ONLY']
+	if(!empty($res) && !empty($res['permissions'])<=\OCP\PERMISSION_CREATE){
+		$_SERVER['READ_ONLY'] = true;
+	}
+	
 }
 else{
 	if(!empty($_SERVER['PHP_AUTH_USER'])){
