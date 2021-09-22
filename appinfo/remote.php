@@ -152,7 +152,7 @@ else{
 	}
 }
 
-\OCP\Util::writeLog('files_sharding', 'Request path: '.$reqPath.'-->'.(empty($_SERVER['BASE_DIR'])?'':$_SERVER['BASE_DIR']).'-->'.$requestUri.'-->'.$baseUri.'-->'.$PUBLIC_BASE, \OC_Log::WARN);
+\OCP\Util::writeLog('files_sharding', 'Request path: '.$reqPath.'-->'.(empty($_SERVER['BASE_DIR'])?'':$_SERVER['BASE_DIR']).'-->'.$requestUri.'-->'.$baseUri.'-->'.$PUBLIC_BASE, \OC_Log::INFO);
 
 // Sharded paths take first priority
 if(!empty($user) && OCA\FilesSharding\Lib::inDataFolder($reqPath, $user, $group)){
