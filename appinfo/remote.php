@@ -194,9 +194,10 @@ if($redirected_from===$master || $redirected_from===$masterInternal || /*empty($
 		OCA\FilesSharding\Lib::checkIP() ||
 		preg_match('|^/*sharingout/.*|', $reqPath) ||
 		// chooser/share_objecttree will take care of redirecting sharingin
-		$baseUri == $SHARINGIN_BASE || $baseUri = $SHARINGIN_BASE_NC
+		$baseUri == $SHARINGIN_BASE || $baseUri == $SHARINGIN_BASE_NC
 		){
-	\OCP\Util::writeLog('files_sharding', 'Serving', \OC_Log::INFO);
+			\OCP\Util::writeLog('files_sharding', 'Serving, '.$user.': '.
+					$redirected_from.'<->'.$master.'<->'.$masterInternal.':'.$baseUri .'<->'. $SHARINGIN_BASE, \OC_Log::INFO);
 	include('chooser/appinfo/remote.php');
 }
 else{
