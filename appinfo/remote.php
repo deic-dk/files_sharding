@@ -41,12 +41,20 @@ $ADDCERT_BASE = OC::$WEBROOT."/addcert";
 $REMOVECERT_BASE = OC::$WEBROOT."/removecert";
 
 // User VLANs allowing private data transfers to/from Kube containers
-$tnet = \OCP\Config::getSystemValue('uservlannet', '');
-$tnet = trim($tnet);
-$tnets = explode(' ', $tnet);
-$uservlannets = array_map('trim', $tnets);
+$vnet = \OCP\Config::getSystemValue('uservlannet', '');
+$vnet = trim($vnet);
+$vnets = explode(' ', $vnet);
+$uservlannets = array_map('trim', $vnets);
 if(count($uservlannets)==1 && substr($uservlannets[0], 0, 10)==='USER_VLAN_'){
 	$uservlannets = [];
+}
+// Trusted internal networks
+$tnet = \OCP\Config::getSystemValue('trustednet', '');
+$tnet = trim($tnet);
+$tnets = explode(' ', $tnet);
+$trustednets = array_map('trim', $tnets);
+if(count($trustednets)==1 && substr($trustednets[0], 0, 8)==='TRUSTED_'){
+	$trustednets = [];
 }
 
 $requestFix = new URL\Normalizer($_SERVER['REQUEST_URI']);
@@ -205,36 +213,56 @@ else{
 	if(!isset($serverUrl) || trim($serverUrl)===''){
 		$serverUrl = OCA\FilesSharding\Lib::getServerForUser($user, false);
 		$serverInternalUrl = OCA\FilesSharding\Lib::getServerForUser($user, true);
+		$serverPrivatelUrl = OCA\FilesSharding\Lib::internalToPrivate($serverInternalUrl);
 	}
 	$parsedUrl = parse_url($serverUrl);
 	$parsedInternalUrl = parse_url($serverInternalUrl);
+	$parsedPrivateUrl = parse_url($serverPrivatelUrl);
 	$server = isset($parsedUrl['host']) ? $parsedUrl['host'] : null;
 	$serverInternal = isset($parsedInternalUrl['host']) ? $parsedInternalUrl['host'] : null;
+	$serverPrivate = isset($parsedPrivateUrl['host']) ? $parsedPrivateUrl['host'] : null;
 	if(!empty($_SERVER['HTTP_HOST']) && !empty($server) && $server===$_SERVER['HTTP_HOST'] ||
 			!empty($_SERVER['SERVER_NAME']) && !empty($server) && $server===$_SERVER['SERVER_NAME'] ||
 			/*proxying shared files or backing up*/
 			!empty($_SERVER['HTTP_HOST']) && !empty($serverInternal) && $serverInternal===$_SERVER['HTTP_HOST'] ||
 			!empty($_SERVER['SERVER_NAME']) && !empty($serverInternal) && $serverInternal===$_SERVER['SERVER_NAME'] ||
 			/*/storage to kube*/
-			!empty($_SERVER['HTTP_HOST']) && !empty($uservlannets) &&
-			array_sum(array_map(function($net){return strpos($_SERVER['HTTP_HOST'], $net)===0?1:0;}, $uservlannets))>0 ||
-			!empty($_SERVER['SERVER_NAME']) && !empty($uservlannets) &&
-			array_sum(array_map(function($net){return strpos($_SERVER['SERVER_NAME'], $net)===0?1:0;}, $uservlannets))>0
+			!empty($_SERVER['HTTP_HOST']) && !empty($serverPrivate) && $serverPrivate===$_SERVER['HTTP_HOST'] ||
+			!empty($_SERVER['SERVER_NAME']) && !empty($serverPrivate) && $serverPrivate===$_SERVER['SERVER_NAME']
+			//!empty($_SERVER['HTTP_HOST']) && !empty($uservlannets) &&
+			//array_sum(array_map(function($net){return strpos($_SERVER['HTTP_HOST'], $net)===0?1:0;}, $uservlannets))>0 ||
+			//!empty($_SERVER['SERVER_NAME']) && !empty($uservlannets) &&
+			//array_sum(array_map(function($net){return strpos($_SERVER['SERVER_NAME'], $net)===0?1:0;}, $uservlannets))>0
 			){
 		\OCP\Util::writeLog('files_sharding', 'Serving, '.$server, \OC_Log::INFO);
 		include('chooser/appinfo/remote.php');
 	}
 	// Redirect
 	elseif(isset($server)){
-		OC_Log::write('files_sharding','Redirecting to: ' . $server .' :: '. $baseUri .' :: '.$reqPath.' :: '.$requestUri, OC_Log::WARN);
+		$redirectUrl = $serverUrl;
+		// Redirect internally if an internal request is made
+		if(!empty($_SERVER['HTTP_HOST']) &&
+			 array_sum(array_map(function($net){return strpos($_SERVER['HTTP_HOST'], $net)===0?1:0;}, $uservlannets))>0 ||
+			 !empty($_SERVER['SERVER_NAME']) &&
+			 !empty($uservlannets) &&
+			 array_sum(array_map(function($net){return strpos($_SERVER['SERVER_NAME'], $net)===0?1:0;}, $uservlannets))>0){
+			$redirectUrl = $serverPrivatelUrl;
+		}
+		elseif(!empty($_SERVER['HTTP_HOST']) &&
+			 array_sum(array_map(function($net){return strpos($_SERVER['HTTP_HOST'], $net)===0?1:0;}, $trustednets))>0 ||
+			 !empty($_SERVER['SERVER_NAME']) && !empty($uservlannets) &&
+			 array_sum(array_map(function($net){return strpos($_SERVER['SERVER_NAME'], $net)===0?1:0;}, $trustednets))>0){
+			$redirectUrl = $serverInternalUrl;
+		}
+		OC_Log::write('files_sharding','Redirecting to: ' . $redirectUrl . ' :: ' . $server .' :: '. $baseUri .' :: '.$reqPath.' :: '.$requestUri, OC_Log::WARN);
 		// In the case of a move request, a header will contain the destination
 		// with hard-wired host name. Change this host name on redirect.
 		if(!empty($_SERVER['HTTP_DESTINATION'])){
-			$destination = preg_replace('|^'.$masterUrl.'|', $serverUrl, $_SERVER['HTTP_DESTINATION']);
+			$destination = preg_replace('|^'.$masterUrl.'|', $redirectUrl, $_SERVER['HTTP_DESTINATION']);
 			header("Destination: " . $destination);
 		}
 		header("HTTP/1.1 307 Temporary Redirect");
-		header("Location: " . $serverUrl . $_SERVER['REQUEST_URI']);
+		header("Location: " . $redirectUrl . $_SERVER['REQUEST_URI']);
 	}
 	else{
 		// Don't give a not found - sync clients will start deleting local files.

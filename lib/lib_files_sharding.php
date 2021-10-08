@@ -232,7 +232,39 @@ class Lib {
 				', '.serialize($servers), \OC_Log::ERROR);
 		return null;
 	}
-
+	
+	public static function internalToPrivate($internalUrl){
+		// User VLANs allowing private data transfers to/from Kube containers
+		$vnet = \OCP\Config::getSystemValue('uservlannet', '');
+		$vnet = trim($vnet);
+		$vnets = explode(' ', $vnet);
+		$uservlannets = array_map('trim', $vnets);
+		if(count($uservlannets)==1 && substr($uservlannets[0], 0, 10)==='USER_VLAN_'){
+			$uservlannets = [];
+		}
+		// Trusted internal networks
+		$tnet = \OCP\Config::getSystemValue('trustednet', '');
+		$tnet = trim($tnet);
+		$tnets = explode(' ', $tnet);
+		$trustednets = array_map('trim', $tnets);
+		if(count($trustednets)==1 && substr($trustednets[0], 0, 8)==='TRUSTED_'){
+			$trustednets = [];
+		}
+		$privateUrl = $internalUrl;
+		// We're assuming the number private and internal networks are the same and that silos
+		// are on the same number in the list and have the same trailing number on each.
+		// E.g. silo2: 10.0.0.15 -> 10.2.0.15
+		$netpos = 0;
+		foreach($trustednets as $net){
+			if(preg_match('|^https*://'.$net.'.*|', $internalUrl)){
+				$privateUrl = preg_replace('|^(https*://)'.$net.'|', '${1}'.$uservlannets[$netpos], $internalUrl);
+				break;
+			}
+			++$netpos;
+		}
+		return $privateUrl;
+	}
+	
 	public static function getAllowLocalLogin($node){
 		if(self::isMaster()){
 			return self::dbGetAllowLocalLogin($node)!=='no';
