@@ -160,7 +160,9 @@ else{
 	}
 }
 
-\OCP\Util::writeLog('files_sharding', 'Request path: '.$reqPath.'-->'.(empty($_SERVER['BASE_DIR'])?'':$_SERVER['BASE_DIR']).'-->'.$requestUri.'-->'.$baseUri.'-->'.$PUBLIC_BASE, \OC_Log::INFO);
+\OCP\Util::writeLog('files_sharding', 'Request path: '.$reqPath.'-->'.
+		(empty($_SERVER['BASE_DIR'])?'':$_SERVER['BASE_DIR']).'-->'.$requestUri.'-->'.
+		$baseUri.'-->'.$PUBLIC_BASE, \OC_Log::INFO);
 
 // Sharded paths take first priority
 if(!empty($user) && OCA\FilesSharding\Lib::inDataFolder($reqPath, $user, $group)){
@@ -200,7 +202,7 @@ if($redirected_from===$master || $redirected_from===$masterInternal || /*empty($
 		// Internal replication/backup sync clients
 		stripos($_SERVER['HTTP_USER_AGENT'], "(FreeBSD) mirall")!==false &&
 		OCA\FilesSharding\Lib::checkIP() ||
-		preg_match('|^/*sharingout/.*|', $reqPath) ||
+		preg_match('|^/*sharingout/.*|', $requestUri) ||
 		// chooser/share_objecttree will take care of redirecting sharingin
 		$baseUri == $SHARINGIN_BASE || $baseUri == $SHARINGIN_BASE_NC
 		){
