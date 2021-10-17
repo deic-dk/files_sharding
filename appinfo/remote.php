@@ -197,6 +197,8 @@ $masterInternalUrl = OCA\FilesSharding\Lib::getMasterInternalURL();
 $parsedMasterInternal = parse_url($masterInternalUrl);
 $masterInternal = isset($parsedMasterInternal['host']) ? $parsedMasterInternal['host'] : null;
 
+$master_uq = preg_replace('|\..*$|', '', $master);
+
 // Serve
 if($redirected_from===$master || $redirected_from===$masterInternal || /*empty($redirected_from) ||*/
 		// Internal replication/backup sync clients
@@ -230,7 +232,11 @@ else{
 			!empty($_SERVER['SERVER_NAME']) && !empty($serverInternal) && $serverInternal===$_SERVER['SERVER_NAME'] ||
 			/*/storage to kube*/
 			!empty($_SERVER['HTTP_HOST']) && !empty($serverPrivate) && $serverPrivate===$_SERVER['HTTP_HOST'] ||
-			!empty($_SERVER['SERVER_NAME']) && !empty($serverPrivate) && $serverPrivate===$_SERVER['SERVER_NAME']
+			!empty($_SERVER['SERVER_NAME']) && !empty($serverPrivate) && $serverPrivate===$_SERVER['SERVER_NAME'] ||
+			// Pods will just use sciencedata as host
+			!empty($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] == $master_uq && 
+			!empty($uservlannets) && !empty($_SERVER['REMOTE_ADDR']) &&
+			array_sum(array_map(function($net){return strpos($_SERVER['REMOTE_ADDR'], $net)===0?1:0;}, $uservlannets))>0
 			//!empty($_SERVER['HTTP_HOST']) && !empty($uservlannets) &&
 			//array_sum(array_map(function($net){return strpos($_SERVER['HTTP_HOST'], $net)===0?1:0;}, $uservlannets))>0 ||
 			//!empty($_SERVER['SERVER_NAME']) && !empty($uservlannets) &&
@@ -243,20 +249,21 @@ else{
 	elseif(isset($server)){
 		$redirectUrl = $serverUrl;
 		// Redirect internally if an internal request is made
-		if(!empty($_SERVER['HTTP_HOST']) &&
+		if(!empty($_SERVER['HTTP_HOST']) && !empty($uservlannets) &&
 			 array_sum(array_map(function($net){return strpos($_SERVER['HTTP_HOST'], $net)===0?1:0;}, $uservlannets))>0 ||
-			 !empty($_SERVER['SERVER_NAME']) &&
-			 !empty($uservlannets) &&
+			 !empty($_SERVER['SERVER_NAME']) && !empty($uservlannets) &&
 			 array_sum(array_map(function($net){return strpos($_SERVER['SERVER_NAME'], $net)===0?1:0;}, $uservlannets))>0){
 			$redirectUrl = $serverPrivatelUrl;
 		}
-		elseif(!empty($_SERVER['HTTP_HOST']) &&
+		elseif(!empty($_SERVER['HTTP_HOST']) && !empty($trustednets) &&
 			 array_sum(array_map(function($net){return strpos($_SERVER['HTTP_HOST'], $net)===0?1:0;}, $trustednets))>0 ||
-			 !empty($_SERVER['SERVER_NAME']) && !empty($uservlannets) &&
+			 !empty($_SERVER['SERVER_NAME']) && !empty($trustednets) &&
 			 array_sum(array_map(function($net){return strpos($_SERVER['SERVER_NAME'], $net)===0?1:0;}, $trustednets))>0){
 			$redirectUrl = $serverInternalUrl;
 		}
-		OC_Log::write('files_sharding','Redirecting to: ' . $redirectUrl . ' :: ' . $server .' :: '. $baseUri .' :: '.$reqPath.' :: '.$requestUri, OC_Log::WARN);
+		OC_Log::write('files_sharding','Redirecting to: ' . $redirectUrl . ' :: ' . $server .' :: '.
+				$serverPrivate.' :: '.$_SERVER['HTTP_HOST'].' :: '.$_SERVER['SERVER_NAME'].' :: '.
+				$baseUri .' :: '.$reqPath.' :: '.$requestUri, OC_Log::WARN);
 		// In the case of a move request, a header will contain the destination
 		// with hard-wired host name. Change this host name on redirect.
 		if(!empty($_SERVER['HTTP_DESTINATION'])){
