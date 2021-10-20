@@ -3004,7 +3004,7 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'TYPE '.$fullPath.':'.$path.':'.$dir.' --> '.(empty($info)?"":$info->getType()), \OC_Log::WARN);
 			if($info->getType()=='dir'){
 				self::sendZipHeaders(basename($fullPath).".zip");
-				print(passthru("cd '".dirname($fullPath)."'; zip -r - '".basename($fullPath)."'"));
+				passthru("PATH=\$PATH:/usr/local/bin; cd '".dirname($fullPath)."'; zip -r - '".basename($fullPath)."'");
 			}
 			else{
 				\OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
