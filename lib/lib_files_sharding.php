@@ -2994,7 +2994,7 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'Zipping '.$fullDirPath.':'.$path.':'.$dir.
 					"CMD: cd '".$fullDirPath."'; zip -r - '".implode($files_list, "' '")."'", \OC_Log::WARN);
 			self::sendZipHeaders(basename($fullDirPath).".zip");
-			print(passthru("cd '".$fullDirPath."'; zip -r - '".implode($files_list, "' '")."'"));
+			print(passthru("PATH=\$PATH:/usr/local/bin; cd '".$fullDirPath."'; zip -r - '".implode($files_list, "' '")."'"));
 		}
 		elseif(count($files_list)==1){
 			// Bypass the use of zipstreamer as it produces archives not readable by the archive utility on macs
