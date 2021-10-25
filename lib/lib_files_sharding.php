@@ -2679,7 +2679,13 @@ class Lib {
 		}
 		if(!empty($group) && self::onServerForUser($owner)){
 			\OC\Files\Filesystem::tearDown();
-			\OC\Files\Filesystem::init(\OC_User::getUser(), "/".\OC_User::getUser()."/files");
+			// When this is caused by a user accessing a shared group file via webdav on a server
+			// where he does not exist, it will fail with the exception 'Backends provided no user object for' ...
+			try{
+				\OC\Files\Filesystem::init(\OC_User::getUser(), "/".\OC_User::getUser()."/files");
+			}
+			catch(\OC\User\NoUserException $e){
+			}
 		}
 		
 		\OCP\Util::writeLog('files_sharding', 'User/info: '.\OC_User::getUser().':'.$user.':'.
