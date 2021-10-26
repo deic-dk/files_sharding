@@ -189,6 +189,8 @@ if ( !$url ) {
 } else {
 	
 	$url = encodeURI($url."&user_id=".$user_id);
+	// Some file names contains #
+	$url = str_replace('#', '%23', $url);
 	
 	\OCP\Util::writeLog('files_sharding', 'Proxy URL: '.$url, \OC_Log::WARN);
 	

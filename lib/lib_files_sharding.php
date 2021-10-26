@@ -2740,8 +2740,8 @@ class Lib {
 		else{
 			$dataDir = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT . "/data");
 			$fullEndPath = $dataDir.'/'.
-				\OCP\USER::getUser().'/'.
-			(empty($dataServer)?'/':\OCP\USER::getUser().'/').
+			//\OCP\USER::getUser().'/'.
+			(empty($dataServer)&&!empty($groupDir)?'/':\OCP\USER::getUser().'/').
 				trim(\OC\Files\Filesystem::getRoot(), '/').'/'.trim($endPath, '/');
 			\OCP\Util::writeLog('files_sharding', 'Moving tmp file: '.$tmpFile.'->'.$dataDir.'->'.$endPath.'->'.
 					\OC\Files\Filesystem::getRoot().'->'.$fullEndPath.':'.file_exists($tmpFile).':'.\OCP\USER::getUser(), \OC_Log::WARN);
@@ -2948,6 +2948,33 @@ class Lib {
 		// Delete the user $olduid
 		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*users` WHERE LOWER(`uid`) = ?');
 		$query->execute(array($olduid));
+	}
+	
+	public static function getFullPath($file, $dir, $owner='', $id='', $group='', $dirId=''){
+		$user_id = \OCP\USER::getUser();
+		$group_dir_owner = $user_id;
+		if(!empty($owner) && $owner!=$user_id){
+			\OC_Util::tearDownFS();
+			$group_dir_owner = $owner;
+			\OC_User::setUserId($owner);
+			\OC_Util::setupFS($owner);
+		}
+		if(!empty($group) && !empty($group_dir_owner)){
+			\OC\Files\Filesystem::tearDown();
+			$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
+			\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
+		}
+		if(!empty($id)){
+			$path = \OC\Files\Filesystem::getPath($id);
+			$dir = substr($path, 0, strrpos($path, '/'));
+		}
+		
+		if(empty($id) && !empty($dirId)){
+			$dir = \OC\Files\Filesystem::getPath($dirId);
+		}
+		$path = empty($path)?$dir.'/'.$file:$path;
+		$fullPath = \OC\Files\Filesystem::getLocalFile($path);
+		return $fullPath;
 	}
 	
 	public static function serveFiles($files, $dir, $owner='', $id='', $group='', $dirId=''){
