@@ -2741,7 +2741,7 @@ class Lib {
 			$dataDir = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT . "/data");
 			$fullEndPath = $dataDir.'/'.
 			//\OCP\USER::getUser().'/'.
-			(empty($dataServer)&&!empty($groupDir)?'/':\OCP\USER::getUser().'/').
+			(empty($dataServer)&&!empty($groupDir)?\OCP\USER::getUser().'/':'/').
 				trim(\OC\Files\Filesystem::getRoot(), '/').'/'.trim($endPath, '/');
 			\OCP\Util::writeLog('files_sharding', 'Moving tmp file: '.$tmpFile.'->'.$dataDir.'->'.$endPath.'->'.
 					\OC\Files\Filesystem::getRoot().'->'.$fullEndPath.':'.file_exists($tmpFile).':'.\OCP\USER::getUser(), \OC_Log::WARN);
@@ -2974,6 +2974,9 @@ class Lib {
 		}
 		$path = empty($path)?$dir.'/'.$file:$path;
 		$fullPath = \OC\Files\Filesystem::getLocalFile($path);
+		if(\OCP\USER::getUser()!=$user_id){
+			self::restoreUser($user_id);
+		}
 		return $fullPath;
 	}
 	
