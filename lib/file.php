@@ -20,6 +20,8 @@
 * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+require_once('lib/public/share.php');
+
 class OC_Shard_Backend_File implements OCP\Share_Backend_File_Dependent {
 
 	const FORMAT_SHARED_STORAGE = 0;

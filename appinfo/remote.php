@@ -111,8 +111,7 @@ if(strpos($requestUri, $PUBLIC_BASE."/")===0){
 			$sharePath = OCA\FilesSharding\Lib::getFilePath($res['item_source'], $user);
 			$baseUri = $PUBLIC_BASE."/".$token;
 			$reqPath = preg_replace('|^'.$baseUri.'|', "", $requestUri);
-			$_SERVER['BASE_DIR'] = '/files/'.'/'.$sharePath.$reqPath;
-			$baseUri = $requestUri;
+			$_SERVER['BASE_DIR'] = '/'.$res['uid_owner'].'/files/'.trim($sharePath,'/').'/';
 			$_SERVER['BASE_URI'] = $baseUri;
 		}
 	}
@@ -128,8 +127,7 @@ if(strpos($requestUri, $PUBLIC_BASE."/")===0){
 				\OC_User::setUserId($user);
 				$baseUri = $PUBLIC_BASE."/".$group."/".$token;
 				$reqPath = preg_replace('|^'.$baseUri.'|', "", $requestUri);
-				$_SERVER['BASE_DIR'] = '/'.$user.'/user_group_admin/'.urldecode($group).$sharePath.$reqPath;
-				$baseUri = $requestUri;
+				$_SERVER['BASE_DIR'] = '/'.$user.'/user_group_admin/'.trim(urldecode($group),'/').'/'.trim($sharePath,'/').'/';
 				$_SERVER['BASE_URI'] = $baseUri;
 			}
 			\OCP\Util::writeLog('files_sharding', 'Request user: '.$user.'-->'.$baseUri.'-->'.serialize($res), \OC_Log::WARN);

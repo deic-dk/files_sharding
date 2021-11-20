@@ -602,7 +602,15 @@ class Lib {
 		return $results;
 	}
 	
-	public static function dbGetUserFiles($user_id=null){
+	/**
+	 * 
+	 * @param unknown $user_id
+	 * @param string $group
+	 * @param string $prefix
+	 * @param string $type 'dir' or 'file'
+	 * @return NULL|unknown
+	 */
+	public static function dbGetUserFiles($user_id=null, $group="", $prefix="", $type=''){
 		$loggedin_user = \OCP\USER::getUser();
 		if(isset($user_id)){
 			if(isset($loggedin_user) && $user_id!=$loggedin_user){
@@ -626,12 +634,42 @@ class Lib {
 		if(empty($numericStorageId) || $numericStorageId==-1){
 			return null;
 		}
-		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*filecache` WHERE storage = ?');
-		$result = $query->execute(Array($numericStorageId));
+		$queryString = 'SELECT * FROM `*PREFIX*filecache` WHERE storage = ?';
+		$queryParams = Array($numericStorageId);
+		if(!empty($prefix)){
+			if(!empty($group)){
+				$queryString = $queryString . ' AND path LIKE ?';
+				$queryParams[] = 'user_group_admin/'.$group.'/'.ltrim($prefix, '/').'%';
+			}
+			else{
+				$queryString = $queryString . ' AND path LIKE ?';
+				$queryParams[] = 'files/'.ltrim($prefix, '/').'%';
+			}
+		}
+		if(!empty($type)){
+			$storage = \OC\Files\Filesystem::getStorage('/'.$user_id.'/');
+			$cache = $storage->getCache();
+			$dirMimeId = $cache->getMimetypeId('httpd/unix-directory');
+			if($type=='file'){
+				$queryString = $queryString . ' AND mimetype != ?';
+				$queryParams[] = $dirMimeId;
+			}
+			elseif($type=='dir'){
+				$queryString = $queryString . ' AND mimetype = ?';
+				$queryParams[] = $dirMimeId;
+			}
+			else{
+				throw new Exception('Unsopported type '.$type);
+			}
+		}
+		\OCP\Util::writeLog('files_sharding', 'Getting user files with '.$queryString, \OC_Log::WARN);
+		$query = \OC_DB::prepare($queryString);
+		$result = $query->execute($queryParams);
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', 'ERROR: Could not get user files, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
+		\OCP\Util::writeLog('files_sharding', 'Got user files '.serialize($results), \OC_Log::WARN);
 		if(isset($old_user) && $old_user){
 			self::restoreUser($old_user);
 		}
@@ -3145,6 +3183,7 @@ class Lib {
 		header("Content-Range: bytes $start-$end/$size");
 		header("Content-Length: $length");
 		header('Content-Type: '.$mimetype);
+		header('Content-Disposition: inline; filename="'.basename($file).'"');
 		\OCP\Util::writeLog('files_sharing', 'Reading file '.$file, \OC_Log::WARN);
 		// Start buffered download
 		$buffer = 1024 * 8;
