@@ -2373,7 +2373,7 @@ class Lib {
 	 * @param $user_id
 	 * @return array
 	 */
-	private static function getItemsSharedByUser($user_id){
+	public static function getItemsSharedByUser($user_id){
 		if(self::isMaster()){
 			$loggedin_user = \OCP\USER::getUser();
 			if(isset($user_id)){
@@ -2574,10 +2574,10 @@ class Lib {
 		return($row['item_source']);
 	}
 
-	public static function switchUser($owner){
+	public static function switchUser($owner, $force=false){
 		\OCP\Util::writeLog('files_sharding', 'Logged in: '.\OC_User::isLoggedIn().', user: '.\OCP\USER::getUser(), \OC_Log::INFO);
 		$user_id = \OC_User::getUser();
-		if($owner && $owner!==$user_id){
+		if(($owner || $force) && $owner!==$user_id){
 			\OC_Util::teardownFS();
 			//\OC\Files\Filesystem::initMountPoints($owner);
 			//\OC::$session->reopen();
@@ -3029,9 +3029,11 @@ class Lib {
 			$files_list = array_map('urldecode', $files_list);
 		}
 		
-		\OCP\Util::writeLog('files_sharding', 'files '.count($files_list).':'.$dir.':'.$files, \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'FILES '.count($files_list).':'.$files.':'.$dir.':'.$owner.':'.$id.':'.$group.':'.$dirId, \OC_Log::WARN);
 		
 		$group_dir_owner = $user_id;
+		try{
+		
 		if(!empty($owner) && $owner!=$user_id){
 			\OC_Util::tearDownFS();
 			$group_dir_owner = $owner;
@@ -3059,7 +3061,8 @@ class Lib {
 			$fullPath = \OC\Files\Filesystem::getLocalFile($path);
 			\OCP\Util::writeLog('files_sharding', 'HTTP_RANGE: '.$_SERVER['HTTP_RANGE'], \OCP\Util::WARN);
 			$mimetype = \OC_Helper::getSecureMimeType(\OC\Files\Filesystem::getMimeType($path));
-			\OCA\FilesSharding\Lib::rangeServe($fullPath, $mimetype);
+			self::switchUser($user_id, true);
+			self::rangeServe($fullPath, $mimetype);
 			//ob_end_flush();
 		}
 		elseif(count($files_list)>1){
@@ -3068,7 +3071,8 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'Zipping '.$fullDirPath.':'.$path.':'.$dir.
 					"CMD: cd '".$fullDirPath."'; zip -r - '".implode($files_list, "' '")."'", \OC_Log::WARN);
 			self::sendZipHeaders(basename($fullDirPath).".zip");
-			print(passthru("PATH=\$PATH:/usr/local/bin; cd '".$fullDirPath."'; zip -r - '".implode($files_list, "' '")."'"));
+			self::switchUser($user_id, true);
+			passthru("PATH=\$PATH:/usr/local/bin; cd '".$fullDirPath."'; zip -r - '".implode($files_list, "' '")."'");
 		}
 		elseif(count($files_list)==1){
 			// Bypass the use of zipstreamer as it produces archives not readable by the archive utility on macs
@@ -3077,6 +3081,7 @@ class Lib {
 			$info = \OC\Files\Filesystem::getFileInfo($path);
 			\OCP\Util::writeLog('files_sharding', 'TYPE '.$fullPath.':'.$path.':'.$dir.' --> '.(empty($info)?"":$info->getType()), \OC_Log::WARN);
 			if($info->getType()=='dir'){
+				self::switchUser($user_id, true);
 				self::sendZipHeaders(basename($fullPath).".zip");
 				passthru("PATH=\$PATH:/usr/local/bin; cd '".dirname($fullPath)."'; zip -r - '".basename($fullPath)."'");
 			}
@@ -3089,13 +3094,21 @@ class Lib {
 			\OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
 		}
 		
+		}
+		catch(\Exception $e){
+		}
+		finally {
+			self::switchUser($user_id, true);
+		}
+		
 		// This has no effect when downloading zip archives via zipstreamer,
 		// as OC_Files::get calls ob_end and returns
-		if(!empty($owner) && $owner!=$user_id || !empty($group) && !empty($group_dir_owner)){
+		//\OCP\Util::writeLog('files_sharding', 'Logging out '.$owner.'-->'.$user_id, \OC_Log::WARN);
+		/*if(!empty($owner) && $owner!=$user_id || !empty($group) && !empty($group_dir_owner)){
 			\OC_Util::tearDownFS();
 			\OC_User::setUserId($user_id);
 			\OC_Util::setupFS($user_id);
-		}
+		}*/
 	}
 	
 	// From zipstreamer

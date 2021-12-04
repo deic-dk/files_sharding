@@ -62,6 +62,7 @@ $data = OCA\Files\Helper::formatFileInfos($files);
 
 foreach($data as &$file){
 	$file['path'] = $path.'/'.$file['name'];
+	$file['owner'] = $owner;
 }
 
 \OCP\Util::writeLog('files_sharding', 'Returning files for '.$owner.':'.$id.':'.$dir.':'.$path.'-->'.serialize($data), \OC_Log::DEBUG);
