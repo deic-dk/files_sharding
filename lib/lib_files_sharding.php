@@ -602,6 +602,22 @@ class Lib {
 		return $results;
 	}
 	
+	public static function dbGetFile($fileid){
+		$queryString = 'SELECT * FROM `*PREFIX*filecache` WHERE fileid = ?';
+		$queryParams = Array($fileid);
+		$query = \OC_DB::prepare($queryString);
+		$result = $query->execute($queryParams);
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Could not get file with id, '.$fileid.'. '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$results = $result->fetchAll();
+		if(empty($results)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Could not get file with id, '.$fileid.'. '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			return null;
+		}
+		return $results[0];
+	}
+	
 	/**
 	 * 
 	 * @param unknown $user_id
