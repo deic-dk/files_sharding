@@ -62,6 +62,9 @@ $requestUri = $requestFix->normalize();
 
 $group = '';
 
+// This may be a browser accessing a webdav URL - and the browser may already be logged in
+$origUser = \OCP\USER::getUser();
+
 $baseUri = OC::$WEBROOT."/remote.php/davs";
 // Known aliases
 if(strpos($requestUri, $SHARED_BASE."/")===0){
@@ -100,6 +103,8 @@ elseif(strpos($requestUri, $REMOVECERT_BASE."/")===0){
 $reqPath = preg_replace('|^'.$baseUri.'|', "", $requestUri);
 
 if(strpos($requestUri, $PUBLIC_BASE."/")===0){
+	// If the user is logged in with another user ID, clear it. This is a one-off webdav request.
+	\OC_User::setUserId("");
 	$token = preg_replace("/^\/([^\/]+)$/", "$1", $reqPath);
 	if(empty($token) || $token==$reqPath){
 		$token = preg_replace("/^\/([^\/]+)\/.*$/", "$1", $reqPath);
@@ -259,9 +264,10 @@ else{
 			 array_sum(array_map(function($net){return strpos($_SERVER['SERVER_NAME'], $net)===0?1:0;}, $trustednets))>0){
 			$redirectUrl = $serverInternalUrl;
 		}
+		logout($origUser);
 		OC_Log::write('files_sharding','Redirecting to: ' . $redirectUrl . ' :: ' . $server .' :: '.
 				$serverPrivate.' :: '.$_SERVER['HTTP_HOST'].' :: '.$_SERVER['SERVER_NAME'].' :: '.
-				$baseUri .' :: '.$reqPath.' :: '.$requestUri, OC_Log::WARN);
+				$baseUri .' :: '.$reqPath.' :: '.$requestUri.' :: '.$origUser.' :: '.\OC_User::getUser(), OC_Log::WARN);
 		// In the case of a move request, a header will contain the destination
 		// with hard-wired host name. Change this host name on redirect.
 		if(!empty($_SERVER['HTTP_DESTINATION'])){
@@ -270,14 +276,31 @@ else{
 		}
 		header("HTTP/1.1 307 Temporary Redirect");
 		header("Location: " . $redirectUrl . $_SERVER['REQUEST_URI']);
+		exit();
 	}
 	else{
+		logout($origUser);
 		// Don't give a not found - sync clients will start deleting local files.
 		//http_response_code(404);
 		//throw new \Exception('Invalid Host '.$server);
 		\OCP\Util::writeLog('files_sharding', 'Serving, '.$server, \OC_Log::INFO);
 		include('chooser/appinfo/remote.php');
 	}	
+}
+
+function logout($origUser){
+	if(empty($origUser)){
+		\OC_Util::tearDownFS();
+		\OC_User::setUserId("");
+		session_destroy();
+		$session_id = session_id();
+		unset($_COOKIE[$session_id]);
+	}
+	else{
+		\OC_Util::tearDownFS();
+		\OC_User::setUserId($origUser);
+		\OC_Util::setupFS($origUser);
+	}
 }
 
 exit();
