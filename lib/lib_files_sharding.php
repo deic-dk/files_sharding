@@ -2800,7 +2800,15 @@ class Lib {
 				trim(\OC\Files\Filesystem::getRoot(), '/').'/'.trim($endPath, '/');
 			\OCP\Util::writeLog('files_sharding', 'Moving tmp file: '.$dirOwner.'->'.$groupDir.'->'.$tmpFile.'->'.$dataDir.'->'.$endPath.'->'.
 			\OC\Files\Filesystem::getRoot().'->'.$fullEndPath.':'.file_exists($tmpFile).':'.\OCP\USER::getUser(), \OC_Log::WARN);
-			$ret = rename($tmpFile, $fullEndPath);
+			try{
+				$ret = rename($tmpFile, $fullEndPath);
+			}
+			catch(\Exception $e){
+				\OCP\Util::writeLog('files_sharding', 'ERROR moving tmp file: '.$e.getTraceAsString(), \OC_Log::ERROR);
+			}
+			finally{
+				self::restoreUser($user);
+			}
 		}
 		
 		if(isset($user_id) && $user_id){
@@ -3113,6 +3121,7 @@ class Lib {
 		
 		}
 		catch(\Exception $e){
+			\OCP\Util::writeLog('files_sharding', 'ERROR serving file file: '.$e.getTraceAsString(), \OC_Log::ERROR);
 		}
 		finally {
 			self::switchUser($user_id, true);
