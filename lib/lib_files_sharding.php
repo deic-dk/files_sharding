@@ -2795,10 +2795,11 @@ class Lib {
 			$dataDir = \OC_Config::getValue("datadirectory", \OC::$SERVERROOT . "/data");
 			$fullEndPath = $dataDir.'/'.
 			//\OCP\USER::getUser().'/'.
-			(empty($dataServer)&&!empty($groupDir)?\OCP\USER::getUser().'/':'/').
+			// When uploading to a directory shared from a group folder, $dirOwner will be set and getRoot will include the userid
+			(empty($dataServer)&&!empty($groupDir)&&empty($dirOwner)?\OCP\USER::getUser().'/':'/').
 				trim(\OC\Files\Filesystem::getRoot(), '/').'/'.trim($endPath, '/');
-			\OCP\Util::writeLog('files_sharding', 'Moving tmp file: '.$tmpFile.'->'.$dataDir.'->'.$endPath.'->'.
-					\OC\Files\Filesystem::getRoot().'->'.$fullEndPath.':'.file_exists($tmpFile).':'.\OCP\USER::getUser(), \OC_Log::WARN);
+			\OCP\Util::writeLog('files_sharding', 'Moving tmp file: '.$dirOwner.'->'.$groupDir.'->'.$tmpFile.'->'.$dataDir.'->'.$endPath.'->'.
+			\OC\Files\Filesystem::getRoot().'->'.$fullEndPath.':'.file_exists($tmpFile).':'.\OCP\USER::getUser(), \OC_Log::WARN);
 			$ret = rename($tmpFile, $fullEndPath);
 		}
 		
