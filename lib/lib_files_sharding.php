@@ -453,7 +453,7 @@ class Lib {
 	}
 	
 	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null,
-			$appName=null, $urlencode=false){
+			$appName=null, $urlencode=false, $timeoutMs=0){
 		$content = "";
 		foreach($data as $key=>$value) { $content .= $key.'='.($urlencode?urlencode($value):$value).'&'; }
 		if($baseUrl==null){
@@ -507,12 +507,17 @@ class Lib {
 			//curl_setopt($curl, CURLOPT_SSLCERTPASSWD, '');
 			//curl_setopt($curl, CURLOPT_SSLKEYPASSWD, '');
 		}
-			
+		
+		if(!empty($timeoutMs)){
+			curl_setopt($curl, CURLOPT_TIMEOUT_MS, $timeoutMs);
+			curl_setopt($curl, CURLOPT_NOSIGNAL, 1);
+		}
+		
 		$json_response = curl_exec($curl);
-		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		$status = curl_getinfo($curl);
 		curl_close($curl);
-		if($status===0 || $status>=300 || $json_response===null || $json_response===false){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response from '.$url.' : '. $status.' : '.$json_response, \OC_Log::ERROR);
+		if(empty($status['http_code']) || $status['http_code']===0 || $status['http_code']>=300 || $json_response===null || $json_response===false){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response from '.$url.' : '. serialize($status).' : '.$json_response, \OC_Log::ERROR);
 			return null;
 		}
 		
@@ -522,7 +527,7 @@ class Lib {
 			}
 		}
 		else{
-			\OCP\Util::writeLog('files_sharding', 'NOT caching response for '.$script.'-->'.$cache_key, \OC_Log::WARN);
+			\OCP\Util::writeLog('files_sharding', 'NOT caching response for '.$script.'-->'.$cache_key.'-->'.$status['total_time'], \OC_Log::WARN);
 		}
 		
 		$response = json_decode($json_response, $array);
