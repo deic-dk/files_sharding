@@ -99,6 +99,8 @@ OCP\Backgroundjob::registerJob('OCA\FilesSharding\BackgroundJob\UpdateFree');
 
 OCP\Util::addScript('files_sharding', 'access');
 
+OCP\Util::connectHook('OC_User', 'post_login', 'OCA\FilesSharding\Hooks', 'post_login');
+
 if(OCA\FilesSharding\Lib::isMaster()){
 	OCP\App::registerAdmin('files_sharding', 'settings');
 	OC::$CLASSPATH['ServerSync_Activity'] ='apps/files_sharding/lib/activity.php';
@@ -110,7 +112,6 @@ if(OCA\FilesSharding\Lib::isMaster()){
 				\OC::$server->getConfig()
 		);
 	});
-	OCP\Util::connectHook('OC_User', 'post_login', 'OCA\FilesSharding\Hooks', 'post_login');
 	return;
 }
 

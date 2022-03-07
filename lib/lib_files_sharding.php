@@ -12,6 +12,8 @@ class Lib {
 	// No limit
 	private static $minfree = -1;
 	
+	private static $adminOkIPs = [];
+	
 	public static $USER_ACCESS_ALL = 0;
 	public static $USER_ACCESS_READ_ONLY = 1;
 	public static $USER_ACCESS_TWO_FACTOR = 2;
@@ -79,6 +81,58 @@ class Lib {
 				break;
 		}
 		return $ret;
+	}
+	
+	private static function getAdminUser(){
+		$sql = "SELECT uid FROM *PREFIX*group_user WHERE gid = ?";
+		$args = array('admin');
+		$query = \OCP\DB::prepare($sql);
+		$output = $query->execute($args);
+		while($row=$output->fetchRow()){
+			if(!empty($row['uid'])){
+				return $row['uid'];
+			}
+		}
+		return null;
+	}
+	
+	private static function isAdminIP($ip){
+		if(empty($ip) || !empty(self::$adminOkIPs[$ip])){
+			return false;
+		}
+		$adminIpsString = \OC_Config::getValue('adminips', '');
+		$adminIps = explode(',', $adminIpsString);
+		foreach($adminIps as $adminIp) {
+			if(strpos(trim($ip), trim($adminIp))===0){
+				self::$adminOkIPs[] = $ip;
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public static function checkAdminIP($user=null){
+		if(empty($user)){
+			$user = \OCP\USER::getUser();
+		}
+		$adminUser = self::getAdminUser();
+		\OCP\Util::writeLog('files_sharding', 'checkAdminIP: '.$user.'<-->'.
+				$adminUser.'<-->'.$_SERVER['REMOTE_ADDR'].'<-->'.self::isAdminIP($_SERVER['REMOTE_ADDR']), \OC_Log::DEBUG);
+		// Not admin, all ok
+		if($user != $adminUser){
+			return;
+		}
+		// Kick out if logged in as admin from a non-white-listed IP.
+		if(!empty($_SERVER['REMOTE_ADDR']) && !self::isAdminIP($_SERVER['REMOTE_ADDR'])){
+			\OC_Util::tearDownFS();
+			\OC_User::setUserId("");
+			session_destroy();
+			$session_id = session_id();
+			unset($_COOKIE[$session_id]);
+			\OC_Response::redirect(\OC::$WEBROOT);
+			exit;
+		}
+		// We're an admin user and our IP is ok
 	}
 	
 	public static function getCookieDomain(){
@@ -2623,6 +2677,54 @@ class Lib {
 		\OC_User::setUserId($user_id);
 		\OC_Util::setupFS($user_id);
 	}
+
+	public static function unserialize($session_data) {
+		$method = ini_get("session.serialize_handler");
+		switch ($method) {
+			case "php":
+				return self::unserialize_php($session_data);
+				break;
+			case "php_binary":
+				return self::unserialize_phpbinary($session_data);
+				break;
+			default:
+				throw new Exception("Unsupported session.serialize_handler: " . $method . ". Supported: php, php_binary");
+		}
+	}
+	
+	private static function unserialize_php($session_data) {
+		$return_data = array();
+		$offset = 0;
+		while ($offset < strlen($session_data)) {
+			if (!strstr(substr($session_data, $offset), "|")) {
+				throw new Exception("invalid data, remaining: " . substr($session_data, $offset));
+			}
+			$pos = strpos($session_data, "|", $offset);
+			$num = $pos - $offset;
+			$varname = substr($session_data, $offset, $num);
+			$offset += $num + 1;
+			$data = unserialize(substr($session_data, $offset));
+			$return_data[$varname] = $data;
+			$offset += strlen(serialize($data));
+		}
+		return $return_data;
+	}
+	
+	private static function unserialize_phpbinary($session_data) {
+		$return_data = array();
+		$offset = 0;
+		while ($offset < strlen($session_data)) {
+			$num = ord($session_data[$offset]);
+			$offset += 1;
+			$varname = substr($session_data, $offset, $num);
+			$offset += $num;
+			$data = unserialize(substr($session_data, $offset));
+			$return_data[$varname] = $data;
+			$offset += strlen(serialize($data));
+		}
+		return $return_data;
+	}
+	
 	
 	// Get logged-in user session on master
 	public static function getUserSession($sessionId, $forceLogout=true){
@@ -2630,7 +2732,7 @@ class Lib {
 		$handler = new FileSessionHandler('/tmp');
 		$encoded_session = $handler->getSession($sessionId, $forceLogout);
 		if(!empty($encoded_session)){
-			$session = \Session::unserialize($encoded_session);
+			$session = self::unserialize($encoded_session);
 			\OC_Log::write('files_sharding', 'Session '.serialize($session), \OC_Log::WARN);
 			return $session;
 		}

@@ -2,7 +2,6 @@
 
 OCP\App::checkAppEnabled('files_sharding');
 
-include_once("files_sharding/lib/session.php");
 include_once("files_sharding/lib/lib_files_sharding.php");
 
 $ret = array();

@@ -42,11 +42,13 @@ class Hooks {
 	}
 	
 	public static function post_login($parameters) {
+		$user = \OCP\USER::getUser();
+		
+		\OCA\FilesSharding\Lib::checkAdminIP($user);
+
 		// Bump up quota if smaller than freequota.
 		// Notice: Done in filesessionhandler too.
-		
-		$user = \OCP\USER::getUser();
-		if(!empty($user) && \OCP\App::isEnabled('files_accounting')){
+		if(\OCA\FilesSharding\Lib::isMaster() && !empty($user) && \OCP\App::isEnabled('files_accounting')){
 			$quotas = \OCA\Files_Accounting\Storage_Lib::getQuotas($user);
 			if(!empty($quotas['quota']) && !empty($quotas['freequota']) &&
 					\OCP\Util::computerFileSize($quotas['quota']) <

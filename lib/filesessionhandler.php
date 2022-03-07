@@ -3,7 +3,6 @@
 
 namespace OCA\FilesSharding;
 
-require_once 'files_sharding/lib/session.php';
 require_once 'files_sharding/lib/lib_files_sharding.php';
 
 // Register a custom session handler.
@@ -36,13 +35,14 @@ class FileSessionHandler {
 		$data = '';
 		if(is_readable("$this->savePath/sess_$id")){
 			$data = (string)@file_get_contents("$this->savePath/sess_$id");
-			$parsed_data = \Session::unserialize($data);
+			$parsed_data = \OCA\FilesSharding\Lib::unserialize($data);
 		}
 		// If no valid session found locally, try to get one from the master
 		if(empty($parsed_data['user_id']) && isset($_COOKIE[\OCA\FilesSharding\Lib::$LOGIN_OK_COOKIE])){
 			\OC_Log::write('files_sharding',"Getting session ".$id, \OC_Log::WARN);
 			$data = $this->getSession($id);
-			$parsed_data = \Session::unserialize($data);
+			$parsed_data = \OCA\FilesSharding\Lib::unserialize($data);
+			\OCA\FilesSharding\Lib::checkAdminIP($parsed_data['user_id']);
 		}
 		if(!empty($parsed_data['user_id']) && !empty($data)){
 			\OC_Log::write('files_sharding',"Session data: ".$data, \OC_Log::DEBUG);
@@ -119,7 +119,7 @@ class FileSessionHandler {
 			\OC_Log::write('files_sharding',"NO session from ".$url." for ID ".$id.":".serialize($ret), \OC_Log::WARN);
 			return null;
 		}
-		$session = \Session::unserialize($res->{'session'});
+		$session = \OCA\FilesSharding\Lib::unserialize($res->{'session'});
 		//\OC_Log::write('files_sharding',"Got session ".$session['user_id'].":".$session['oc_mail'].":".join("|", $session['oc_groups']).":".$session['oc_display_name'].":".serialize($session), \OC_Log::WARN);
 		if(empty($session['user_id']) && $forceLogout){
 			\OC_Log::write('files_sharding',"NO user_id, cannot proceed", \OC_Log::WARN);
