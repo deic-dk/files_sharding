@@ -74,7 +74,9 @@ class FileSessionHandler {
 	function destroy($id){
 		$file = "$this->savePath/sess_$id";
 		if (file_exists($file)) {
-			\OC_Log::write('files_sharding',"Deleting session file ".$file, \OC_Log::WARN);
+			$e = new \Exception();
+			\OC_Log::write('files_sharding',"Deleting session file ".$file.':'.
+					$_SERVER['PHP_AUTH_USER'].':'.$_SERVER['REQUEST_URI'].':'.$e->getTraceAsString(), \OC_Log::INFO);
 			unlink($file);
 		}
 		return true;

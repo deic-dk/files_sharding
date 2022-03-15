@@ -2100,6 +2100,7 @@ class Lib {
 	}
 	
 	public static function deleteUser($user) {
+		self::disableUser($user);
 		$i = 0;
 		do{
 			\OCP\Util::writeLog('files_sharding', 'Deleting user '.$user, \OC_Log::WARN);
@@ -2111,7 +2112,6 @@ class Lib {
 			++$i;
 		}
 		while(!is_numeric($remainingFiles) || is_numeric($remainingFiles) && $remainingFiles!=0);
-		self::setServerForUser($user, null, self::$USER_SERVER_PRIORITY_DISABLED, self::$USER_ACCESS_NONE);
 	}
 	
 	public static function disableUser($user) {

@@ -9,7 +9,7 @@ class Hooks {
 	private static $handler;
 	
 	public static function initSession($params){
- 
+
 		self::initHandler();
 		
 		if(empty($_COOKIE[$params['sessionName']])){

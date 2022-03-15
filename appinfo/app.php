@@ -3,7 +3,7 @@
 require_once('apps/files_sharding/lib/lib_files_sharding.php');
 require_once('apps/files_sharding/lib/myshare.php');
 
-if(isset($_SERVER['REQUEST_URI']) && ($_SERVER['REQUEST_URI']=='/' ||
+if(isset($_SERVER['REQUEST_URI']) && (/*$_SERVER['REQUEST_URI']==\OC::$WEBROOT.'/' ||*/
 		strpos($_SERVER['REQUEST_URI'], "/js/")>0)){
 	return;
 }
@@ -117,13 +117,14 @@ if(OCA\FilesSharding\Lib::isMaster()){
 
 if(empty($_COOKIE[\OCA\FilesSharding\Lib::$MASTER_LOGIN_COOKIE]) &&
 		empty($_COOKIE[\OCA\FilesSharding\Lib::$LOGIN_OK_COOKIE]) &&
-		empty($_COOKIE['SimpleSAMLAuthToken'])){
+		empty($_COOKIE['SimpleSAMLAuthToken']) &&
+		$_SERVER['REQUEST_URI']!=\OC::$WEBROOT.'/'
+		){
 	return;
 }
 
 //\OCP\Util::connectHook('OC_Filesystem', 'setup', 'OCA\FilesSharding\Hooks', 'setup');
 //\OCP\Util::connectHook('OC_Filesystem', 'post_initMountPoints', 'OCA\FilesSharding\Hooks', 'setup');
-
 OCP\Util::connectHook('OC', 'initSession', 'OCA\FilesSharding\Hooks', 'initSession');
 OCP\Util::connectHook('OC_User', 'logout', 'OCA\FilesSharding\Hooks', 'logout');
 
