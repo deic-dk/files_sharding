@@ -2115,7 +2115,7 @@ class Lib {
 	}
 	
 	public static function disableUser($user) {
-		self::setServerForUser($user, null, self::$USER_SERVER_PRIORITY_DISABLED, self::$USER_ACCESS_NONE);
+		return self::setServerForUser($user, null, self::$USER_SERVER_PRIORITY_DISABLED, self::$USER_ACCESS_NONE);
 	}
 	
 	public static function updateUserSharedFiles($user_id){
