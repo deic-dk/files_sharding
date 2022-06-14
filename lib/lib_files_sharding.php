@@ -1389,18 +1389,25 @@ class Lib {
 			$priority = self::dbGetUserServerPriority($server_id, $user_id);
 		}
 		if(empty($server_id)){
-			// This is in case it is a slave making a ws request.
-			$server = $_SERVER['REMOTE_ADDR'];
-			$server_id = self::dbLookupServerId($server);
-			// This is in case we're just altering an entry
-			if(empty($server_id)){
-				$server_info = self::dbGetUserServerInfo($user_id, $priority);
-				$server_id = empty($server_info)||empty($server_info['id'])?null:$server_info['id'];
+			// If disabling a user we want to disable all servers
+			if((int)$priority==self::$USER_SERVER_PRIORITY_DISABLED && (int)$access==self::$USER_ACCESS_NONE){
+				$server = "ALL";
+				$server_id = "%";
 			}
-			// Fall back to master
-			if(empty($server_id)){
-				$server = self::getMasterHostName();
+			else{
+				// This is in case it is a slave making a ws request.
+				$server = $_SERVER['REMOTE_ADDR'];
 				$server_id = self::dbLookupServerId($server);
+				// This is in case we're just altering an entry
+				if(empty($server_id)){
+					$server_info = self::dbGetUserServerInfo($user_id, $priority);
+					$server_id = empty($server_info)||empty($server_info['id'])?null:$server_info['id'];
+				}
+				// Fall back to master
+				if(empty($server_id)){
+					$server = self::getMasterHostName();
+					$server_id = self::dbLookupServerId($server);
+				}
 			}
 		}
 		// If we're not changing anything, just return true
@@ -1415,7 +1422,7 @@ class Lib {
 		}*/
 		// If we're setting a new backup server, disable current backup server
 		if($priority==self::$USER_SERVER_PRIORITY_BACKUP_1){
-			if(!empty($server_id)){
+			if(!empty($server_id) && $server_id!="%"){
 				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `priority` >= ? AND `server_id` != ?');
 				$result = $query->execute(array(self::$USER_SERVER_PRIORITY_DISABLE,
 						self::$USER_ACCESS_NONE, $user_id, self::$USER_SERVER_PRIORITY_BACKUP_1, $server_id));
@@ -1426,16 +1433,26 @@ class Lib {
 			}
 		}
 		
-		$query = \OC_DB::prepare('SELECT `user_id`, `server_id`, `priority`, `access`, `last_sync` '.
-				'FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
-		$result = $query->execute(Array($user_id, $server_id));
+		if(!empty($server) && $server == "ALL"){
+			$query = \OC_DB::prepare('SELECT `user_id`, `server_id`, `priority`, `access`, `last_sync` '.
+					'FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ?');
+			$result = $query->execute(Array($user_id));
+		}
+		else{
+			$query = \OC_DB::prepare('SELECT `user_id`, `server_id`, `priority`, `access`, `last_sync` '.
+					'FROM `*PREFIX*files_sharding_user_servers` WHERE `user_id` = ? AND `server_id` = ?');
+			$result = $query->execute(Array($user_id, $server_id));
+		}
+		
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get user server, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 		}
 		$results = $result->fetchAll();
 		
-		\OCP\Util::writeLog('files_sharding', 'Number of servers for '.$user_id.":".$server_id.":".count($results), \OCP\Util::ERROR);
-		if(count($results)===0){
+		\OCP\Util::writeLog('files_sharding', 'Number of servers for '.$user_id.":".$server_id.":".count($results).":".$priority.":".$access,
+				\OCP\Util::ERROR);
+		if(count($results)===0 && (int)$priority!=self::$USER_SERVER_PRIORITY_DISABLED && (int)$access!==self::$USER_ACCESS_NONE &&
+				$server_id!="%"){
 			$newAccess = isset($access)?$access:self::$USER_ACCESS_READ_ONLY;
 			$lastSync = empty($last_sync)?0:$last_sync;
 			$query = \OC_DB::prepare('INSERT INTO `*PREFIX*files_sharding_user_servers` (`user_id`, `server_id`, `priority`, `access`, `last_sync`) VALUES (?, ?, ?, ?, ?)');
@@ -1444,7 +1461,7 @@ class Lib {
 		}
 		else{
 			foreach($results as $row){
-				if($row['priority']==$priority &&
+				if((empty($server) || $server != "ALL") && $row['priority']==$priority &&
 						(!isset($access) || $row['access']==$access) &&
 						(empty($last_sync) || $row['last_sync']==$last_sync)){
 					return true;
@@ -1452,19 +1469,19 @@ class Lib {
 			}
 			
 			if(!isset($access) && empty($last_sync)){
-				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ? WHERE `user_id` = ? AND `server_id` = ?');
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ? WHERE `user_id` = ? AND `server_id` LIKE ?');
 				$result = $query->execute(array($priority, $user_id, $server_id));
 			}
 			elseif(empty($last_sync)){
-				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `server_id` = ?');
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ? WHERE `user_id` = ? AND `server_id` LIKE ?');
 				$result = $query->execute(array($priority, $access, $user_id, $server_id));
 			}
 			elseif(!isset($access)){
-				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `last_sync` = ? WHERE `user_id` = ? AND `server_id` = ?');
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `last_sync` = ? WHERE `user_id` = ? AND `server_id` LIKE ?');
 				$result = $query->execute(array($priority, $last_sync, $user_id, $server_id));
 			}
 			else{
-				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ?, `last_sync` = ? WHERE `user_id` = ? AND `server_id` = ?');
+				$query = \OC_DB::prepare('UPDATE `*PREFIX*files_sharding_user_servers` set `priority` = ?, `access` = ?, `last_sync` = ? WHERE `user_id` = ? AND `server_id` LIKE ?');
 				$result = $query->execute(array($priority, $access, $last_sync, $user_id, $server_id));
 			}
 			return $result ? true : false;

@@ -36,7 +36,9 @@ $access = isset($_GET['access'])?$_GET['access']:null;
 $last_sync = isset($_GET['last_sync'])?$_GET['last_sync']:0;
 $user_id = isset($_GET['user_id'])?$_GET['user_id']:null;
 $server_id = isset($_GET['server_id'])?$_GET['server_id']:null;
-if(empty($server_id)){
+if(empty($server_id) &&
+		(int)$priority!=OCA\FilesSharding\Lib::$USER_SERVER_PRIORITY_DISABLED &&
+		(int)$access!==OCA\FilesSharding\Lib::$USER_ACCESS_NONE){
 	$server_id = OCA\FilesSharding\Lib::dbLookupServerId($_SERVER['REMOTE_ADDR']);
 }
 
