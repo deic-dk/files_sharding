@@ -2135,6 +2135,16 @@ class Lib {
 		return self::setServerForUser($user, null, self::$USER_SERVER_PRIORITY_DISABLED, self::$USER_ACCESS_NONE);
 	}
 	
+	public static function enableUser($user) {
+		// First check if user has been disabled
+		$currentServerInfo = self::getUserServerInfo($user, self::$USER_SERVER_PRIORITY_DISABLED);
+		if(empty($currentServerInfo)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Cannot enable non-disabled or non-existing user', \OC_Log::ERROR);
+			return false;
+		}
+		return self::setServerForUser($user, $currentServerInfo['id'], self::$USER_SERVER_PRIORITY_PRIMARY, self::$USER_ACCESS_ALL);
+	}
+	
 	public static function updateUserSharedFiles($user_id){
 		$loggedin_user = \OCP\USER::getUser();
 		if(isset($user_id)){
