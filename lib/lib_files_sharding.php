@@ -2541,7 +2541,7 @@ class Lib {
 		return $serverUsers;
 	}
 	
-	public static function rename($owner, $id, $dir, $name, $newname, $group=''){
+	public static function rename($owner, $id, $dir, $name, $newname, $group='', $inStorage=''){
 		$user_id = \OCP\USER::getUser();
 		if($owner && $owner!==$user_id){
 			\OC_Util::teardownFS();
@@ -2561,6 +2561,10 @@ class Lib {
 				\OC\Files\Filesystem::init($user_id, $groupDir);
 			}
 			unset($user_id);
+		}
+		if($inStorage){
+			\OC_Util::teardownFS();
+			\OC\Files\Filesystem::init($user_id, '/'.$user_id.'/files_external/storage/');
 		}
 		$view = \OC\Files\Filesystem::getView();
 		if($id){
@@ -3177,7 +3181,8 @@ class Lib {
 		return $fullPath;
 	}
 	
-	public static function serveFiles($files, $dir, $owner='', $id='', $group='', $dirId=''){
+	public static function serveFiles($files, $dir, $owner='', $id='',
+			$group='', $dirId='', $inStorage=false){
 		$user_id = \OCP\USER::getUser();
 		$files_list = json_decode($files);
 		// in case we get only a single file
@@ -3188,7 +3193,8 @@ class Lib {
 			$files_list = array_map('urldecode', $files_list);
 		}
 		
-		\OCP\Util::writeLog('files_sharding', 'FILES '.count($files_list).':'.$files.':'.$dir.':'.$owner.':'.$id.':'.$group.':'.$dirId, \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'FILES '.count($files_list).':'.$files.
+				':'.$dir.':'.$owner.':'.$id.':'.$group.':'.$dirId.':'.$inStorage, \OC_Log::WARN);
 		
 		$group_dir_owner = $user_id;
 		try{
@@ -3207,6 +3213,11 @@ class Lib {
 		if(!empty($id)){
 			$path = \OC\Files\Filesystem::getPath($id);
 			$dir = substr($path, 0, strrpos($path, '/'));
+		}
+		
+		if($inStorage){
+			\OC_Util::teardownFS();
+			\OC\Files\Filesystem::init($user_id, '/'.$user_id.'/files_external/storage/');
 		}
 		
 		if(empty($id) && !empty($dirId)){

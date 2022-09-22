@@ -31,6 +31,7 @@ $filename = isset($_GET['file']) ? $_GET['file'] : '';
 
 $id = isset($_GET['id']) ? $_GET['id'] : '';
 $owner = isset($_GET['owner']) ? $_GET['owner'] : '';
+$storage = !empty($_GET['storage'])&&$_GET['storage']!='false';
 $group = isset($_GET['group']) ? $_GET['group'] : '';
 $group_dir_owner = $user;
 
@@ -51,6 +52,12 @@ if(!empty($group) && !empty($group_dir_owner)){
 	$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
 	\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
 }
+
+if($storage){
+	\OC_Util::teardownFS();
+	\OC\Files\Filesystem::init(\OCP\User::getUser(), '/'.\OCP\User::getUser().'/files_external/storage/');
+}
+
 if(!empty($id)){
 	$path = \OC\Files\Filesystem::getPath($id);
 	$dir = substr($path, 0, strrpos($path, '/'));
@@ -74,9 +81,14 @@ OCP\JSON::success(array('data' => array(
 	'mime' => $mime,
 	'mtime' => $mtime))
 );
-if(!empty($owner) && $owner!=$user){
-	\OC_Util::tearDownFS();
-	\OC_User::setUserId($user);
-	\OC_Util::setupFS($user);
+
+restoreUser();
+
+function restoreUser (){
+	global $owner, $user, $storage;
+	if(!empty($owner) && $owner!=$user){
+		\OC_User::setUserId($user);
+		\OC_Util::setupFS($user);
+	}
 }
 

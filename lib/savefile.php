@@ -29,6 +29,7 @@ $path = isset($_POST['path']) ? $_POST['path'] : '';
 $user = isset($_POST['user']) ? $_POST['user'] : '';
 $id = isset($_POST['id']) ? $_POST['id'] : '';
 $owner = isset($_POST['owner']) ? $_POST['owner'] : '';
+$storage = !empty($_POST['storage'])&&$_POST['storage']!='false';
 $group = isset($_POST['group']) ? $_POST['group'] : '';
 $group_dir_owner = $user;
 
@@ -68,6 +69,10 @@ $mtime = isset($_POST['mtime']) ? $_POST['mtime'] : '';
 $l = OC_L10N::get('files_texteditor');
 
 if($path != '' && $mtime != '') {
+	if($storage){
+		\OC_Util::teardownFS();
+		\OC\Files\Filesystem::init(\OCP\User::getUser(), '/'.\OCP\User::getUser().'/files_external/storage/');
+	}
 	// Get file mtime
 	$filemtime = \OC\Files\Filesystem::filemtime($path);
 	/*if($mtime != $filemtime) { // This fires randomly. No idea why the file's mtime is changed spontaneously
@@ -81,7 +86,7 @@ if($path != '' && $mtime != '') {
 		);
 	} else {*/
 		// File same as when opened, save file
-		if(\OC\Files\Filesystem::isUpdatable($path)) {
+		if(\OC\Files\Filesystem::isUpdatable($path)){
 			$filecontents = iconv(mb_detect_encoding($filecontents), "UTF-8", $filecontents);
 			\OC\Files\Filesystem::file_put_contents($path, $filecontents);
 			// Clear statcache
@@ -89,27 +94,38 @@ if($path != '' && $mtime != '') {
 			// Get new mtime
 			$newmtime = \OC\Files\Filesystem::filemtime($path);
 			$newsize = \OC\Files\Filesystem::filesize($path);
+			restoreUser();
 			OCP\JSON::success(array('data' => array('mtime' => $newmtime, 'size' => $newsize)));
-		} else {
+		}
+		else{
 			// Not writeable!
+			restoreUser();
 			OCP\JSON::error(array('data' => array( 'message' => $l->t('Insufficient permissions'))));
 			OCP\Util::writeLog(
 				'files_texteditor',
-				"User does not have permission to write to file: ".$path,
-				OCP\Util::ERROR
-				);
+				"User does not have permission to write to file: ".$path, OCP\Util::ERROR);
 		}
 	//}
-} else if($path == '') {
+}
+else if($path == ''){
+	restoreUser();
 	OCP\JSON::error(array('data' => array( 'message' => $l->t('File path not supplied'))));
 	OCP\Util::writeLog('files_texteditor','No file path supplied', OCP\Util::ERROR);
-} else if($mtime == '') {
+}
+else if($mtime == '') {
+	restoreUser();
 	OCP\JSON::error(array('data' => array( 'message' => $l->t('File mtime not supplied'))));
 	OCP\Util::writeLog('files_texteditor','No file mtime supplied' ,OCP\Util::ERROR);
 }
-
-if(!empty($owner) && $owner!=$user){
-	\OC_User::setUserId($user);
-	\OC_Util::setupFS($user);
+else{
+	restoreUser();
 }
 
+function restoreUser(){
+	global $owner, $user, $storage;
+	if(!empty($owner) && $owner!=$user){
+		\OC_Util::tearDownFS();
+		\OC_User::setUserId($user);
+		\OC_Util::setupFS($user);
+	}
+}
