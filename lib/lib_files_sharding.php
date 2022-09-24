@@ -925,8 +925,11 @@ class Lib {
 		}
 		$fileId = null;
 		$fileInfo = $view->getFileInfo($path);
-		if ($fileInfo) {
+		if($fileInfo){
 			$fileId = $fileInfo['fileid'];
+		}
+		else{
+			\OCP\Util::writeLog('files_sharding', 'Could not find ID for for '.$path.' --> '.serialize($fileInfo), \OC_Log::ERROR);
 		}
 		\OCP\Util::writeLog('files_sharding', 'Got ID '.$fileId.' for path '.$path, \OC_Log::INFO);
 		return $fileId;
@@ -2614,47 +2617,61 @@ class Lib {
 		return $result;
 	}
 	
-	public static function deleteShareFileTarget($owner, $id, $path){
+	public static function deleteFileShare($owner, $id){
 		
-		if(!isset($owner) || !$owner){
-			\OCP\Util::writeLog('files_sharing','ERROR: no owner given.', \OCP\Util::WARN);
+		if(empty($owner)){
+			\OCP\Util::writeLog('files_sharing','ERROR: no owner given.'.':'.$id, \OCP\Util::WARN);
 			return false;
 		}
-				
-		\OC_Log::write('OCP\Share', 'QUERY: '.$path.':'.$id, \OC_Log::WARN);
+		if(empty($id)){
+			\OCP\Util::writeLog('files_sharing','ERROR: No ID given: '.$owner, \OCP\Util::WARN);
+			return false;
+		}
+
+		\OC_Log::write('OCP\Share', 'Deleting share: '.$id.':'.$owner, \OC_Log::WARN);
 		
 		$result = false;
-		
-		if(!empty($id)){
-			$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `uid_owner` = ? AND `item_source` = ?');
-			$result = $query->execute(array($owner, $id));
-		}
-		elseif(!empty($path)){
-			$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `uid_owner` = ? AND `file_target` = ?');
-			$result = $query->execute(array($owner, $path));
-		}
-		
+
+		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `uid_owner` = ? AND `item_source` = ?');
+		$result = $query->execute(array($owner, $id));
 		if($result === false) {
-			\OC_Log::write('OCP\Share', 'Couldn\'t update share table for '.$user_id.' --> '.serialize($params), \OC_Log::ERROR);
+			\OC_Log::write('OCP\Share', 'Couldn\'t update share table for '.$owner.' --> '.$id, \OC_Log::ERROR);
 		}
-		
+
 		return $result;
 	}
 	
-	public static function deleteDataFileTarget($owner, $path){
-		$dataServer = self::getServerForFolder($path, $owner, true);
-		if(!empty($dataServer)){
-			$dir = dirname($path);
-			$file = basename($path);
-			$arr = array('user_id' => $user, 'dir'=>urlencode($dir), 'file'=>urlencode($file));
-			$ret = \OCA\FilesSharding\Lib::ws('delete', $arr, true, true, $dataServer);
-			$files = $ret['files'];
-			$filesWithError = $ret['filesWithError'];
-			$success = $ret['success'];
-			\OCP\Util::writeLog('files_sharding', 'Deleted files '.\OCP\USER::getUser().':'.$dir.'-->'.$success.'-->'.serialize($files), \OC_Log::WARN);
-			return $success;
+	// From https://stackoverflow.com/questions/7497733/how-can-i-use-php-to-check-if-a-directory-is-empty
+	private function dir_is_empty($dir) {
+		$handle = \OC\Files\Filesystem::opendir($dir);
+		while (false !== ($entry = \OC\Files\Filesystem::readdir($handle))) {
+			if ($entry != "." && $entry != "..") {
+				//closedir($handle);
+				return false;
+			}
 		}
-		return false;
+		//closedir($handle);
+		return true;
+	}
+	
+	public static function deleteFileShareTarget($owner, $path, $group){
+		$ret = true;
+		if(!empty($group)){
+			\OC\Files\Filesystem::tearDown();
+			$groupDir = '/'.$owner.'/user_group_admin/'.$group;
+			\OC\Files\Filesystem::init($owner, $groupDir);
+		}
+		else{
+			\OC\Files\Filesystem::tearDown();
+			$homeDir = '/'.$owner.'/files/';
+			\OC\Files\Filesystem::init($owner, $homeDir);
+		}
+		if(\OC\Files\Filesystem::file_exists($path) &&
+				(\OC\Files\Filesystem::is_file($path) ||  self::dir_is_empty($path))){
+					\OC_Log::write('OCP\Share', 'Deleting file/dir '.$owner.' --> '.$path.' --> '.$group, \OC_Log::WARN);
+			$ret = \OC\Files\Filesystem::unlink($path);
+		}
+		return $ret;
 	}
 	
 	public static function getShareFileTarget($item_source){

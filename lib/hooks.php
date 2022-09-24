@@ -163,26 +163,40 @@ class Hooks {
 	}
 	
 	public static function deleteHook($params, $group=null){
-		\OCP\Util::writeLog('files_sharing','DELETE '.serialize($params), \OCP\Util::WARN);
 		if(!\OCP\App::isEnabled('files_sharding')){
 			return true;
 		}
 		$user_id = \OCP\User::getUser();
 		$path = $params['path'];
+		// This is the local ID, i.e. item_source
 		$id = \OCA\FilesSharding\Lib::getFileId($path, $user_id, $group);
+		\OCP\Util::writeLog('files_sharing','DELETE '.$user_id.'-->'.$id.'-->'.serialize($params), \OCP\Util::WARN);
 		
 		if(\OCA\FilesSharding\Lib::isMaster()){
-			$res0 = \OCA\FilesSharding\Lib::deleteShareFileTarget($user_id, $id, $path);
-			$res1 = \OCA\FilesSharding\Lib::deleteDataFileTarget($user_id, $path);
+			if($id){
+				$res = \OCA\FilesSharding\Lib::deleteFileShare($user_id, $id);
+			}
+			else{
+				$res = false;
+				\OCP\Util::writeLog('files_sharing','ERROR: Could not delete share for file. '.serialize($params), \OCP\Util::WARN);
+			}
+			\OCA\FilesSharding\Lib::deleteFileShareTarget($user_id, $path, $group);
 		}
 		else{
 			$path = implode('/', array_map('rawurlencode', explode('/', $path)));
-			$res0 = \OCA\FilesSharding\Lib::ws('delete_share_file_target',
-					array('owner' => $user_id, 'id' => $id, 'path' => $path));
-			$res1 = \OCA\FilesSharding\Lib::ws('delete_share_file_target',
-					array('owner' => $user_id, 'path' => $path));
+			if(!empty($group)){
+				$group = rawurlencode($group);
+			}
+			if($id){
+				$res = \OCA\FilesSharding\Lib::ws('delete_file_share',
+					array('owner' => $user_id, 'id' => $id, 'group'=>$group));
+			}
+			else{
+				$res = false;
+				\OCP\Util::writeLog('files_sharing','ERROR: Could not delete share for file. '.serialize($params), \OCP\Util::WARN);
+			}
 		}
-		return $res0 && $res1;
+		return $res;
 	}
 	
 	public static function noSharedSetup(){

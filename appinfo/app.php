@@ -79,7 +79,7 @@ OCP\Util::connectHook('OC_Filesystem', 'post_write', 'OCA\FilesSharding\Hooks', 
 OCP\Util::connectHook('OC_Filesystem', 'post_rename', 'OCA\FilesSharding\Hooks', 'renameFile');
 
 OCP\Util::connectHook('OC_Filesystem', 'post_rename', 'OCA\FilesSharding\Hooks', 'renameHook');
-OCP\Util::connectHook('OC_Filesystem', 'post_delete', 'OCA\FilesSharding\Hooks', 'deleteHook');
+OCP\Util::connectHook('OC_Filesystem', 'delete', 'OCA\FilesSharding\Hooks', 'deleteHook');
 
 OCP\App::registerPersonal('files_sharding', 'personalsettings');
 
