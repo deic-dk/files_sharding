@@ -2669,7 +2669,11 @@ class Lib {
 		if(\OC\Files\Filesystem::file_exists($path) &&
 				(\OC\Files\Filesystem::is_file($path) ||  self::dir_is_empty($path))){
 					\OC_Log::write('OCP\Share', 'Deleting file/dir '.$owner.' --> '.$path.' --> '.$group, \OC_Log::WARN);
-			$ret = \OC\Files\Filesystem::unlink($path);
+			// Ah, well, don't! - this triggers the hook again, thus creating an infinite loop
+			//$ret = \OC\Files\Filesystem::unlink($path);
+			$view = \OC\Files\Filesystem::getView();
+			$absPath = $view->getAbsolutePath($path);
+			unlink($absPath);
 		}
 		return $ret;
 	}
