@@ -2654,6 +2654,13 @@ class Lib {
 		return true;
 	}
 	
+	/**
+	 * Delete the fake file/directory that was created on the master on sharing.
+	 * @param unknown $owner
+	 * @param unknown $path
+	 * @param unknown $group
+	 * @return boolean
+	 */
 	public static function deleteFileShareTarget($owner, $path, $group){
 		$ret = true;
 		if(!empty($group)){
@@ -2669,11 +2676,19 @@ class Lib {
 		if(\OC\Files\Filesystem::file_exists($path) &&
 				(\OC\Files\Filesystem::is_file($path) ||  self::dir_is_empty($path))){
 					\OC_Log::write('OCP\Share', 'Deleting file/dir '.$owner.' --> '.$path.' --> '.$group, \OC_Log::WARN);
-			// Ah, well, don't! - this triggers the hook again, thus creating an infinite loop
-			//$ret = \OC\Files\Filesystem::unlink($path);
-			$view = \OC\Files\Filesystem::getView();
-			$absPath = $view->getAbsolutePath($path);
-			unlink($absPath);
+			if(!empty(trim($path)) && trim($path)!="/"){
+				// Deleting the fake file/directory triggers the hook again, thus creating an infinite loop.
+				// Unless we first disable our hook:
+				\OC_Hook::clear('OC_Filesystem', 'delete');
+				\OC_Hook::clear('OC_Filesystem', 'post_delete');
+				$ret = \OC\Files\Filesystem::unlink($path);
+				// with the below approach, we'd need to manually clear the db record in oc_filecache
+				/*$view = \OC\Files\Filesystem:s:getView();
+				$tank_dir = \OCP\Config::getSystemValue('datadirectory', '');
+				$absPath = $view->getAbsolutePath($path);
+				$fullPath = $tank_dir .$absPath;
+				unlink($fullPath);*/
+			}
 		}
 		return $ret;
 	}

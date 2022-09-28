@@ -180,16 +180,15 @@ class Hooks {
 				$res = false;
 				\OCP\Util::writeLog('files_sharing','ERROR: Could not delete share for file. '.serialize($params), \OCP\Util::WARN);
 			}
-			//\OCA\FilesSharding\Lib::deleteFileShareTarget($user_id, $path, $group);
 		}
 		else{
 			$path = implode('/', array_map('rawurlencode', explode('/', $path)));
 			if(!empty($group)){
 				$group = rawurlencode($group);
 			}
-			if($id){
+			if(!empty($id) && !empty($path)){
 				$res = \OCA\FilesSharding\Lib::ws('delete_file_share',
-					array('owner' => $user_id, 'id' => $id, 'group'=>$group));
+						array('owner' => $user_id, 'id' => $id, 'path' => $path, 'group'=>$group));
 			}
 			else{
 				$res = false;
