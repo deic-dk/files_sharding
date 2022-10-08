@@ -22,7 +22,7 @@ $owner = isset( $_REQUEST['owner'] ) ? $_REQUEST['owner'] : '';
 $id = isset($_REQUEST['id']) ? $_REQUEST['id'] : '';
 $group = isset($_REQUEST['group']) ? $_REQUEST['group'] : '';
 $group_dir_owner = \OCP\USER::getUser();
-
+$storage = isset($_POST["storage"]) ? $_POST["storage"]!="false" :false;
 
 if(!empty($owner)){
 	if(empty($user_id)){
@@ -44,6 +44,11 @@ if(!empty($group) && !empty($group_dir_owner)){
 	\OC\Files\Filesystem::tearDown();
 	$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
 	\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
+}
+
+if($storage){
+	\OC_Util::teardownFS();
+	\OC\Files\Filesystem::init(\OCP\User::getUser(), '/'.\OCP\User::getUser().'/files_external/storage/');
 }
 
 if($id){

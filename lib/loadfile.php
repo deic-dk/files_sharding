@@ -62,7 +62,7 @@ if(!empty($id)){
 	$path = \OC\Files\Filesystem::getPath($id);
 	$dir = substr($path, 0, strrpos($path, '/'));
 }
-\OCP\Util::writeLog('files_texteditor', 'ID: '.$id.', user: '.\OCP\User::getUser(), \OC_Log::WARN);
+\OCP\Util::writeLog('files_texteditor', 'ID: '.$id.', user: '.\OCP\User::getUser().', storage: '.$storage.':'.$_GET['storage'], \OC_Log::WARN);
 // Set the session key for the file we are about to edit.
 $path = $dir.'/'.$filename;
 $writeable = \OC\Files\Filesystem::isUpdatable($path);

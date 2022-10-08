@@ -16,6 +16,7 @@ $group = isset($_REQUEST['group']) ? $_REQUEST['group'] : '';
 $group_dir_owner = \OCP\USER::getUser();
 // Can be 'overwrite', 'append' or 'backoff'
 $overwrite = isset($_REQUEST['overwrite']) ? $_REQUEST['overwrite'] : 'overwrite';
+$storage = isset($_REQUEST["storage"]) ? $_REQUEST["storage"]!="false" :false;
 
 if(!OCA\FilesSharding\Lib::checkIP()){
 	if(!OC_User::isLoggedIn()) {
@@ -40,6 +41,11 @@ if(!empty($group) && !empty($group_dir_owner)){
 	\OC\Files\Filesystem::tearDown();
 	$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
 	\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
+}
+
+if($storage){
+	\OC_Util::teardownFS();
+	\OC\Files\Filesystem::init(\OCP\User::getUser(), '/'.\OCP\User::getUser().'/files_external/storage/');
 }
 
 if($id){

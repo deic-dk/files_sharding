@@ -2567,7 +2567,7 @@ class Lib {
 		}
 		if($inStorage){
 			\OC_Util::teardownFS();
-			\OC\Files\Filesystem::init($user_id, '/'.$user_id.'/files_external/storage/');
+			\OC\Files\Filesystem::init(\OCP\USER::getUser(), '/'.\OCP\USER::getUser().'/files_external/storage/');
 		}
 		$view = \OC\Files\Filesystem::getView();
 		if($id){
@@ -2808,7 +2808,7 @@ class Lib {
 		}
 	}
 
-	public static function getFileInfo($path, $owner, $id, $parentId, $user = '', $group=''){
+	public static function getFileInfo($path, $owner, $id, $parentId, $user = '', $group = '', $inStorage = false){
 		$info = null;
 		
 		$user = empty($user)?\OC_User::getUser():$user;
@@ -2869,6 +2869,10 @@ class Lib {
 					$groupDir = '/'.$groupOwner.'/user_group_admin/'.$group;
 					\OC\Files\Filesystem::init($groupOwner, $groupDir);
 				}
+				if($inStorage){
+					\OC_Util::teardownFS();
+					\OC\Files\Filesystem::init(\OC_User::getUser(), '/'.\OC_User::getUser().'/files_external/storage/');
+				}
 				if(!empty($id)){
 					$path = \OC\Files\Filesystem::getPath($id);
 				}
@@ -2922,7 +2926,7 @@ class Lib {
 		return $info;
 	}
 	
-	public static function moveTmpFile($tmpFile, $path, $dirOwner, $dirId, $group=''){
+	public static function moveTmpFile($tmpFile, $path, $dirOwner, $dirId, $group='', $inStorage=false){
 		$endPath = $path;
 		$user = \OCP\USER::getUser();
 		if($dirId){
@@ -2959,6 +2963,14 @@ class Lib {
 				$groupDir = '/'.$dirOwner.'/user_group_admin/'.$group;
 				\OC\Files\Filesystem::init($dirOwner, $groupDir);
 			}
+			if($inStorage){
+				//\OC_Util::teardownFS();
+				\OC\Files\Filesystem::init($user, '/'.$user.'/files_external/storage/');
+				//$manager = \OC\Files\Filesystem::getMountManager();
+				//$mount = $manager->find('/'.$user.'/files_external/storage/');
+				//$storage = $mount->getStorage();
+				\OCP\Util::writeLog('files_sharding', 'Moving tmp file to '.\OC\Files\Filesystem::getRoot().':'.$endPath, \OC_Log::WARN);
+			}
 		}
 		// This triggers writeHook() from files_sharing, which calls correctFolders(), ..., getFileInfo(),
 		// which fails when in group folders.
@@ -2982,6 +2994,8 @@ class Lib {
 			}
 			finally{
 				self::restoreUser($user);
+				if($inStorage){
+				}
 			}
 		}
 		
@@ -3246,7 +3260,7 @@ class Lib {
 			$groupDir = '/'.$group_dir_owner.'/user_group_admin/'.$group;
 			\OC\Files\Filesystem::init($group_dir_owner, $groupDir);
 		}
-		if(!empty($id)){
+		if(!empty($id) && !$inStorage){
 			$path = \OC\Files\Filesystem::getPath($id);
 			$dir = substr($path, 0, strrpos($path, '/'));
 		}
@@ -3256,12 +3270,15 @@ class Lib {
 			\OC\Files\Filesystem::init($user_id, '/'.$user_id.'/files_external/storage/');
 		}
 		
-		if(empty($id) && !empty($dirId)){
+		if(empty($id) && !empty($dirId) && !$inStorage){
 			$dir = \OC\Files\Filesystem::getPath($dirId);
 		}
 		
 		// Now serve the file(s)
-		if(isset($_SERVER['HTTP_RANGE']) && count($files_list)==1){
+		if($inStorage){
+			\OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
+		}
+		elseif(isset($_SERVER['HTTP_RANGE']) && count($files_list)==1){
 			//ob_start();
 			$path = empty($path)?$dir.'/'.$files_list[0]:$path;
 			$fullPath = \OC\Files\Filesystem::getLocalFile($path);
