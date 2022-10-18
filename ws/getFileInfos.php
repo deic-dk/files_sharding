@@ -38,6 +38,8 @@ $sortAttribute = isset($_GET['sortAttribute']) ? $_GET['sortAttribute'] : '';
 $sortDirection = isset($_GET['sortDirection']) ? $_GET['sortDirection'] : '';
 $group = isset($_GET['group']) ? $_GET['group'] : '';
 
+$files = [];
+
 if(!empty($id) && !empty($owner)){
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
@@ -48,13 +50,15 @@ if(!empty($id) && !empty($owner)){
 	}
 	$path = \OC\Files\Filesystem::getPath($id);
 	\OCP\Util::writeLog('files_sharding', 'Path: '.$path, \OC_Log::WARN);
-	$files = \OCA\Files\Helper::getFiles($path, $sortAttribute, $sortDirection);
+	if(!empty($path)){
+		$files = \OCA\Files\Helper::getFiles($path, $sortAttribute, $sortDirection);
+	}
 }
-else{
+elseif(!empty($dir)){
 	$user_id = $_GET['user_id'];
 	\OC_User::setUserId($user_id);
 	\OC_Util::setupFS($user_id);
-	\OCP\Util::writeLog('files_sharding', 'No id or owner: '.$owner.':'.$id, \OC_Log::WARN);
+	\OCP\Util::writeLog('files_sharding', 'No id or owner: '.$owner.':'.$id.':'.$dir, \OC_Log::WARN);
 	$files = \OCA\Files\Helper::getFiles($dir, $sortAttribute, $sortDirection);
 }
 

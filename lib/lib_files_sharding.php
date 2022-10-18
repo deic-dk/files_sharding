@@ -357,7 +357,6 @@ class Lib {
 	}
 	
 	/**
-	 * Not used - just here for reference.
 	 * @param unknown $user
 	 * @param unknown $url
 	 * @param unknown $destBaseDir
@@ -402,9 +401,10 @@ class Lib {
 			return null;
 		}
 		
+		\OCP\Util::writeLog('files_sharding', 'Writing data to '.$destBaseDir.':'.$target, \OC_Log::WARN);
 		$success = \OC\Files\Filesystem::file_put_contents($target, $data);
 		
-		return $status;
+		return $success;
 	}
 	
 	public static function propfind($url, $prop='', $username='', $password='', $tryCertAuth=false){
