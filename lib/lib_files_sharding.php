@@ -3237,10 +3237,10 @@ class Lib {
 		$files_list = json_decode($files);
 		// in case we get only a single file
 		if(!is_array($files_list)) {
-			$files_list = array(urldecode($files));
+			$files_list = array(rawurldecode($files));
 		}
 		else{
-			$files_list = array_map('urldecode', $files_list);
+			$files_list = array_map('rawurldecode', $files_list);
 		}
 		
 		\OCP\Util::writeLog('files_sharding', 'FILES '.count($files_list).':'.$files.
@@ -3302,7 +3302,7 @@ class Lib {
 			$path = empty($path)?$dir.'/'.$files_list[0]:$path;
 			$fullPath = \OC\Files\Filesystem::getLocalFile($path);
 			$info = \OC\Files\Filesystem::getFileInfo($path);
-			\OCP\Util::writeLog('files_sharding', 'TYPE '.$fullPath.':'.$path.':'.$dir.' --> '.(empty($info)?"":$info->getType()), \OC_Log::WARN);
+			\OCP\Util::writeLog('files_sharding', 'TYPE '.$fullPath.':'.$path.':'.$files_list[0].':'.$dir.' --> '.(empty($info)?"":$info->getType()), \OC_Log::WARN);
 			if($info->getType()=='dir'){
 				self::switchUser($user_id, true);
 				self::sendZipHeaders(basename($fullPath).".zip");
