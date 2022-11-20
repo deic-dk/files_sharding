@@ -2683,7 +2683,7 @@ class Lib {
 				\OC_Hook::clear('OC_Filesystem', 'post_delete');
 				$ret = \OC\Files\Filesystem::unlink($path);
 				// with the below approach, we'd need to manually clear the db record in oc_filecache
-				/*$view = \OC\Files\Filesystem:s:getView();
+				/*$view = \OC\Files\Filesystem::getView();
 				$tank_dir = \OCP\Config::getSystemValue('datadirectory', '');
 				$absPath = $view->getAbsolutePath($path);
 				$fullPath = $tank_dir .$absPath;
