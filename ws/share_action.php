@@ -233,10 +233,11 @@ switch($_POST['action']){
 		}
 		break;
 	case 'setExpirationDate':
-		if (isset($_POST['date'])) {
+		if(isset($_POST['date']) && isset($_POST['itemSource'])){
 			try{
 				$shareTime = isset($_POST['shareTime']) ? $_POST['shareTime'] : null;
-				$return = OCP\Share::setExpirationDate($_POST['itemType'], $masterItemSource, $_POST['date'], $shareTime);
+				\OCP\Util::writeLog('sharing', "Setting expiration date " . $_POST['itemSource'] . "-->" .$_POST['date'], \OCP\Util::WARN);
+				$return = OCP\Share::setExpirationDate($_POST['itemType'], $_POST['itemSource'], $_POST['date'], $shareTime);
 			}
 			catch(\Exception $e){
 				\OCA\FilesSharding\Lib::restoreUser($user_id, true);
