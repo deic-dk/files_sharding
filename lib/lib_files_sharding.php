@@ -2385,7 +2385,7 @@ class Lib {
 	 * @param string $itemType
 	 * @return boolean permissions if the user has access to the file, otherwise false
 	 */
-	public static function checkReadAccess($user_id, $itemSource, $itemType=null){
+	public static function checkAccess($user_id, $itemSource, $itemType=null){
 		if(empty($user_id) || empty($itemSource)){
 			return false;
 		}
@@ -2408,7 +2408,7 @@ class Lib {
 		return $ret;
 	}
 	
-	public static function checkReadAccessRecursively($user_id, $itemSource, $owner, $group='',
+	public static function checkAccessRecursively($user_id, $itemSource, $owner, $group='',
 			$path=''){
 		$user = self::switchUser($owner);
 		if(empty($itemSource) && !empty($path)){
@@ -2421,7 +2421,7 @@ class Lib {
 			if(empty($fileInfo['parent']) || $itemSource==$fileInfo['parent'] || empty($fileInfo['path'])){
 				break;
 			}
-			$res = self::checkReadAccess($user_id, $itemSource/*$fileInfo->getId()*/, $fileType);
+			$res = self::checkAccess($user_id, $itemSource/*$fileInfo->getId()*/, $fileType);
 			if(!empty($res)){
 				$ret = $res;
 				break;
@@ -2735,8 +2735,8 @@ class Lib {
 		}
 	}
 	
-	public static function restoreUser($user_id){
-		if(empty($user_id) || $user_id==\OCP\USER::getUser()){
+	public static function restoreUser($user_id, $force=false){
+		if(!$force && (empty($user_id) || $user_id==\OCP\USER::getUser())){
 			return;
 		}
 		// If not done, the user shared with will now be logged in as $owner
@@ -2808,7 +2808,7 @@ class Lib {
 		}
 	}
 
-	public static function getFileInfo($path, $owner, $id, $parentId, $user = '', $group = '', $inStorage = false){
+	public static function getFileInfo($path, $owner, $id, $parentId = '', $user = '', $group = '', $inStorage = false){
 		$info = null;
 		
 		$user = empty($user)?\OC_User::getUser():$user;
@@ -2950,7 +2950,7 @@ class Lib {
 				}
 			}
 		}
-		\OCP\Util::writeLog('files_sharding', 'Data server '.$dataServer.':'.$group, \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharding', 'Data server '.$dataServer.':'.$group.':'.$user.':'.$dirOwner, \OC_Log::WARN);
 		if(!empty($dataServer)){
 			return self::putFile($tmpFile, $dataServer, $dirOwner, $endPath, $group);
 		}

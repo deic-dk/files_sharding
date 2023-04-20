@@ -73,7 +73,7 @@ if($id){
 \OCP\Util::writeLog('files_sharding', 'Path: '.$path, \OC_Log::WARN);
 try{
 	if(!empty($owner) && $owner!=$user_id){
-		$permissions = \OCA\FilesSharding\Lib::checkReadAccessRecursively($user_id, $id, $owner, $group, $path);
+		$permissions = \OCA\FilesSharding\Lib::checkAccessRecursively($user_id, $id, $owner, $group, $path);
 		if(empty($permissions)){
 			\OCP\Util::writeLog('files_sharding', 'Not allowed '.$user_id.'/'.$owner.'-->'.$id.':'.$path.'-->'.$permissions, \OC_Log::WARN);
 			restoreUser($user_id);

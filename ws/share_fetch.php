@@ -30,7 +30,7 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 
 require_once('lib/base.php');
 
-$user_id = $_GET['user_id'];
+$user_id = $_REQUEST['user_id'];
 \OC_User::setUserId($user_id);
 \OC_Util::setupFS($user_id);
 
@@ -43,68 +43,104 @@ if(OCP\App::isEnabled('user_group_admin')){
 	}
 }
 
-switch ($_GET['fetch']) {
+switch ($_REQUEST['fetch']) {
 	case 'getItemsSharedStatuses':
-		if (isset($_GET['itemType'])) {
-			//$return = OCP\Share::getItemsShared($_GET['itemType']);
-			//\OCP\Util::writeLog('sharing', 'SHARED: '.$user_id.'-->'.serialize($return), \OCP\Util::WARN);
-			$return = OCP\Share::getItemsShared($_GET['itemType'], OCP\Share::FORMAT_STATUSES);
-			$master_to_slave_id_map = OCP\Share::getItemsShared($_GET['itemType']);
-			// Set item_source - apparently OCP\Share::FORMAT_STATUSES causes this not to be set
-			foreach($return as $item=>$data){
-				foreach($master_to_slave_id_map as $item1=>$data1){
-					if($master_to_slave_id_map[$item1]['file_source'] == $item){
-						$return[$item]['item_source'] = $master_to_slave_id_map[$item1]['item_source'];
-						break;
-					}
+		if(empty($_REQUEST['itemType'])) {
+			break;
+		}
+		//$return = OCP\Share::getItemsShared($_GET['itemType']);
+		//\OCP\Util::writeLog('sharing', 'SHARED: '.$user_id.'-->'.serialize($return), \OCP\Util::WARN);
+		if(!empty($_REQUEST['owner']) && !empty($_REQUEST['itemSources'])){
+			$orig_user_id = \OCA\FilesSharding\Lib::switchUser($_REQUEST['owner']);
+		}
+		try{
+			$return = OCP\Share::getItemsShared($_REQUEST['itemType'], OCP\Share::FORMAT_STATUSES);
+			$master_to_slave_id_map = OCP\Share::getItemsShared($_REQUEST['itemType']);
+		}
+		catch(\Exception $e){
+			\OCA\FilesSharding\Lib::switchUser($user_id);
+		}
+		if(!empty($orig_user_id)){
+			\OCA\FilesSharding\Lib::switchUser($orig_user_id);
+		}
+		// Set item_source - apparently OCP\Share::FORMAT_STATUSES causes this not to be set
+		foreach($return as $item=>$data){
+			foreach($master_to_slave_id_map as $item1=>$data1){
+				if($master_to_slave_id_map[$item1]['file_source'] == $item){
+					$return[$item]['item_source'] = $master_to_slave_id_map[$item1]['item_source'];
+					break;
 				}
 			}
-			\OCP\Util::writeLog('sharing', 'SHARED: '.$user_id.'-->'.serialize($return), \OCP\Util::WARN);
-			is_array($return) ? OC_JSON::success(array('data' => $return)) : OC_JSON::error();
 		}
+		if(!empty($_REQUEST['owner']) && !empty($_REQUEST['itemSources'])){
+			$itemSources = json_decode($_REQUEST['itemSources']);
+			\OCP\Util::writeLog('sharing', "Shares: ".OC_User::getUser()."-->".
+					serialize(array_map(function($el){return (int)$el['item_source'];}, $return)), \OC_Log::WARN);
+			\OCP\Util::writeLog('sharing', "Potential reshares: ".serialize($itemSources), \OC_Log::WARN);
+			$return = array_filter($return, function($el) use ($itemSources){
+					return in_array((int) $el['item_source'], $itemSources);
+				});
+			\OCP\Util::writeLog('sharing', "Reshares: ".serialize($return), \OC_Log::WARN);
+		}
+		is_array($return) ? OC_JSON::success(array('data' => $return)) : OC_JSON::error();
 		break;
 	case 'getItem':
-		if(isset($_GET['myItemSource'])&&$_GET['myItemSource']){
-			// On the master, file_source holds the id of the dummy file
-			$_GET['itemSource'] = OCA\FilesSharding\Lib::getFileSource($_GET['myItemSource'], $_GET['itemType'],
-					$_GET['sharedWithMe']);
+		if(!empty($_GET['owner'])){
+			$orig_user_id = \OCA\FilesSharding\Lib::switchUser($_GET['owner']);
 		}
-		if (isset($_GET['itemType']) && isset($_GET['itemSource'])
-			/*&& isset($_GET['checkReshare'])
-			&& isset($_GET['checkShares'])*/) {
-			if ($_GET['checkReshare'] == 'true') {
-				$reshare = OCP\Share::getItemSharedWithBySource(
-					$_GET['itemType'],
-					$_GET['itemSource'],
-					OCP\Share::FORMAT_NONE,
-					null,
-					true,
-					$user_id
-				);
-			} else {
-				$reshare = false;
+		try{
+			if(isset($_GET['myItemSource'])&&$_GET['myItemSource']){
+				// On the master, file_source holds the id of the dummy file
+				$_GET['itemSource'] = OCA\FilesSharding\Lib::getFileSource($_GET['myItemSource'], $_GET['itemType'],
+						$_GET['sharedWithMe']);
 			}
-			if ($_GET['checkShares'] == 'true') {
-				$shares = OCP\Share::getItemShared(
-					$_GET['itemType'],
-					$_GET['itemSource'],
-					OCP\Share::FORMAT_NONE,
-					null,
-					true,
-					$user_id
-				);
-			} else {
-				$shares = false;
-			}
-			$myshares = [];
-			foreach($shares as $share){
-				\OCP\Util::writeLog('sharing', 'SHARE: '.$user_id.':'.$_GET['itemSource'].
-						'-->'.$share['path'].'-->'.$share['uid_owner'], \OCP\Util::WARN);
-				if($share['uid_owner'] == $user_id){
-					$myshares[] = $share;
+			if(isset($_GET['itemType']) && isset($_GET['itemSource'])
+					/*&& isset($_GET['checkReshare'])
+					&& isset($_GET['checkShares'])*/) {
+				if ($_GET['checkReshare'] == 'true') {
+					$reshare = OCP\Share::getItemSharedWithBySource(
+							$_GET['itemType'],
+							$_GET['itemSource'],
+							OCP\Share::FORMAT_NONE,
+							null,
+							true,
+							$_GET['owner']
+							);
+					\OCP\Util::writeLog('sharing', 'RESHARE: '.$_GET['myItemSource'].'-->'.$_GET['itemSource'].'-->'.serialize($reshare), \OCP\Util::WARN);
 				}
+				else {
+					$reshare = false;
+				}
+				if($_GET['checkShares'] == 'true'){
+					$shares = OCP\Share::getItemShared(
+							$_GET['itemType'],
+							$_GET['itemSource'],
+							OCP\Share::FORMAT_NONE,
+							null,
+							true
+					);
+				}
+				else {
+					$shares = false;
+				}
+				$myshares = [];
+				foreach($shares as $share){
+					\OCP\Util::writeLog('sharing', 'SHARE: '.$user_id.':'.$share['uid_owner'].
+							'-->'.$_GET['itemSource'].
+							'-->'.$share['path'], \OCP\Util::WARN);
+					if(!empty($_GET['owner']) && $share['uid_owner']==$_GET['owner'] ||
+							$share['uid_owner']==$user_id){
+								$myshares[] = $share;
+					}
+				}
+				OC_JSON::success(array('data' => array('reshare' => $reshare, 'shares' => $myshares)));
 			}
-			OC_JSON::success(array('data' => array('reshare' => $reshare, 'shares' => $myshares)));
+		}
+		catch(\Exception $e){
+			\OCA\FilesSharding\Lib::switchUser($user_id);
+		}
+		if(!empty($orig_user_id)){
+			\OCA\FilesSharding\Lib::switchUser($orig_user_id);
 		}
 		break;
 	case 'getShareFromId':
@@ -242,8 +278,8 @@ switch ($_GET['fetch']) {
 				}
 			}
 			$sorter = new \OC\Share\SearchResultSorter($_GET['search'],
-													   'label',
-													   new \OC\Log());
+												'label',
+												new \OC\Log());
 			usort($shareWith, array($sorter, 'sort'));
 			OC_JSON::success(array('data' => $shareWith));
 		}

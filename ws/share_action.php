@@ -23,7 +23,7 @@
 
 OCP\JSON::checkAppEnabled('files_sharding');
 
-if(!OCA\FilesSharding\Lib::checkIP()){
+if(!\OCA\FilesSharding\Lib::checkIP()){
 	http_response_code(401);
 	exit;
 }
@@ -65,35 +65,36 @@ if(OCP\App::isEnabled('user_group_admin') && !empty($_POST['groupFolder'])){
 	\OC\Files\Filesystem::init($user_id, $groupDir);
 }
 
-if(isset($_POST['myItemSource'])&&$_POST['myItemSource']){
-	// On the master, file_source holds the id of the dummy file
-	//$_POST['itemSource'] = OCA\FilesSharding\Lib::getFileSource($_POST['myItemSource'], $_POST['itemType']);
-	$masterItemSource = OCA\FilesSharding\Lib::getFileSource($_POST['myItemSource'], $_POST['itemType']);
+$shareType = (int)$_POST['shareType'];
+
+// Folders shared with a group can be shared via link by group members if allowed.
+// We need to have the share owner be the file owner.
+if(!empty($_POST['owner'])){
+	$orig_user_id = \OCA\FilesSharding\Lib::switchUser($_POST['owner']);
+	\OCP\Util::writeLog('files_sharding', 'Switched from user '.$orig_user_id.' to '.\OCP\User::getUser(), \OC_Log::WARN);
+	// If itemPath is empty, owner and resharer are on different silos.
+	// Look it up.
+	if(empty($_POST['itemPath'])){
+		$fileInfo = \OCA\FilesSharding\Lib::getFileInfo('', $_POST['owner'],
+				$_POST['itemSource'], '', '', $group);
+		$_POST['itemPath'] = preg_replace("|^".\OC\Files\Filesystem::getRoot()."|", "", $fileInfo->getPath());
+		\OCP\Util::writeLog('files_sharding', 'Got itemPath '.$_POST['itemPath'], \OC_Log::WARN);
+	}
 }
 
-switch ($_POST['action']) {
+if(isset($_POST['myItemSource'])&&$_POST['myItemSource']){
+	// On the master, file_source holds the id of the dummy file
+	//$_POST['itemSource'] = \OCA\FilesSharding\Lib::getFileSource($_POST['myItemSource'], $_POST['itemType']);
+	$masterItemSource = \OCA\FilesSharding\Lib::getFileSource($_POST['myItemSource'], $_POST['itemType']);
+}
+
+switch($_POST['action']){
 	case 'share':
-		if (isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])) {
-			try {
-				// TODO: Get rid of this hack
-				
-				/*
-				if(!empty($_POST['groupFolder']) && !empty($itemMasterSource) && OC\Files\Filesystem::file_exists($file_path)){
-					$fields = "(`share_type`, `share_with`, `uid_owner`, `parent`, `item_type`, ".
-					"`item_source`, `item_target`, `file_source`, `file_target`, `permissions`, ".
-					"`stime`, `accepted`, `expiration`, `token`, `mail_send`)";
-					$values = [$shareType, $shareWith, $user_id, -1, $_POST['itemType'], 
-							$_POST['itemSource'], "/".$itemMasterSource, $itemMasterSource, $file_path, $_POST['permissions'],
-							time(), 0, null, null, 0];
-					$query = \OC_DB::prepare('INSERT INTO `*PREFIX*share`' . $fields .
-							' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-					$query->execute($values);
-					break;
-				}
-				*/
-				
+		if(isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])){
+			try{
 				// Create file/folder if not there
-				$file_path = urldecode($_POST['itemPath']);
+				// urldecode should be done automatically...
+				$file_path = $_POST['itemPath'];
 				if(($_POST['itemType'] === 'file' or $_POST['itemType'] === 'folder')){
 					if(!OC\Files\Filesystem::file_exists($file_path)){
 						$parent_path = dirname($file_path);
@@ -112,32 +113,39 @@ switch ($_POST['action']) {
 					}
 				}
 				// We need to set the itemSource to a file/folder that exists on the server, otherwise shareItem will complain
-				$itemMasterSource = OCA\FilesSharding\Lib::getFileId($file_path, $user_id, $group);
+				$itemMasterSource = \OCA\FilesSharding\Lib::getFileId($file_path,
+						empty($_POST['owner'])?$user_id:$_POST['owner'], $group);
 				
-				$shareType = (int)$_POST['shareType'];
 				$shareWith = $_POST['shareWith'];
 				$itemSourceName = isset($_POST['itemSourceName']) ? urldecode($_POST['itemSourceName']) : null;
-				if ($shareType === OCP\Share::SHARE_TYPE_LINK && $shareWith == '') {
+				if($shareType===OCP\Share::SHARE_TYPE_LINK && $shareWith==''){
 					$shareWith = null;
 				}
 				
 				// If the user has migrated, a group folder will already have been shared - but now with the
 				// file_source on the old home server. Just unshare it.
-				$checkItemSource = OCA\FilesSharding\Lib::getItemSource($itemMasterSource, $_POST['itemType']);
+				$checkItemSource = \OCA\FilesSharding\Lib::getItemSource($itemMasterSource, $_POST['itemType']);
 				if($checkItemSource!=$itemMasterSource && !empty($_POST['myItemSource']) && $checkItemSource!=$_POST['myItemSource']){
 					\OCP\Util::writeLog('sharing', "Unsharing group folder " . $itemMasterSource, \OCP\Util::WARN);
 					OCP\Share::unshare($_POST['itemType'], $itemMasterSource, $_POST['shareType'], $shareWith);
 				}
-				
-				$token = OCP\Share::shareItem(
-						$_POST['itemType'],
-						$itemMasterSource,
-						$shareType,
-						$shareWith,
-						$_POST['permissions'],
-						$itemSourceName,
-						(!empty($_POST['expirationDate']) ? new \DateTime($_POST['expirationDate']) : null)
-				);
+				\OCP\Util::writeLog('sharing', "Sharing " . $itemMasterSource.":".$itemSourceName, \OCP\Util::WARN);
+				try{
+					$token = OCP\Share::shareItem(
+							$_POST['itemType'],
+							$itemMasterSource,
+							$shareType,
+							$shareWith,
+							$_POST['permissions'],
+							$itemSourceName,
+							(!empty($_POST['expirationDate']) ? new \DateTime($_POST['expirationDate']) : null)
+							);
+				}
+				catch(\Exception $ee){
+					\OCA\FilesSharding\Lib::restoreUser($user_id, true);
+					\OC_JSON::error(array('data' => array('message' => $ee->getMessage())));
+				}
+				\OCA\FilesSharding\Lib::restoreUser($orig_user_id);
 				// Now we need to fix the entries in the database to match the original itemSource, otherwise the js view will
 				// not catch the shared items, i.e. getItems() from share.php will not.
 				if($_POST['itemSource']!==$itemMasterSource){
@@ -148,11 +156,23 @@ switch ($_POST['action']) {
 				// Now set parent to -1 to prevent showing the item in the file listing
 				$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `parent` = ? WHERE `item_source` = ?');
 				$query->execute(array(-1, $_POST['itemSource']));
+				
 				// Also get rid of the $shareTypeGroupUserUnique entries made by share.php because the generated
 				// target does not match the shared target
 				// Notice that \OC\Share\Constants::$shareTypeGroupUserUnique is protected, so we hardcode 2.
 				$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `share_type` = ? AND `uid_owner` = ? AND `item_source` = ?');
 				$query->execute(array(2, $user_id, $_POST['itemSource']));
+				
+				// For reshares (via link) of subfolders of a shared folder, checkReshare() , calling
+				// getItemSharedWithBySource(), calling getItems() - which returns reset($collectionItems) from share.php,
+				// returns the top-level parent/shared folder, causing put() to insert the item_target and file_target
+				// of the parent/shared folder.
+				// Not sure what the motivation was for that... We fix that up:
+				if($shareType===OCP\Share::SHARE_TYPE_LINK){
+					$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `item_target` = ?, `file_target` = ? WHERE `share_type` = ? AND `item_source` = ? AND `file_source` = ?');
+					$query->execute(array($itemMasterSource, '/'.$itemSourceName, OCP\Share::SHARE_TYPE_LINK, $_POST['itemSource'], $itemMasterSource));
+				}
+				
 				// FO: Allow any string to be used as token.
 				if(isset($_POST['token']) && !empty($_POST['token'])){
 					checkTokenExists($_POST['token'], $_POST['itemSource']);
@@ -161,92 +181,121 @@ switch ($_POST['action']) {
 					$query->execute(array($_POST['token'], $_POST['itemSource'], $shareType, $token));
 					$token = $_POST['token'];
 				}
-				if (is_string($token)) {
+				if(is_string($token)){
 					OC_JSON::success(array('data' => array('token' => $token, 'file_source'=>$itemMasterSource)));
-				} else {
+				}
+				else{
 					OC_JSON::success(array('file_source'=>$itemMasterSource));
 				}
-			} catch (Exception $exception) {
+			}
+			catch(Exception $exception){
 				OC_JSON::error(array('data' => array('message' => $exception->getMessage())));
 			}
 		}
 		break;
 	case 'unshare':
-		if (isset($_POST['shareType']) && isset($_POST['shareWith'])) {
-			if ((int)$_POST['shareType'] === OCP\Share::SHARE_TYPE_LINK && $_POST['shareWith'] == '') {
+		if(isset($_POST['shareType']) && isset($_POST['shareWith'])){
+			if((int)$_POST['shareType']===OCP\Share::SHARE_TYPE_LINK && $_POST['shareWith']=='') {
 				$shareWith = null;
-			} else {
+			}
+			else {
 				$shareWith = $_POST['shareWith'];
 			}
-			//$file_path = urldecode($_POST['itemPath']);
-			//$return = OCP\Share::unshare($_POST['itemType'], $_POST['itemSource'], $_POST['shareType'], $shareWith);
-			//$itemMasterSource = OCA\FilesSharding\Lib::getFileId($file_path, $user_id);
-			//$itemMasterSource = OCA\FilesSharding\Lib::getFileSource($_POST['itemSource'], $_POST['itemType'], false);
 			\OCP\Util::writeLog('sharing', "Unsharing " . $masterItemSource, \OCP\Util::WARN);
-			$return = OCP\Share::unshare($_POST['itemType'], $masterItemSource, $_POST['shareType'], $shareWith);
+			try{
+				$return = OCP\Share::unshare($_POST['itemType'], $masterItemSource, $_POST['shareType'], $shareWith);
+			}
+			catch(\Exception $e){
+				\OCA\FilesSharding\Lib::restoreUser($user_id, true);
+				\OC_JSON::error(array('data' => array('message' => $e->getMessage())));
+			}
+			\OCA\FilesSharding\Lib::restoreUser($orig_user_id);
 			($return) ? OC_JSON::success() : OC_JSON::error();
 		}
 		break;
 	case 'setPermissions':
 		if (isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])) {
-			$return = OCP\Share::setPermissions(
-					$_POST['itemType'],
-					$masterItemSource,
-					$_POST['shareType'],
-					$_POST['shareWith'],
-					$_POST['permissions']
-			);
+			try{
+				$return = OCP\Share::setPermissions(
+						$_POST['itemType'],
+						$masterItemSource,
+						$_POST['shareType'],
+						$_POST['shareWith'],
+						$_POST['permissions']
+						);
+			}
+			catch(\Exception $e){
+				\OCA\FilesSharding\Lib::restoreUser($user_id, true);
+				\OC_JSON::error(array('data' => array('message' => $e->getMessage())));
+			}
+			\OCA\FilesSharding\Lib::restoreUser($orig_user_id);
 			($return) ? OC_JSON::success() : OC_JSON::error();
 		}
 		break;
 	case 'setExpirationDate':
 		if (isset($_POST['date'])) {
-			try {
+			try{
 				$shareTime = isset($_POST['shareTime']) ? $_POST['shareTime'] : null;
 				$return = OCP\Share::setExpirationDate($_POST['itemType'], $masterItemSource, $_POST['date'], $shareTime);
-				($return) ? OC_JSON::success() : OC_JSON::error();
-			} catch (\Exception $e) {
+			}
+			catch(\Exception $e){
+				\OCA\FilesSharding\Lib::restoreUser($user_id, true);
 				OC_JSON::error(array('data' => array('message' => $e->getMessage())));
 			}
+			\OCA\FilesSharding\Lib::restoreUser($orig_user_id);
+			($return) ? OC_JSON::success() : OC_JSON::error();
 		}
 		break;
 	case 'informRecipients':
 		$l = OC_L10N::get('core');
-		$shareType = (int) $_POST['shareType'];
 		$itemType = $_POST['itemType'];
 		$itemSource = $masterItemSource;
 		$recipient = $_POST['recipient'];
-		
-		if($shareType === \OCP\Share::SHARE_TYPE_USER) {
+		$recipientList = [];
+		if($shareType===\OCP\Share::SHARE_TYPE_USER){
 			$recipientList[] = $recipient;
-		} elseif ($shareType === \OCP\Share::SHARE_TYPE_GROUP) {
+		}
+		elseif($shareType===\OCP\Share::SHARE_TYPE_GROUP){
 			$recipientList = \OC_Group::usersInGroup($recipient);
 		}
 		// don't send a mail to the user who shared the file
 		$recipientList = array_diff($recipientList, array(\OCP\User::getUser()));
 		$mailNotification = new OC\Share\MailNotifications($user_id);
-		$result = $mailNotification->sendInternalShareMail($recipientList, $itemSource, $itemType);
-
-		\OCP\Share::setSendMailStatus($itemType, $itemSource, $shareType, $recipient, true);
-
-		if (empty($result)) {
+		try{
+			$result = $mailNotification->sendInternalShareMail($recipientList, $itemSource, $itemType);
+			\OCP\Share::setSendMailStatus($itemType, $itemSource, $shareType, $recipient, true);
+		}
+		catch(\Exception $e){
+			\OCA\FilesSharding\Lib::restoreUser($user_id, true);
+			\OC_JSON::error(array('data' => array('message' => $e->getMessage())));
+		}
+		\OCA\FilesSharding\Lib::restoreUser($orig_user_id);
+		if(empty($result)){
 			OCP\JSON::success();
-		} else {
+		}
+		else{
 			OCP\JSON::error(array(
-			'data' => array(
-			'message' => $l->t("Couldn't send mail to following users: %s ",
-			implode(', ', $result)
-			)
-			)
-			));
+				'data' => array(
+					'message' => $l->t("Couldn't send mail to following users: %s ",
+							implode(', ', $result)
+						)
+					)
+				)
+			);
 		}
 		break;
 	case 'informRecipientsDisabled':
 		$itemSource = $masterItemSource;
-		$shareType = $_POST['shareType'];
 		$itemType = $_POST['itemType'];
 		$recipient = $_POST['recipient'];
-		\OCP\Share::setSendMailStatus($itemType, $itemSource, $shareType, $recipient, false);
+		try{
+			\OCP\Share::setSendMailStatus($itemType, $itemSource, $shareType, $recipient, false);
+		}
+		catch(\Exception $e){
+			\OCA\FilesSharding\Lib::restoreUser($user_id, true);
+			\OC_JSON::error(array('data' => array('message' => $e->getMessage())));
+		}
+		\OCA\FilesSharding\Lib::restoreUser($orig_user_id);
 		OCP\JSON::success();
 		break;
 
@@ -257,30 +306,38 @@ switch ($_POST['action']) {
 		$to_address = $_POST['toaddress'];
 		$mailNotification = new \OC\Share\MailNotifications($user_id);
 		$expiration = null;
-		if (isset($_POST['expiration']) && $_POST['expiration'] !== '') {
-			try {
+		if(isset($_POST['expiration']) && $_POST['expiration'] !== '') {
+			try{
 				$date = new DateTime($_POST['expiration']);
 				$expiration = $date->getTimestamp();
-			} catch (Exception $e) {
+			}
+			catch (Exception $e) {
 				\OCP\Util::writeLog('sharing', "Couldn't read date: " . $e->getMessage(), \OCP\Util::ERROR);
 			}
-
 		}
-
-		$result = $mailNotification->sendLinkShareMail($to_address, $file, $link, $expiration);
-		if(empty($result)) {
+		try{
+			$result = $mailNotification->sendLinkShareMail($to_address, $file, $link, $expiration);
+		}
+		catch(\Exception $e){
+			\OCA\FilesSharding\Lib::restoreUser($user_id, true);
+			\OC_JSON::error(array('data' => array('message' => $e->getMessage())));
+		}
+		\OCA\FilesSharding\Lib::restoreUser($orig_user_id);
+		if(empty($result)){
 			\OCP\JSON::success();
-		} else {
-			$l = OC_L10N::get('core');
-			OCP\JSON::error(array(
-			'data' => array(
-			'message' => $l->t("Couldn't send mail to following users: %s ",
-			implode(', ', $result)
-			)
-			)
-			));
 		}
-
+		else{
+			$l = OC_L10N::get('core');
+			OCP\JSON::error(
+				array(
+					'data' => array(
+						'message' => $l->t("Couldn't send mail to following users: %s ",
+							implode(', ', $result)
+						)
+					)
+				)
+			);
+		}
 		break;
 }
 
