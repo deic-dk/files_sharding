@@ -41,6 +41,12 @@ $group = isset($_GET['group']) ? $_GET['group'] : '';
 $files = [];
 
 if(!empty($id) && !empty($owner)){
+	$permissions = \OCA\FilesSharding\Lib::checkAccessRecursively($user_id, $id, $owner, $group);
+	if(empty($permissions)){
+		\OCP\Util::writeLog('files_sharding', 'Not allowed '.$user_id.'/'.$owner.'-->'.$id.'-->'.$permissions, \OC_Log::WARN);
+		OCP\JSON::encodedPrint('');
+		exit;
+	}
 	\OC_User::setUserId($owner);
 	\OC_Util::setupFS($owner);
 	if(!empty($group)){
@@ -67,6 +73,9 @@ $data = OCA\Files\Helper::formatFileInfos($files);
 foreach($data as &$file){
 	$file['path'] = $path.'/'.$file['name'];
 	$file['owner'] = $owner;
+	if(!empty($permissions)){
+		$file['permissions'] = $permissions;
+	}
 }
 
 \OCP\Util::writeLog('files_sharding', 'Returning files for '.$owner.':'.$id.':'.$dir.':'.$path.'-->'.serialize($data), \OC_Log::DEBUG);
