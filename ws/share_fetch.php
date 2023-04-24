@@ -60,6 +60,8 @@ switch ($_REQUEST['fetch']) {
 		catch(\Exception $e){
 			\OCA\FilesSharding\Lib::switchUser($user_id);
 		}
+		\OCP\Util::writeLog('sharing', "Shares: ".OC_User::getUser()."-->".
+				serialize(array_map(function($el){return (int)$el['item_source'];}, $return)), \OC_Log::WARN);
 		if(!empty($orig_user_id)){
 			\OCA\FilesSharding\Lib::switchUser($orig_user_id);
 		}
@@ -74,12 +76,10 @@ switch ($_REQUEST['fetch']) {
 		}
 		if(!empty($_REQUEST['owner']) && !empty($_REQUEST['itemSources'])){
 			$itemSources = json_decode($_REQUEST['itemSources']);
-			\OCP\Util::writeLog('sharing', "Shares: ".OC_User::getUser()."-->".
-					serialize(array_map(function($el){return (int)$el['item_source'];}, $return)), \OC_Log::WARN);
 			\OCP\Util::writeLog('sharing', "Potential reshares: ".serialize($itemSources), \OC_Log::WARN);
 			$return = array_filter($return, function($el) use ($itemSources){
-					return in_array((int) $el['item_source'], $itemSources);
-				});
+				return in_array((int) $el['item_source'], $itemSources);
+			});
 			\OCP\Util::writeLog('sharing', "Reshares: ".serialize($return), \OC_Log::WARN);
 		}
 		is_array($return) ? OC_JSON::success(array('data' => $return)) : OC_JSON::error();
