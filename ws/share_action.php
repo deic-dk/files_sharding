@@ -173,6 +173,8 @@ switch($_POST['action']){
 					$query->execute(array($itemMasterSource, '/'.$itemSourceName, OCP\Share::SHARE_TYPE_LINK, $_POST['itemSource'], $itemMasterSource));
 				}
 				
+				\OCP\Util::writeLog('sharing', 'Sharing '.$_POST['itemSource'].'. Password: '.$shareWith.', token: '.$token, \OCP\Util::WARN);
+				
 				// FO: Allow any string to be used as token.
 				if(isset($_POST['token']) && !empty($_POST['token'])){
 					checkTokenExists($_POST['token'], $_POST['itemSource']);
