@@ -30,8 +30,8 @@ if(!OCA\FilesSharding\Lib::checkIP()){
 
 include_once("files_sharding/lib/lib_files_sharding.php");
 
-$token = isset($_GET['token'])?$_GET['token']:'';
+$userid = isset($_GET['userid'])?$_GET['userid']:'';
 
-$ret = OCA\FilesSharding\Lib::dbGetPublicShare($token);
+$ret = OCA\FilesSharding\Lib::dbGetPublicShares($userid);
 
 OCP\JSON::encodedPrint($ret);

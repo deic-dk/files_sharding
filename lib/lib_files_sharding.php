@@ -615,6 +615,67 @@ class Lib {
 		return [];
 	}
 	
+	public static function getPublicShares($userid) {
+		if(self::isMaster()){
+			return self::dbGetPublicShares($userid);
+		}
+		else{
+			$ret = self::ws('get_public_shares', Array('userid'=>$userid),false, true, null, null, true);
+			return $ret;
+		}
+	}
+	
+	public static function dbGetPublicShares($userid) {
+		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*share` WHERE `uid_owner` = ? AND share_type = ?');
+		$result = $query->execute(Array($userid, \OCP\Share::SHARE_TYPE_LINK));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Could not find public shares, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$results = $result->fetchAll();
+		return $results;
+	}
+
+	/**
+	 * Check if a path is publicly shared or a subdirectory of a publicly shared directory.
+	 * The path is relative to eithers /<user_id>/files/ or /<user_id>/user_group_admin/<group_name>/
+	 */
+	public static function checkPubliclyShared($path, $owner, $group=""){
+		$publicShares = self::getPublicShares($owner);
+		$user_id = self::switchUser($owner);
+		if(!empty($group)){
+			\OC\Files\Filesystem::tearDown();
+			$groupDir = '/'.$owner.'/user_group_admin/'.$group;
+			\OC\Files\Filesystem::init($owner, $groupDir);
+		}
+		else{
+			\OC\Files\Filesystem::init($owner);
+			$path = rtrim($path, "/");
+		}
+		try{
+			foreach($publicShares as $publicShare){
+				$sharedFileId = $publicShare['item_source'];
+				$sharedPath = \OC\Files\Filesystem::getpath($sharedFileId);
+				\OCP\Util::writeLog('files_sharding', 'Public share: '.$sharedPath.':'.
+						$publicShare['permissions'].'<-->'.$path, \OC_Log::WARN);
+				if($publicShare['item_type']=="folder"){
+					if(strpos($path, $sharedPath."/")===0){
+						self::restoreUser($user_id, true);
+						return $publicShare['permissions'];
+					}
+				}
+				if(rtrim($path, "/")==rtrim($sharedPath, "/")){
+					self::restoreUser($user_id, true);
+					return $publicShare['permissions'];
+				}
+			}
+		}
+		catch(\Exception $e){
+			self::restoreUser($user_id, true);
+		}
+		self::restoreUser($user_id, true);
+		return false;
+	}
+
 	public static function getServersList(){
 		if(self::isMaster()){
 			return self::dbGetServersList();
@@ -824,11 +885,10 @@ class Lib {
 	}
 
 	public static function inDataFolder($path, $user_id=null, $group=null){
-		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
+		$user_id = (empty($user_id)?\OCP\USER::getUser():$user_id);
 		$dataFolders = self::getDataFoldersList($user_id);
 		$checkPath = trim($path, '/ ');
 		$checkPath = '/'.$checkPath;
-		$checkLen = strlen($checkPath);
 		foreach($dataFolders as $p){
 			if(!empty($group) && !empty($p['gid']) && $group!=$p['gid']){
 				continue;
@@ -2740,9 +2800,14 @@ class Lib {
 			return;
 		}
 		// If not done, the user shared with will now be logged in as $owner
-		\OC_Util::teardownFS();
-		\OC_User::setUserId($user_id);
-		\OC_Util::setupFS($user_id);
+		try{
+			\OC_Util::teardownFS();
+			\OC_User::setUserId($user_id);
+			\OC_Util::setupFS($user_id);
+		}
+		catch(\Exception $e){
+			\OCP\Util::writeLog('files_sharding', 'Could not restore user '.$user_id.'. '.$e.getTraceAsString(), \OC_Log::WARN);
+		}
 	}
 
 	public static function unserialize($session_data) {
