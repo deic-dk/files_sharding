@@ -179,11 +179,14 @@ class Lib {
 		$user_id = empty($user_id)?\OCP\USER::getUser():$user_id;
 		$user_server = self::getServerForUser($user_id);
 		$user_server_internal = self::getServerForUser($user_id, true);
+		$user_server_private = self::internalToPrivate($user_server_internal);
 		if(!empty($user_server)){
 			$parse = parse_url($user_server);
 			$user_host = $parse['host'];
 			$parse = parse_url($user_server_internal);
 			$user_host_internal = $parse['host'];
+			$parse = parse_url($user_server_private);
+			$user_host_private = $parse['host'];
 			\OCP\Util::writeLog('files_sharding', 'onServerForUser: '.$user_id.':'.$user_host.
 					':'.$user_host_internal.':'.(empty($_SERVER['HTTP_HOST'])?'':$_SERVER['HTTP_HOST']).
 					':'.(empty($_SERVER['SERVER_NAME'])?'':$_SERVER['SERVER_NAME']), \OC_Log::WARN);
@@ -204,10 +207,12 @@ class Lib {
 				!empty($homeNameInternal) && $myShortName == $homeNameInternal;
 		}
 		return 
-				isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST']===$user_host ||
-				isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']===$user_host_internal) ||
-				isset($_SERVER['SERVER_NAME']) && ($_SERVER['SERVER_NAME']===$user_host ||
-				isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME']===$user_host_internal);
+				isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']===$user_host ||
+				isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']===$user_host_internal ||
+				isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']===$user_host_private ||
+				isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME']===$user_host ||
+				isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME']===$user_host_internal ||
+				isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME']===$user_host_private;
 	}
 	
 	public static function isMaster(){
@@ -474,7 +479,9 @@ class Lib {
 			'searchTagsByIDs'=>10, 'searchTags'=>10, 'getItemsSharedWithUser'=>10,
 			'get_server_id'=>60, 'get_servers'=>20, 'getTaggedFiles'=>30, 'get_user_server_access'=>30,
 			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, 'getCharge'=>30,
-			'accountedYears'=>60, 'getUserGroups'=>10, 'lookupServerId'=>60, 'getServePublicUrl'=>60);
+			'accountedYears'=>60, 'getUserGroups'=>10, 'lookupServerId'=>60, 'getServePublicUrl'=>60,
+			'searchKeyByID'=>30
+	);
 	
 	public static function getWSCert(){
 		if(empty(self::$wsCert)){
