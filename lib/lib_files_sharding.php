@@ -3408,7 +3408,7 @@ class Lib {
 	}
 	
 	// From zipstreamer
-	private static function sendZipHeaders($archiveName){
+	public static function sendZipHeaders($archiveName){
 		header('Pragma: public');
 		header('Last-Modified: ' . gmdate('D, d M Y H:i:s T'));
 		header('Expires: 0');
