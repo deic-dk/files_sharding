@@ -90,8 +90,15 @@ class MyLucene extends \OCA\Search_Lucene\Lucene {
 				$hits = $index->find($query);
 				
 				//limit results. we cant show more than ~30 anyway. TODO use paging later
-				for ($i = 0; $i < 30 && $i < count($hits); $i++) {
-					$results[] = self::asOCSearchResult($hits[$i]);
+				$j = 0;
+				for($i = 0; $i<count($hits) && $j<30; $i++){
+					\OCP\Util::writeLog('files_sharding', 'Search hit: '.$hits[$i]->path, \OC_Log::INFO);
+					$res = self::asOCSearchResult($hits[$i]);
+					if(empty($res->id)){
+						continue;
+					}
+					$results[] = $res;
+					++$j;
 				}
 				
 			} catch ( Exception $e ) {
@@ -134,22 +141,23 @@ class MyLucene extends \OCA\Search_Lucene\Lucene {
 				$type='Images';
 				break;
 			default:
-				if ($hit->mimetype=='application/xml') {
+				if($hit->mimetype=='application/xml'){
 					$type='Text';
-				} else {
+				}
+				else {
 					//$type='Files';
 					$type='file';
 				}
 		}
 
-		switch ($hit->mimetype) {
+		/*switch ($hit->mimetype) {
 			case 'httpd/unix-directory':
 				$url = Util::linkTo('files', 'index.php') . '?dir='.$hit->path;
 				$type='folder';
 				break;
 			default:
 				$url = \OC::$server->getRouter()->generate('download', array('file'=>$hit->path));
-		}
+		}*/
 		
 		/*return new \OC_Search_Result(
 				basename($hit->path),
@@ -174,6 +182,7 @@ class MyLucene extends \OCA\Search_Lucene\Lucene {
 			$hit->path,//$url,
 			$type
 		);
+		\OCP\Util::writeLog('files_sharding', 'Search hits: '.serialize($hit), \OC_Log::INFO);
 		return $ret;
 	}
 

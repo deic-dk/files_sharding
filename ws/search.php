@@ -35,7 +35,7 @@ if($query) {
 	$result = \OC::$server->getSearch()->search($query);
 	$shardedResult = [];
 	foreach($result as $res){
-		if(empty($res->link)){
+		if(empty($res->link) || empty($res->id)){// The search indices are apparently often messed up, discard bad hits
 			continue;
 		}
 		$shRes = new OC_Sharded_Search_Result($res);
@@ -44,7 +44,7 @@ if($query) {
 		$shRes->parentid = empty($shRes->parentdir)?'':\OCA\FilesSharding\Lib::getFileId($shRes->parentdir, $user_id);
 		$shardedResult[] = $shRes;
 	}
-	//\OCP\Util::writeLog('search', 'Search results: '.json_encode($result), \OC_Log::WARN);
+	\OCP\Util::writeLog('search', 'Search results: '.json_encode($shardedResult), \OC_Log::WARN);
 	OC_JSON::encodedPrint($shardedResult);
 }
 else {

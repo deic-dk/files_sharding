@@ -996,7 +996,7 @@ class Lib {
 			$fileId = $fileInfo['fileid'];
 		}
 		else{
-			\OCP\Util::writeLog('files_sharding', 'Could not find ID for for '.$path.' --> '.serialize($fileInfo), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'Could not find ID for for '.$user_id.' : '.$path.' --> '.serialize($fileInfo), \OC_Log::ERROR);
 		}
 		\OCP\Util::writeLog('files_sharding', 'Got ID '.$fileId.' for path '.$path, \OC_Log::INFO);
 		return $fileId;
