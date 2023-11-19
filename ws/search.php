@@ -9,7 +9,6 @@ class OC_Sharded_Search_Result extends OC_Search_Result {
 	
 	public $parentdir;
 	public $parentid;
-	public $userid;
 	
 	public function __construct($searchResult) {
 		$this->id = $searchResult->id;
@@ -34,19 +33,19 @@ if($query) {
 	OC_Search::removeProvider('OCA\Search_Lucene\Lucene');
 	OC_Search::removeProvider('OCA\FilesSharding\SearchShared');
 	$result = \OC::$server->getSearch()->search($query);
-	$extendedResult = [];
+	$shardedResult = [];
 	foreach($result as $res){
 		if(empty($res->link)){
 			continue;
 		}
-		$exRes = new OC_Sharded_Search_Result($res);
-		$exRes->userid = $user_id;
-		$exRes->parentdir = dirname($res->link);
-		$exRes->parentid = empty($exRes->parentdir)?'':\OCA\FilesSharding\Lib::getFileId($exRes->parentdir, $user_id);
-		$extendedResult[] = $exRes;
+		$shRes = new OC_Sharded_Search_Result($res);
+		$shRes->userid = $user_id;
+		$shRes->parentdir = dirname($res->link);
+		$shRes->parentid = empty($shRes->parentdir)?'':\OCA\FilesSharding\Lib::getFileId($shRes->parentdir, $user_id);
+		$shardedResult[] = $shRes;
 	}
 	//\OCP\Util::writeLog('search', 'Search results: '.json_encode($result), \OC_Log::WARN);
-	OC_JSON::encodedPrint($extendedResult);
+	OC_JSON::encodedPrint($shardedResult);
 }
 else {
 	echo 'false';
