@@ -9,8 +9,7 @@
 		$servers = OCA\FilesSharding\Lib::dbGetServersList();
 	?>
 	<p><?php print_unescaped($l->t("The infrastructure behind this service spans multiple sites and servers.
-	When you logged in for the first time, you were automatically assigned a home site
-	with servers in geographical proximity of your home institution."));?></p>
+	When you logged in for the first time, you were automatically assigned a home site."));?></p>
 
 	<p><?php print_unescaped($l->t("To change home site, you must <i>first</i> choose a backup site, and then wait for the first
 	backup to finish (24 hours max). After that, you can change your home site to your backup site."));?></p> 
@@ -20,19 +19,6 @@ access will set to read-only on both the old and the new home server.
 In case of sync problems, the access may stay read-only on the new server. 
 You can change this manually, but please notice that you may be missing some files. 
 So please also get <a href='mailto: %s'>in touch</a> with us, so we can resolve any problems.", $fromEmail));?></p>
-
-	<h4><?php print_unescaped($l->t("Which site to choose"));?></h4>
-	
-	<p><?php print_unescaped($l->t("When choosing a home site, you might want to consider the following"));?>:</p>
-	
-	<ul>
-		<li><?php print_unescaped($l->t("Proximity to you: latency and bandwith from the server to your desktop"));?></li>
-		<li><?php print_unescaped($l->t("Proximity to compute resources: in case, you're working with data pipelines between this service and compute services"));?></li>
-		<li><?php print_unescaped($l->t("Service level of the give site: some sites may provide extended uptime and data loss guarantees - that could make a backup site redundant"));?></li>
-		<li><?php print_unescaped($l->t("Price"));?></li>
-	</ul>
-	
-	<p><?php print_unescaped($l->t("When choosing a backup site, in most cases, price and data loss guarantees will be the main considerations."));?></p>
 	
 	<h4><?php print_unescaped($l->t("List of sites"));?></h4>
 	

@@ -1,13 +1,17 @@
 <?php
 
 OCP\JSON::checkAppEnabled('files_sharding');
-OCP\JSON::checkLoggedIn();
 
-if(isset($_POST['user_id'])){
-	$user_id = $_POST['user_id'];
+if(empty($_POST['user_id'])){
+	OCP\JSON::checkLoggedIn();
+	$user_id = OCP\USER::getUser();
 }
 else{
-	$user_id = OCP\USER::getUser();
+	if(!OCA\FilesSharding\Lib::checkIP()){
+		http_response_code(401);
+		exit;
+	}
+	$user_id = $_POST['user_id'];
 }
 $ret['msg'] = "";
 $ret['last_sync'] = "";

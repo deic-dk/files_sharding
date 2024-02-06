@@ -28,8 +28,7 @@ $TRANSLATIONS = array(
 		"Choosing home and backup site" => "Valg af hjemme- og backup-site",
 		"List of sites" => "Liste over sites",
 		"The infrastructure behind this service spans multiple sites and servers.
-	When you logged in for the first time, you were automatically assigned a home site
-	with servers in geographical proximity of your home institution."=>
+	When you logged in for the first time, you were automatically assigned a home site."=>
 		"Infrastrukturen bag denne tjeneste spænder over flere sites og servere.
 	Da du loggede ind første gang, blev du automatisk tilordnet et hjemme-site
 	med servere så vidt muligt i geografisk nærhed af din hjemme-institution.",
@@ -46,18 +45,6 @@ So please also get <a href='mailto: %s'>in touch</a> with us, so we can resolve 
 vil adgangs-tilladelserne blive sat til read-only på både den nye og den gamle hjemme-server. 
 Du kan ændre dette manuelt, men hvis du gør det kan der mangle filer på den ny hjemme-server. 
 Derfor, så <a href='mailto: %s'>kontakt</a> venligst også os, så vi kan undersøge problemet.",
-		"Which site to choose" => "Valg af site",
-		"When choosing a home site, you might want to consider the following" =>
-		"Ved valg af hjemme-site, kan du overveje følgende",
-		"Proximity to you: latency and bandwith from the server to your desktop" =>
-		"Nærhed til dig: Latens og båndbredde fra serveren til din desktop",
-		"Proximity to compute resources: in case, you're working with data pipelines between this service and compute services" =>
-		"Nærhed til beregningsfaciliteter",
-		"Service level of the give site: some sites may provide extended uptime and data loss guarantees - that could make a backup site redundant" =>
-		"Service-level: Hvis et site tilbyder oppetids- eller data-loss-garantier kan det gøre et backup-site overflødigt",
-		"Price" => "Pris",
-		"When choosing a backup site, in most cases, price and data loss guarantees will be the main considerations." =>
-		"For et backup-site, vil pris og data-loss-garantier i de fleste tilfælde være det vigtigste",
 		"per GB per year" => "per GB per år",
 		"Questions?" => "Spørgsmål?",
 		"If you need more help, please contact us at" => "Hvis du har brug for mere hjælp, så kontakt venligst",
