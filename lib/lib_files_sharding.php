@@ -3387,6 +3387,7 @@ class Lib {
 				passthru("PATH=\$PATH:/usr/local/bin; cd '".dirname($fullPath)."'; zip -r - '".basename($fullPath)."'");
 			}
 			else{
+				session_write_close();
 				\OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
 			}
 		}
