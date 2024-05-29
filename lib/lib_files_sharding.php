@@ -3428,6 +3428,7 @@ class Lib {
 	
 	// From https://mobiforge.com/design-development/content-delivery-mobile-devices#byte-ranges
 	public static function rangeServe($file, $mimetype) {
+		session_write_close();
 		$fp = @fopen($file, 'rb');
 		$size   = filesize($file); // File size
 		$length = $size;           // Content length
