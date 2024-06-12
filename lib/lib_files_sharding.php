@@ -514,7 +514,7 @@ class Lib {
 	}
 	
 	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null,
-			$appName=null, $urlencode=false, $timeoutMs=0){
+			$appName=null, $urlencode=false, $timeoutMs=0, $async=false){
 		$content = "";
 		foreach($data as $key=>$value) { $content .= $key.'='.($urlencode?urlencode($value):$value).'&'; }
 		if($baseUrl==null){
@@ -574,25 +574,43 @@ class Lib {
 			curl_setopt($curl, CURLOPT_NOSIGNAL, 1);
 		}
 		
-		$json_response = curl_exec($curl);
-		$status = curl_getinfo($curl);
-		curl_close($curl);
-		if(empty($status['http_code']) || $status['http_code']===0 || $status['http_code']>=300 || $json_response===null || $json_response===false){
-			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response from '.$url.' : '. serialize($status).' : '.$json_response, \OC_Log::ERROR);
+		// If run asynchroneously, we don't provide any response
+		if($async){
+			$mh = curl_multi_init();
+			curl_multi_add_handle($mh, $curl);
+			do{
+				$status = curl_multi_exec($mh, $active);
+				if($active){
+					// Wait a short time for more activity
+					curl_multi_select($mh);
+				}
+			}
+			while($active && $status == CURLM_OK);
+			curl_multi_remove_handle($mh, $curl);
+			curl_multi_close($mh);
 			return null;
 		}
-		
-		if(isset(self::$WS_CACHE_CALLS[$script])){
-			if(apc_add($cache_key, $json_response, (int)self::$WS_CACHE_CALLS[$script])){
-				\OCP\Util::writeLog('files_sharding', 'Caching response for '.apc_exists($cache_key).': '.$script.'-->'.$cache_key, \OC_Log::WARN);
-			}
-		}
 		else{
-			\OCP\Util::writeLog('files_sharding', 'NOT caching response for '.$script.'-->'.$cache_key.'-->'.$status['total_time'], \OC_Log::WARN);
+			$json_response = curl_exec($curl);
+			$status = curl_getinfo($curl);
+			curl_close($curl);
+			if(empty($status['http_code']) || $status['http_code']===0 || $status['http_code']>=300 || $json_response===null || $json_response===false){
+				\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response from '.$url.' : '. serialize($status).' : '.$json_response, \OC_Log::ERROR);
+				return true;
+			}
+			
+			if(isset(self::$WS_CACHE_CALLS[$script])){
+				if(apc_add($cache_key, $json_response, (int)self::$WS_CACHE_CALLS[$script])){
+					\OCP\Util::writeLog('files_sharding', 'Caching response for '.apc_exists($cache_key).': '.$script.'-->'.$cache_key, \OC_Log::WARN);
+				}
+			}
+			else{
+				\OCP\Util::writeLog('files_sharding', 'NOT caching response for '.$script.'-->'.$cache_key.'-->'.$status['total_time'], \OC_Log::WARN);
+			}
+			
+			$response = json_decode($json_response, $array);
+			return $response;
 		}
-		
-		$response = json_decode($json_response, $array);
-		return $response;
 	}
 	
 	public static function getPublicShare($token) {

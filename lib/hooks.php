@@ -188,7 +188,8 @@ class Hooks {
 			}
 			if(!empty($id) && !empty($path)){
 				$res = \OCA\FilesSharding\Lib::ws('delete_file_share',
-						array('owner' => $user_id, 'id' => $id, 'path' => $path, 'group'=>$group));
+						array('owner' => $user_id, 'id' => $id, 'path' => $path, 'group'=>$group),
+						false, true, null, null, false, 0 , true /*asynchroneous call*/);
 			}
 			else{
 				$res = false;

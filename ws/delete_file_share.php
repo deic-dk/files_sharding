@@ -14,6 +14,8 @@ $group = $_GET['group'];
 
 \OCP\Util::writeLog('files_sharding', 'Share file ID: '.$id, \OC_Log::WARN);
 
+session_write_close();
+
 $result = OCA\FilesSharding\Lib::deleteFileShare($owner, $id);
 
 // This script will only be called by a non-master client/slave,
