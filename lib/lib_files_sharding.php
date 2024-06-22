@@ -2320,29 +2320,6 @@ class Lib {
 		return $result['password'];
 	}
 	
-	public static function checkCert(){
-		if(!empty($_SERVER['SSL_CLIENT_VERIFY']) &&
-				($_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS' || $_SERVER['SSL_CLIENT_VERIFY']=='NONE')){
-			//$issuerDN = !empty($_SERVER['SSL_CLIENT_I_DN'])?$_SERVER['SSL_CLIENT_I_DN']:
-			(!empty($_SERVER['REDIRECT_SSL_CLIENT_I_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_I_DN']:'');
-			$clientDN = !empty($_SERVER['SSL_CLIENT_S_DN'])?$_SERVER['SSL_CLIENT_S_DN']:
-			(!empty($_SERVER['REDIRECT_SSL_CLIENT_S_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_S_DN']:'');
-			$clientDNArr = explode(',', $clientDN);
-			$clientDNwSlashes = '/'.implode('/', array_reverse($clientDNArr));
-			$servers = self::getServersList();
-			foreach($servers as $server){
-				\OC_Log::write('files_sharding','Checking subject '.$server['x509_dn'].
-						'<->'.$clientDNwSlashes, \OC_Log::INFO);
-				// TODO: better also check that the IP matches the IP registered for this DN
-				if($server['x509_dn']===$clientDNwSlashes){
-					\OC_Log::write('files_sharding','Subject '.$server['x509_dn'].' OK', \OC_Log::INFO);
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	
 	public static function getOneTimeToken($user_id, $forceNew=false){
 		if($forceNew || !apc_exists(self::$SECOND_FACTOR_CACHE_KEY_PREFIX.$user_id)){
 			$token = md5($user_id . time ());
@@ -2390,6 +2367,58 @@ class Lib {
 		return $access;
 	}
 	
+	public static function checkAdminCert(){
+		if(!empty($_SERVER['SSL_CLIENT_VERIFY']) &&
+				($_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS' || $_SERVER['SSL_CLIENT_VERIFY']=='NONE')){
+					//$issuerDN = !empty($_SERVER['SSL_CLIENT_I_DN'])?$_SERVER['SSL_CLIENT_I_DN']:
+					(!empty($_SERVER['REDIRECT_SSL_CLIENT_I_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_I_DN']:'');
+					$clientDN = !empty($_SERVER['SSL_CLIENT_S_DN'])?$_SERVER['SSL_CLIENT_S_DN']:
+					(!empty($_SERVER['REDIRECT_SSL_CLIENT_S_DN'])?$_SERVER['REDIRECT_SSL_CLIENT_S_DN']:'');
+					$servers = self::getServersList();
+					$clientDNArr = self::tokenizeDN($clientDN);
+					foreach($servers as $server){
+						if(empty($server['x509_dn'])){
+							continue;
+						}
+						$serverDNArr = self::tokenizeDN($server['x509_dn']);
+						\OC_Log::write('files_sharding','Checking subject '.$server['x509_dn'].
+								'<->'.$clientDN, \OC_Log::INFO);
+						if($serverDNArr==$clientDNArr){
+							\OC_Log::write('files_sharding','Subject '.$server['x509_dn'].' OK', \OC_Log::INFO);
+							return true;
+						}
+					}
+		}
+		return false;
+	}
+	
+	public static function tokenizeDN($dn_){
+		$ret = [];
+		try{
+			$dn = trim($dn_);
+			if(substr($dn, 0, 1)=="/"){
+				$dnArr = explode("/", $dn);
+			}
+			else{
+				$dnArr = explode(",", $dn);
+			}
+			foreach($dnArr as $el){
+				if(empty($el)){
+					continue;
+				}
+				if(strpos($el, "=")===false){
+					throw new \Exception("Malformed key/value assignment: ".$el);
+				}
+				$keyVal = explode("=", trim($el));
+				$ret[trim($keyVal[0])] = trim($keyVal[1]);
+			}
+		}
+		catch(\Exception $e){
+			\OC_Log::write('files_sharding', 'ERROR: could not parse DN '.$dn_.'.'.$e->getMessage(), \OC_Log::ERROR);
+		}
+		return $ret;
+	}
+	
 	/**
 	 * Check that the requesting IP address is allowed to get confidential
 	 * information.
@@ -2397,7 +2426,7 @@ class Lib {
 	 */
 	public static function checkIP(){
 		
-		if(self::checkCert()){
+		if(self::checkAdminCert()){
 			return true;
 		}
 		
