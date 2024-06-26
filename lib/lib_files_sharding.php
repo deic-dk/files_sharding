@@ -2407,7 +2407,8 @@ class Lib {
 					continue;
 				}
 				if(strpos($el, "=")===false){
-					throw new \Exception("Malformed key/value assignment: ".$el);
+					\OC_Log::write('files_sharding', 'WARNING: could not parse DN '.$el, \OC_Log::WARN);
+					continue;
 				}
 				$keyVal = explode("=", trim($el));
 				$ret[trim($keyVal[0])] = trim($keyVal[1]);
