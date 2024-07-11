@@ -2838,17 +2838,22 @@ class Lib {
 	}
 
 	public static function switchUser($owner, $force=false){
-		\OCP\Util::writeLog('files_sharding', 'Logged in: '.\OC_User::isLoggedIn().', user: '.\OCP\USER::getUser(), \OC_Log::INFO);
 		$user_id = \OC_User::getUser();
+		\OCP\Util::writeLog('files_sharding', 'Logged in: '.\OC_User::isLoggedIn().', user: '.$user_id.', owner: '.$owner." : ".$_SERVER['REQUEST_URI'], \OC_Log::WARN);
 		if(($owner || $force) && $owner!==$user_id){
 			\OC_Util::teardownFS();
 			//\OC\Files\Filesystem::initMountPoints($owner);
 			//\OC::$session->reopen();
+			$session_id = session_id();
+			$instanceId = \OC_Config::getValue('instanceid', null);
+			//setcookie($instanceId, "", time() - 3600);
+			//unset($_COOKIE[$instanceId]);
+			//session_destroy();
 			\OC_User::setUserId($owner);
 			\OC_Util::setupFS($owner);
 			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.
-					\OCP\USER::getUser().' : '.
-					(empty(\OC_User::getUserSession()->getUser())?'':\OC_User::getUserSession()->getUser()->getUID()), \OC_Log::INFO);
+					\OCP\USER::getUser().' : '.$instanceId.' --> '.$_COOKIE[$instanceId].' : '.$session_id.' : '.session_id().' : '.
+					(empty(\OC_User::getUserSession()->getUser())?'':\OC_User::getUserSession()->getUser()->getUID()), \OC_Log::WARN);
 			return $user_id;
 		}
 		else{
@@ -2857,7 +2862,7 @@ class Lib {
 	}
 	
 	public static function restoreUser($user_id, $force=false){
-		if(!$force && (empty($user_id) || $user_id==\OCP\USER::getUser())){
+		if(!$force && $user_id==\OCP\USER::getUser()){
 			return;
 		}
 		// If not done, the user shared with will now be logged in as $owner
@@ -2865,6 +2870,7 @@ class Lib {
 			\OC_Util::teardownFS();
 			\OC_User::setUserId($user_id);
 			\OC_Util::setupFS($user_id);
+			session_write_close();
 		}
 		catch(\Exception $e){
 			\OCP\Util::writeLog('files_sharding', 'Could not restore user '.$user_id.'. '.$e.getTraceAsString(), \OC_Log::WARN);
@@ -3428,14 +3434,14 @@ class Lib {
 			$path = empty($path)?$dir.'/'.$files_list[0]:$path;
 			$fullPath = \OC\Files\Filesystem::getLocalFile($path);
 			$info = \OC\Files\Filesystem::getFileInfo($path);
-			\OCP\Util::writeLog('files_sharding', 'TYPE '.$fullPath.':'.$path.':'.$files_list[0].':'.$dir.' --> '.(empty($info)?"":$info->getType()), \OC_Log::WARN);
+			\OCP\Util::writeLog('files_sharding', 'TYPE '.$fullPath.':'.$path.':'.$files_list[0].':'.$dir.':'.$user_id.':'.$owner.' --> '.(empty($info)?"":$info->getType()), \OC_Log::WARN);
 			if($info->getType()=='dir'){
 				self::switchUser($user_id, true);
 				self::sendZipHeaders(basename($fullPath).".zip");
 				passthru("PATH=\$PATH:/usr/local/bin; cd '".dirname($fullPath)."'; zip -r - '".basename($fullPath)."'");
 			}
 			else{
-				session_write_close();
+				//session_write_close();
 				\OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
 			}
 		}
@@ -3449,7 +3455,7 @@ class Lib {
 			\OCP\Util::writeLog('files_sharding', 'ERROR serving file file: '.$e.getTraceAsString(), \OC_Log::ERROR);
 		}
 		finally {
-			self::switchUser($user_id, true);
+			self::restoreUser($user_id, true);
 		}
 		
 		// This has no effect when downloading zip archives via zipstreamer,
