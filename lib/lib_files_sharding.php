@@ -2870,7 +2870,7 @@ class Lib {
 			\OC_Util::teardownFS();
 			\OC_User::setUserId($user_id);
 			\OC_Util::setupFS($user_id);
-			//session_write_close();
+			session_write_close();
 		}
 		catch(\Exception $e){
 			\OCP\Util::writeLog('files_sharding', 'Could not restore user '.$user_id.'. '.$e.getTraceAsString(), \OC_Log::WARN);
@@ -3456,7 +3456,7 @@ class Lib {
 		}
 		finally {
 			self::restoreUser($user_id, true);
-			session_write_close();
+			//session_write_close();
 		}
 		
 		// This has no effect when downloading zip archives via zipstreamer,
