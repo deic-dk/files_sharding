@@ -3435,7 +3435,7 @@ class Lib {
 			$fullPath = \OC\Files\Filesystem::getLocalFile($path);
 			$info = \OC\Files\Filesystem::getFileInfo($path);
 			\OCP\Util::writeLog('files_sharding', 'TYPE '.$fullPath.':'.$path.':'.$files_list[0].':'.$dir.':'.$user_id.':'.$owner.' --> '.(empty($info)?"":$info->getType()), \OC_Log::WARN);
-			if($info->getType()=='dir'){
+			if(!empty($info) && $info->getType()=='dir'){
 				self::switchUser($user_id, true);
 				self::sendZipHeaders(basename($fullPath).".zip");
 				passthru("PATH=\$PATH:/usr/local/bin; cd '".dirname($fullPath)."'; zip -r - '".basename($fullPath)."'");
