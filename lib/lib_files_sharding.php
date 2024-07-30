@@ -769,9 +769,10 @@ class Lib {
 	 * @param string $group
 	 * @param string $prefix
 	 * @param string $type 'dir' or 'file'
+	 * @param boolean $storage whether or not the file/dir is in /storage
 	 * @return NULL|unknown
 	 */
-	public static function dbGetUserFiles($user_id=null, $group="", $prefix="", $type=''){
+	public static function dbGetUserFiles($user_id=null, $group="", $prefix="", $type='', $storage=false){
 		$loggedin_user = \OCP\USER::getUser();
 		if(isset($user_id)){
 			if(isset($loggedin_user) && $user_id!=$loggedin_user){
@@ -786,7 +787,12 @@ class Lib {
 			$user_id = $loggedin_user;
 		}
 		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
-		$storage = \OC\Files\Filesystem::getStorage('/'.$user_id.'/');
+		if(empty($storage)){
+			$storage = \OC\Files\Filesystem::getStorage('/'.$user_id.'/');
+		}
+		else{
+			$storage = \OC\Files\Filesystem::getStorage('/'.$user_id.'/files_external/storage/');
+		}
 		$storageId = $storage->getId();
 		//$mount = \OC\Files\Filesystem::getMountByNumericId('8');
 		$numericStorageId = \OC\Files\Cache\Storage::getNumericStorageId($storageId);
@@ -801,6 +807,10 @@ class Lib {
 			if(!empty($group)){
 				$queryString = $queryString . ' AND path LIKE ?';
 				$queryParams[] = 'user_group_admin/'.$group.'/'.ltrim($prefix, '/').'%';
+			}
+			elseif($storage){
+				$queryString = $queryString . ' AND path LIKE ?';
+				$queryParams[] = ltrim($prefix, '/').'%';
 			}
 			else{
 				$queryString = $queryString . ' AND path LIKE ?';
