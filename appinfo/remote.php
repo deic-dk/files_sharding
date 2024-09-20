@@ -28,6 +28,8 @@ OC_Log::write('files_sharding','Remote access',OC_Log::DEBUG);
 OCP\App::checkAppEnabled('files_sharding');
 OCP\App::checkAppEnabled('chooser');
 
+session_write_close();
+
 $SHARED_BASE = OC::$WEBROOT."/shared";
 $FILES_BASE = OC::$WEBROOT."/files";
 $GRID_BASE = OC::$WEBROOT."/grid";

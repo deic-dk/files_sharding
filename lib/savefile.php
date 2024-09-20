@@ -33,6 +33,8 @@ $storage = !empty($_POST['storage'])&&$_POST['storage']!='false';
 $group = isset($_POST['group']) ? $_POST['group'] : '';
 $group_dir_owner = $user;
 
+session_write_close();
+
 if(!empty($owner) && $owner!=$user){
 	$group_dir_owner = $owner;
 	\OC_Util::tearDownFS();

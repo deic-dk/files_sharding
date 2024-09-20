@@ -40,6 +40,8 @@ if(empty($filename)){
 	exit;
 }
 
+session_write_close();
+
 if(!empty($owner) && $owner!=$user){
 	$group_dir_owner = $owner;
 	\OC_Util::tearDownFS();
