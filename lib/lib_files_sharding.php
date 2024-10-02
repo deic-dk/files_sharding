@@ -3152,8 +3152,8 @@ class Lib {
 	public static function putFile($tmpFile, $dataServer, $dirOwner, $path, $group=''){
 		
 		$url = $dataServer .
-		(\OCP\App::isEnabled('user_group_admin')?(empty($group)?'/remote.php/mydav/':'/group/'.rawurlencode($group).'/'):
-					'remote.php/webdav/') .
+		(\OCP\App::isEnabled('user_group_admin')?(empty($group)?(\OC::$WEBROOT.'/remote.php/mydav/'):'/group/'.rawurlencode($group).'/'):
+				(\OC::$WEBROOT.'/remote.php/webdav/')) .
 			implode('/', array_map('rawurlencode', explode('/', $path)));
 		
 			\OCP\Util::writeLog('files_sharding', 'PUTTING '.$dirOwner.':'.$tmpFile.':'.filesize($tmpFile).'-->'.$url, \OC_Log::WARN);
