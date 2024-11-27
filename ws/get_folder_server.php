@@ -34,7 +34,8 @@ include_once("files_sharding/lib/lib_files_sharding.php");
 $folder = $_POST['folder'];
 $internal = !empty($_POST['internal'])&&$_POST['internal']=='yes';
 $user_id = $_POST['user_id'];
-$url = OCA\FilesSharding\Lib::dbGetServerForFolder($folder, $user_id, $internal);
+$group = empty($_POST['group'])?'':$_POST['group'];
+$url = OCA\FilesSharding\Lib::dbGetServerForFolder($folder, $user_id, $internal, $group);
 $ret = empty($url)?'':$url;
 
 OCP\JSON::encodedPrint($ret);

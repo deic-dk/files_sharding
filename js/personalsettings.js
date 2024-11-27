@@ -175,12 +175,13 @@ function create_r_dialog(path){
 	});
 }
 
-function appendDataDiv(folder){
-	$('#filesShardingDataFolders #filesShardingDataFoldersList').append('<div class="dataFolder nowrap" path="'+folder+'">\
-   		<span style="float:left;width:92%;">\
-   		<label>'+folder+'</label>\
+function appendDataDiv(folder, group){
+	$('#filesShardingDataFolders #filesShardingDataFoldersList').append('<div class="dataFolder nowrap remove_element" path="'+folder+'">\
+   		<span class="data_folder">\
+			<label class="data_folder_path">'+folder+'</label>\
+   		<label class="data_folder_group" title="Group">'+group+'</label>\
    		</span>\
-   		<label class="remove_data_folder btn btn-flat">-</label>\
+   		<label class="remove_data_folder btn btn-flat" title="Sync this folder again">-</label>\
    		<div class="dialog" display="none"></div>\
    		</div>');
 }
@@ -199,7 +200,7 @@ function addDataFolder(folder, group){
 		 },
 		 dataType:'json',
 		 success: function(s){
-			 appendDataDiv(folder, s.folder);
+			 appendDataDiv(folder, group);
 		 },
 		error:function(s){
 			alert("Unexpected error!");
@@ -398,8 +399,8 @@ $(document).ready(function(){
 		$(document).click(function(e){
 			if ($(e.target).attr('id')!='sharding-info' && $('.sharding_dialog').length &&
 					!$(e.target).parents().filter('.oc-dialog').length ) {
-				$(".oc-dialog").remove();
-				$('.modalOverlay').remove();
+				//$(".oc-dialog").remove();
+				//$('.modalOverlay').remove();
 			}
 		});
 		

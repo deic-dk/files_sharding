@@ -57,6 +57,9 @@ Derfor, så <a href='mailto: %s'>kontakt</a> venligst også os, så vi kan under
 		"Read/write with two-factor authentication" => "Læse- og skriveadgang med to-faktor autentificering",
 		"Read/write with two-factor authentication forced" => "Læse- og skriveadgang med påkrævet to-faktor autentificering",
 		"None" => "Ingen",
-		"Access" => "Adgang"
+		"Access" => "Adgang",
+		"Add data folder" => "Tilføj data-mappe",
+		"You have stored tokens for the devices listed below." => "Der er gemt adgangskoder for enhederne på listen nedenfor.",
+		"If a device is lost or compromised, you should delete the corresponding token." => "Hvis en enhed bliver væk eller kompromiteres, bør du slette den relevante adgangskode.",
 );
 $PLURAL_FORMS = "nplurals=2; plural=(n != 1);";

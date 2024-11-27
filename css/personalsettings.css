@@ -2,14 +2,6 @@
 	white-space: nowrap;
 }
 
-.remove_data_folder{
-	margin: 2px;
-}
-
-.add_data_folder.btn, .data_folder.btn{
-	padding: 7px 12px 4px 12px;
-}
-
 #sharding-info {
 	float: right;
 	margin-right: 8px;
@@ -50,3 +42,47 @@
 .sharding-help-popup a {
     color: #0376a3;
 }
+
+/* List of removable items */
+
+.dataFolder .data_folder_group {
+  font-weight: 300;
+  font-style: "italic";
+  margin-left: 24px;
+}
+
+.remove_element:hover {
+  background-color: #929292;
+}
+
+div.remove_element>label {
+  position: absolute;
+  right: 46px;
+  margin-top: -2px;
+  font-weight: 800;
+  margin-right: 2px;
+}
+
+div.remove_element {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  margin-left: 32px;
+}
+
+div.remove_element label {
+	margin-bottom: 0px;
+}
+
+.add_data_folder.btn {
+	font-weight: 800;
+	margin-right: 36px;
+	margin-bottom: 2px;
+}
+
+.addDataFolder {
+	margin-left: 72px;
+  margin-bottom: 2px;
+}
+
+/**/
+

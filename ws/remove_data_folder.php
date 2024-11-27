@@ -38,8 +38,9 @@ if(!isset($_POST['user_id']) || !isset($_POST['folder'])){
 
 $folder = $_POST['folder'];
 $user_id = $_POST['user_id'];
+$group = empty($_POST['group'])?'':$_POST['group'];
 
-if(!OCA\FilesSharding\Lib::removeDataFolder($folder, $user_id)){
+if(!OCA\FilesSharding\Lib::removeDataFolder($folder, $user_id, $group)){
 	$ret['error'] = "Failed removing data folder";
 }
 else{

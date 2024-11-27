@@ -4,12 +4,13 @@ OCP\JSON::checkAppEnabled('files_sharding');
 OCP\JSON::checkLoggedIn();
 
 $folder = $_POST['folder'];
+$group = empty($_POST['group'])?'':$_POST['group'];
 $user_id = isset($_POST['user_id'])?$_POST['user_id']:\OCP\USER::getUser();
 
 OC_Log::write('files_sharding',"Resyncing folder: ".$folder, OC_Log::WARN);
 
 if(empty($folder) ||
-		!OCA\FilesSharding\Lib::removeDataFolder($folder, $user_id)){
+		!OCA\FilesSharding\Lib::removeDataFolder($folder, $user_id, $group)){
 	$ret['error'] = "Failed resyncing folder ".$folder;
 }
 else{

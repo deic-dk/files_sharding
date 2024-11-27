@@ -12,8 +12,9 @@ include_once("files_sharding/lib/lib_files_sharding.php");
 
 $folder = $_POST['folder'];
 $user_id = $_POST['user_id'];
+$group = empty($_POST['group'])?'':$_POST['group'];
 $currentServerId = OCA\FilesSharding\Lib::dbLookupServerId($_SERVER['REMOTE_ADDR']);
-$url = OCA\FilesSharding\Lib::dbGetNewServerForFolder($folder, $user_id, $currentServerId);
+$url = OCA\FilesSharding\Lib::dbGetNewServerForFolder($folder, $user_id, $currentServerId, $group);
 $status = empty($url)?'error: server '.$url.' not found':'success';
 $ret = Array('url' => $url, 'status' => $status);
 

@@ -20,6 +20,9 @@ class Lib {
 	public static $USER_ACCESS_TWO_FACTOR_FORCED = 3;
 	public static $USER_ACCESS_NONE = 4;
 	
+	// Setting the password hash in the DB to this disables password login and hides password login on the login page
+	public static $FORCE_NO_PASSWORD_HASH = "!";
+	
 	public static $USER_SERVER_PRIORITY_DISABLE = -2;
 	public static $USER_SERVER_PRIORITY_DISABLED = -1;
 	public static $USER_SERVER_PRIORITY_PRIMARY = 0;
@@ -972,26 +975,28 @@ class Lib {
 		return $results;
 	}
 
-	public static function removeDataFolder($folder, $user_id){
+	public static function removeDataFolder($folder, $user_id, $group=''){
 		if(self::isMaster()){
-			return self::dbRemoveDataFolder($folder, $user_id);
+			return self::dbRemoveDataFolder($folder, $user_id, $group);
 		}
 		else{
-			return self::ws('remove_data_folder', Array('user_id' => $user_id, 'folder' => $folder), true, true);
+			return self::ws('remove_data_folder', Array('user_id' => $user_id, 'folder' => $folder, 'group' => $group), true, true);
 		}
 	}
 	
-	private static function dbRemoveDataFolder($folder, $user_id){
+	private static function dbRemoveDataFolder($folder, $user_id, $group=''){
+		if(empty($group)){
+			$group = '';
+		}
 		// If folder spans several servers, deny syncing
-		$results = self::dbGetServersForFolder($folder, $user_id);
+		$results = self::dbGetServersForFolder($folder, $user_id, $group);
 		if(count($results)>1){
 			\OCP\Util::writeLog('files_sharding', "Error: cannot sync sharded folder ".$folder, \OC_Log::ERROR);
 			return false;
 		}
-		
 		$query = \OC_DB::prepare(
-				'DELETE FROM `*PREFIX*files_sharding_folder_servers` WHERE `folder` = ? AND `user_id` = ?');
-		$result = $query->execute(Array($folder, $user_id));
+				'DELETE FROM `*PREFIX*files_sharding_folder_servers` WHERE `folder` = ? AND `user_id` = ? AND `gid` = ?');
+		$result = $query->execute(Array($folder, $user_id, $group));
 		if(\OCP\DB::isError($result)){
 			\OCP\Util::writeLog('files_sharding', 'ERROR: could not remove data folder '.$folder.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
 			return false;
@@ -1809,15 +1814,18 @@ class Lib {
 		return $server;
 	}
 	
-	private static function dbGetServersForFolder($folder, $user_id=null){
+	private static function dbGetServersForFolder($folder, $user_id=null, $group=''){
 		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
+		if(empty($group)){
+			$group = '';
+		}
 		
 		$folders = explode('/', trim($folder, '/'));
 		$ret = array();
 		while(!empty($folders)){
 			$fol = '/'.implode($folders, '/');
-			$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_folder_servers` WHERE `folder` = ? and `user_id` = ? ORDER BY `priority`');
-			$result = $query->execute(Array($fol, $user_id));
+			$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*files_sharding_folder_servers` WHERE `folder` = ? and `user_id` = ? and `gid` = ? ORDER BY `priority`');
+			$result = $query->execute(Array($fol, $user_id, $group));
 			$results = $result->fetchAll();
 			if(\OCP\DB::isError($result)){
 				\OCP\Util::writeLog('files_sharding', 'ERROR: could not get servers for folder, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
@@ -1833,10 +1841,11 @@ class Lib {
 	 * Look up server for folder in database.
 	 * @param $folder
 	 * @param $user_id
+	 * @param $group
 	 * @return URL (https://...)
 	 */
-	public static function dbGetServerForFolder($folder, $user_id, $internal=false){
-		$results = self::dbGetServersForFolder($folder, $user_id);
+	public static function dbGetServerForFolder($folder, $user_id, $internal=false, $group=''){
+		$results = self::dbGetServersForFolder($folder, $user_id, $group);
 		foreach($results as $row){
 			if($row['priority']=self::$USER_SERVER_PRIORITY_PRIMARY){
 				if($internal){
@@ -1851,9 +1860,9 @@ class Lib {
 		return null;
 	}
 	
-	public static function dbGetNewServerForFolder($folder, $user_id, $currentServerId=null){
+	public static function dbGetNewServerForFolder($folder, $user_id, $currentServerId=null, $group=''){
 		if(empty($currentServerId)){
-			$currentServer = self::dbGetServerForFolder($folder, $user_id);
+			$currentServer = self::dbGetServerForFolder($folder, $user_id, false, $group);
 			if(!empty($currentServer)){
 				$urlParts = parse_url($currentServer);
 				$currentServerId = self::dbLookupServerId($urlParts['host']);
@@ -1868,7 +1877,7 @@ class Lib {
 		if(empty($folder_site)){
 			$folder_site = self::getMasterSite();
 		}
-		$folder_server_rows = self::dbGetServersForFolder($folder, $user_id);
+		$folder_server_rows = self::dbGetServersForFolder($folder, $user_id, $group);
 		$folder_servers = array_column($folder_server_rows, 'id');
 		$all_servers = self::dbGetServersList();
 		foreach($all_servers as $server){
@@ -1921,37 +1930,39 @@ class Lib {
 	 * Lookup home server for folder.
 	 * @param string $folder path
 	 * @param string $user_id
+	 * @param boolean internal
+	 * @param string $group
 	 * @return URL (https://...)
 	 */
-	public static function getServerForFolder($folder, $user_id=null, $internal=false){
+	public static function getServerForFolder($folder, $user_id=null, $internal=false, $group=''){
 		if(substr($folder, 0, 1)!=='/'){
 			\OCP\Util::writeLog('files_sharding', 'Relative paths not allowed: '.$folder, \OC_Log::ERROR);
 		}
 		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
 		// If I'm the master, look up in DB
 		if(self::isMaster()){
-			$server = self::dbGetServerForFolder($folder, $user_id, $internal);
+			$server = self::dbGetServerForFolder($folder, $user_id, $internal, $group);
 		}
 		// Otherwise, ask master
 		else{
 			$server = self::ws('get_folder_server', Array('user_id' => $user_id, 'folder' => $folder,
-					'internal'=>($internal?'yes':'no')), true, false);
+					'internal'=>($internal?'yes':'no'), 'group' => $group), true, false);
 		}
 		return (empty($server)?null:$server);
 	}
 	
-	public static function getNewServerForFolder($folder, $user_id=null, $currentServerId=null){
+	public static function getNewServerForFolder($folder, $user_id=null, $currentServerId=null, $group=''){
 		if(substr($folder, 0, 1)!=='/'){
 			\OCP\Util::writeLog('files_sharding', 'Relative paths not allowed: '.$folder, \OC_Log::ERROR);
 		}
 		$user_id = $user_id==null?\OCP\USER::getUser():$user_id;
 		// If I'm the master, look up in DB
 		if(self::isMaster()){
-			$server = self::dbGetNewServerForFolder($folder, $user_id, $currentServerId);
+			$server = self::dbGetNewServerForFolder($folder, $user_id, $currentServerId, $group);
 		}
 		// Otherwise, ask master
 		else{
-			$server = self::ws('get_next_folder_server', Array('user_id' => $user_id, 'folder' => $folder),
+			$server = self::ws('get_new_folder_server', Array('user_id' => $user_id, 'folder' => $folder, 'group' => $group),
 					true, false);
 		}
 		return $server;
@@ -1970,7 +1981,7 @@ class Lib {
 	public static function setServerForFolder($folder, $user_id=null, $group=null){
 		$maxUploadFileSize = -1;
 		try{
-			$storageStats = self::buildFileStorageStatistics($dir, $owner, $id, $group);
+			$storageStats = self::buildFileStorageStatistics($folder, $user_id, null, $group);
 			$maxUploadFileSize = empty($storageStats['uploadMaxFilesize'])?-1:$storageStats['uploadMaxFilesize'];
 		}
 		catch(\Exception $e){
@@ -1979,17 +1990,16 @@ class Lib {
 					\OCP\Util::ERROR);
 			$maxUploadFileSize = -1;
 		}
-		$serverUrl = self::getNewServerForFolder($folder, $user_id);
+		$serverUrl = self::getNewServerForFolder($folder, $user_id, $group);
 		if(!empty($serverUrl)){
-			
+			$urlParts = parse_url($serverUrl);
+			$serverID = self::lookupServerId($urlParts['host']);
+			$minfree = self::getMinFree();
+			if($minfree>=0 && $maxUploadFileSize>=0 && $maxUploadFileSize>$minfree){
+				self::addDataFolder($folder, $group, $user_id, $serverID);
+			}
 		}
-		$urlParts = parse_url($serverUrl);
-		$serverID = self::lookupServerId($urlParts['host']);
-		$minfree = self::getMinFree();
-		if($minfree>=0 && $maxUploadFileSize>=0 && $maxUploadFileSize>$minfree){
-			self::addDataFolder($folder, $group, $user_id, $serverID);
-		}
-		return self::getServerForFolder($folder, $user_id, true);
+		return self::getServerForFolder($folder, $user_id, true, $group);
 	}
 		
 	public static function getNextSyncUser(){
@@ -2950,7 +2960,7 @@ class Lib {
 		}
 	}
 
-	public static function getFileInfo($path, $owner, $id, $parentId = '', $user = '', $group = '', $inStorage = false){
+	public static function getFileInfo($path, $owner, $id, $parentId='', $user= '', $group='', $inStorage=false){
 		$info = null;
 		
 		$user = empty($user)?\OC_User::getUser():$user;
