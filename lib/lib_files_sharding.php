@@ -2872,8 +2872,7 @@ class Lib {
 			\OC_User::setUserId($owner);
 			\OC_Util::setupFS($owner);
 			\OCP\Util::writeLog('files_sharding', 'Owner: '.$owner.', user: '.
-					\OCP\USER::getUser().' : '.$instanceId.' --> '.$_COOKIE[$instanceId].' : '.$session_id.' : '.session_id().' : '.
-					(empty(\OC_User::getUserSession()->getUser())?'':\OC_User::getUserSession()->getUser()->getUID()), \OC_Log::WARN);
+					\OCP\USER::getUser().' : '.$instanceId.' --> '.$_COOKIE[$instanceId].' : '.$session_id.' : '.session_id().' : '.(empty(\OC_User::getUserSession()->getUser())?'':\OC_User::getUserSession()->getUser()->getUID()), \OC_Log::WARN);
 			return $user_id;
 		}
 		else{
