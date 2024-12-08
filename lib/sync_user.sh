@@ -110,9 +110,11 @@ fi
 
 remote_path=`echo $url | sed -E 's|.*://[^/]+||'`
 
-## Sync files
-echo timeout $SYNC_TIMEOUT $RCLONE_CMD sync --transfers 1 --checkers 3 --bwlimit 20M:20M --tpslimit 1 --no-check-certificate --webdav-url $base_url :webdav:$remote_path "$folder" 
-timeout $SYNC_TIMEOUT $RCLONE_CMD sync --transfers 1 --checkers 3 --bwlimit 20M:20M --tpslimit 1 --no-check-certificate --webdav-url $base_url :webdav:$remote_path "$folder" 
+## Sync files --bwlimit [up]:[down] only works with newer rclone
+#echo timeout $SYNC_TIMEOUT $RCLONE_CMD sync --transfers 1 --checkers 3 --bwlimit 20M:20M --tpslimit 1 --no-check-certificate --webdav-url $base_url :webdav:$remote_path "$folder" 
+#timeout $SYNC_TIMEOUT $RCLONE_CMD sync --transfers 1 --checkers 3 --bwlimit 20M:20M --tpslimit 1 --no-check-certificate --webdav-url $base_url :webdav:$remote_path "$folder" 
+echo timeout $SYNC_TIMEOUT $RCLONE_CMD sync --transfers 1 --checkers 3 --bwlimit 20M --tpslimit 1 --no-check-certificate --webdav-url $base_url :webdav:$remote_path "$folder" 
+timeout $SYNC_TIMEOUT $RCLONE_CMD sync --transfers 1 --checkers 3 --bwlimit 20M --tpslimit 1 --no-check-certificate --webdav-url $base_url :webdav:$remote_path "$folder" 
 
 RET=$?
 
