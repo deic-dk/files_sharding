@@ -3460,12 +3460,13 @@ class Lib {
 				passthru("PATH=\$PATH:/usr/local/bin; cd '".dirname($fullPath)."'; zip -r - '".basename($fullPath)."'");
 			}
 			else{
-				//session_write_close();
+				session_write_close();
 				\OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
 			}
 		}
 		else{
 			// RANGE is only for serving single media files
+			session_write_close();
 			\OC_Files::get($dir, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
 		}
 		
@@ -3494,7 +3495,7 @@ class Lib {
 		header('Last-Modified: ' . gmdate('D, d M Y H:i:s T'));
 		header('Expires: 0');
 		header('Accept-Ranges: bytes');
-		header('Connection: Keep-Alive');
+		//header('Connection: Keep-Alive');
 		header('Content-Type: application/zip');
 		header( 'Content-Disposition: attachment; filename*=UTF-8\'\'' . rawurlencode($archiveName)
 				. '; filename="' . rawurlencode($archiveName) . '"' );
@@ -3575,7 +3576,7 @@ class Lib {
 		header("Content-Length: $length");
 		header('Content-Type: '.$mimetype);
 		header('Content-Disposition: inline; filename="'.basename($file).'"');
-		\OCP\Util::writeLog('files_sharing', 'Reading file '.$file, \OC_Log::WARN);
+		\OCP\Util::writeLog('files_sharing', 'Reading file '.$file.' : '.$start.' --> '.$end, \OC_Log::WARN);
 		// Start buffered download
 		$buffer = 1024 * 8;
 		while(!feof($fp) && ($p = ftell($fp)) <= $end){
