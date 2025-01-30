@@ -2203,7 +2203,7 @@ class Lib {
 				}
 				// Get group folders in files_accounting from previous primary server
 				if(\OCP\App::isEnabled('user_group_admin')){
-					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/group',
+					$ok = $ok && self::syncDir($user, $serverURL.'/remote.php/groupfolders',
 							$user.'/user_group_admin');
 				}
 				// Get bills from previous primary server
@@ -3161,7 +3161,7 @@ class Lib {
 	public static function putFile($tmpFile, $dataServer, $dirOwner, $path, $group=''){
 		
 		$url = $dataServer .
-		(\OCP\App::isEnabled('user_group_admin')?(empty($group)?(\OC::$WEBROOT.'/remote.php/mydav/'):'/group/'.rawurlencode($group).'/'):
+		(\OCP\App::isEnabled('user_group_admin')?(empty($group)?(\OC::$WEBROOT.'/remote.php/mydav/'):'/groupfolders/'.rawurlencode($group).'/'):
 				(\OC::$WEBROOT.'/remote.php/webdav/')) .
 			implode('/', array_map('rawurlencode', explode('/', $path)));
 		
