@@ -90,7 +90,7 @@ if(isset($_POST['myItemSource'])&&$_POST['myItemSource']){
 
 switch($_POST['action']){
 	case 'share':
-		if(isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])){
+		if(isset($_POST['shareType']) && isset($_POST['permissions'])){
 			try{
 				// Create file/folder if not there
 				// urldecode should be done automatically...
@@ -116,10 +116,12 @@ switch($_POST['action']){
 				$itemMasterSource = \OCA\FilesSharding\Lib::getFileId($file_path,
 						empty($_POST['owner'])?$user_id:$_POST['owner'], $group);
 				
-				$shareWith = $_POST['shareWith'];
 				$itemSourceName = isset($_POST['itemSourceName']) ? urldecode($_POST['itemSourceName']) : null;
-				if($shareType===OCP\Share::SHARE_TYPE_LINK && $shareWith==''){
+				if($shareType===OCP\Share::SHARE_TYPE_LINK && empty($_POST['shareWith'])){
 					$shareWith = null;
+				}
+				else{
+					$shareWith = $_POST['shareWith'];
 				}
 				
 				// If the user has migrated, a group folder will already have been shared - but now with the
@@ -196,8 +198,8 @@ switch($_POST['action']){
 		}
 		break;
 	case 'unshare':
-		if(isset($_POST['shareType']) && isset($_POST['shareWith'])){
-			if((int)$_POST['shareType']===OCP\Share::SHARE_TYPE_LINK && $_POST['shareWith']=='') {
+		if(isset($_POST['shareType'])){
+			if((int)$_POST['shareType']===OCP\Share::SHARE_TYPE_LINK && empty($_POST['shareWith'])) {
 				$shareWith = null;
 			}
 			else {
