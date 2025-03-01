@@ -216,6 +216,9 @@ switch($_POST['action']){
 			\OCA\FilesSharding\Lib::restoreUser($orig_user_id);
 			($return) ? OC_JSON::success() : OC_JSON::error();
 		}
+		else{
+			OC_JSON::error(array('data' => array('message' => 'Missing parameter')));
+		}
 		break;
 	case 'setPermissions':
 		if (isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])) {
@@ -235,6 +238,9 @@ switch($_POST['action']){
 			\OCA\FilesSharding\Lib::restoreUser($orig_user_id);
 			($return) ? OC_JSON::success() : OC_JSON::error();
 		}
+		else{
+			OC_JSON::error(array('data' => array('message' => 'Missing parameter')));
+		}
 		break;
 	case 'setExpirationDate':
 		if(isset($_POST['date']) && isset($_POST['itemSource'])){
@@ -249,6 +255,9 @@ switch($_POST['action']){
 			}
 			\OCA\FilesSharding\Lib::restoreUser($orig_user_id);
 			($return) ? OC_JSON::success() : OC_JSON::error();
+		}
+		else{
+			OC_JSON::error(array('data' => array('message' => 'Missing parameter')));
 		}
 		break;
 	case 'informRecipients':
