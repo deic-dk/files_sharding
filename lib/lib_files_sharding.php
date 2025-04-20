@@ -222,20 +222,30 @@ class Lib {
 		self::getMasterHostName();
 		self::getMasterInternalURL();
 		if(!empty(self::$masterinternalurl)){
-			$parse = parse_url(self::$masterinternalurl);
-			$masterinternalip = $parse['host'];
+			$masterprivateurl = self::internalToPrivate(self::$masterinternalurl);
+			$parsedinternal = parse_url(self::$masterinternalurl);
+			$masterinternalip = $parsedinternal['host'];
+			$parsedprivate = parse_url($masterprivateurl);
+			$masterprivateip = $parsedprivate['host'];
 		}
+		$masterNameArr = explode(".", self::$masterfq);
+		$masterShortName = empty($masterNameArr[0])?self::$masterfq:$masterNameArr[0];
 		if(empty($_SERVER['HTTP_HOST']) && empty($_SERVER['SERVER_NAME'])){
 			// Running off cron
 			$myShortName = php_uname("n");
-			$masterNameArr = explode(".", self::$masterfq);
 			return isset($masterNameArr[0]) && $myShortName == $masterNameArr[0];
 		}
 		return empty(self::$masterfq) && empty($masterinternalip) ||
+		
 				isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST']===self::$masterfq ||
-						isset($masterinternalip) && $_SERVER['HTTP_HOST']===$masterinternalip) ||
+						isset($masterinternalip) && $_SERVER['HTTP_HOST']===$masterinternalip ||
+						isset($masterinternalip) && $_SERVER['HTTP_HOST']===$masterprivateip ||
+						isset($masterinternalip) && $_SERVER['HTTP_HOST']===$masterShortName) ||
+						
 				isset($_SERVER['SERVER_NAME']) && ($_SERVER['SERVER_NAME']===self::$masterfq ||
-						isset($masterinternalip) && $_SERVER['SERVER_NAME']===$masterinternalip);
+						isset($masterinternalip) && $_SERVER['SERVER_NAME']===$masterinternalip ||
+						isset($masterinternalip) && $_SERVER['SERVER_NAME']===$masterprivateip ||
+						isset($masterinternalip) && $_SERVER['SERVER_NAME']===$masterShortName);
 	}
 	
 	public static function getMasterURL(){
