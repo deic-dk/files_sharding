@@ -1213,6 +1213,17 @@ class Lib {
 	}
 	
 	public static function dbLookupServerId($hostname){
+		if(!empty($hostname) && !empty($_SERVER['MY_HOST'])){
+			// If the request is coming to one of my host aliases, go on with my canonical hostname
+			$trusted_domains = \OCP\Config::getSystemValue('trusted_domains', []);
+			foreach($trusted_domains as $trusted_domain){
+				if($hostname==$trusted_domain){
+					//return null;
+					$hostname = $_SERVER['MY_HOST'];
+					break;
+				}
+			}
+		}
 		$servers = self::dbGetServersList();
 		foreach($servers as $server){
 			if($server['url']==$hostname || $server['internal_url']==$hostname){
