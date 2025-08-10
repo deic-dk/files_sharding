@@ -96,7 +96,7 @@ switch($_POST['action']){
 				// urldecode should be done automatically...
 				$file_path = $_POST['itemPath'];
 				if(($_POST['itemType'] === 'file' or $_POST['itemType'] === 'folder')){
-					if(!OC\Files\Filesystem::file_exists($file_path)){
+					if(!empty($file_path) && !OC\Files\Filesystem::file_exists($file_path)){
 						$parent_path = dirname($file_path);
 						if(!OC\Files\Filesystem::file_exists($parent_path)){
 							\OCP\Util::writeLog('files_sharding', 'Creating '.$parent_path, \OC_Log::WARN);
@@ -132,6 +132,10 @@ switch($_POST['action']){
 					OCP\Share::unshare($_POST['itemType'], $itemMasterSource, $_POST['shareType'], $shareWith);
 				}
 				\OCP\Util::writeLog('sharing', "Sharing " . $itemMasterSource.":".$itemSourceName, \OCP\Util::WARN);
+				if(empty($itemMasterSource)){
+					\OCP\Util::writeLog('sharing', "Not sharing " . $itemSourceName.". No source given", \OCP\Util::WARN);
+					break;
+				}
 				try{
 					$token = OCP\Share::shareItem(
 							$_POST['itemType'],
@@ -186,7 +190,7 @@ switch($_POST['action']){
 					$token = $_POST['token'];
 				}
 				if(is_string($token)){
-					OC_JSON::success(array('data' => array('token' => $token, 'file_source'=>$itemMasterSource)));
+					OC_JSON::success(array('data' => array('token' => $token, 'file_source'=>$itemMasterSource, 'item_source'=>intval($_POST['itemSource']))));
 				}
 				else{
 					OC_JSON::success(array('file_source'=>$itemMasterSource));

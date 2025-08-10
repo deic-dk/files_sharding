@@ -9,8 +9,8 @@
 		$path = $p['folder'];
 		$group = $p['gid'];
 		?>
-		<div class="dataFolder nowrap remove_element" path="<?php print($path);?>" group="<?php print($group);?>">
-			<span class="data_folder"><label class="data_folder_path"><?php print($path);?></label><label class="data_folder_group" title="Group"><?php print($group);?></label></span>
+		<div class="dataFolder nowrap remove_element" path="<?php echo($path);?>" group="<?php echo($group);?>">
+			<span class="data_folder"><label class="data_folder_path"><?php echo($path);?></label><label class="data_folder_group" title="Group"><?php print($group);?></label></span>
 			<label title="Sync this folder again" class="remove_data_folder btn btn-flat">-</label>
 			<div class="dialog" display="none"></div></div>
 	<?php } ?>
@@ -21,7 +21,7 @@
 		<option value="" selected="selected" style="margin-top:0px;"><?php p($l->t("Home")); ?></option>
 		<?php
 		foreach($_['member_groups'] as $group){
-			echo "<option value='".$group['gid']."'>".$group['gid']."</option>";
+			echo '<option value="'.$group['gid'].'">'.$group['gid'].'</option>';
 		}
 		?>
 		</select>
