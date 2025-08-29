@@ -73,6 +73,13 @@ switch ($_REQUEST['fetch']) {
 					break;
 				}
 			}
+			// For public shares, check if they're restricted
+			if($return[$item]['link'] && \OCP\App::isEnabled('uploader')){
+				$restricted = \OCA\Uploader\Util::checkRestrictedShare($return[$item]['item_source']);
+				if($restricted){
+					$return[$item]['restricted'] = true;
+				}
+			}
 		}
 		if(!empty($_REQUEST['owner']) && !empty($_REQUEST['itemSources'])){
 			$itemSources = json_decode($_REQUEST['itemSources']);
@@ -124,13 +131,21 @@ switch ($_REQUEST['fetch']) {
 					$shares = false;
 				}
 				$myshares = [];
+				//$restrictedGroup = \OCP\Config::getSystemValue('restricted_public_share_group', 'restricted');
 				foreach($shares as $share){
-					\OCP\Util::writeLog('sharing', 'SHARE: '.$user_id.':'.$share['uid_owner'].
-							'-->'.$_GET['itemSource'].
-							'-->'.$share['path'], \OCP\Util::WARN);
 					if(!empty($_GET['owner']) && $share['uid_owner']==$_GET['owner'] ||
 							$share['uid_owner']==$user_id){
-								$myshares[] = $share;
+						/*if(\OC_App::isEnabled('uploader')){
+							if($share['share_type']==\OCP\Share::SHARE_TYPE_GROUP &&
+									$share['share_with']==$restrictedGroup){
+								continue;
+							}
+						}*/
+						\OCP\Util::writeLog('sharing', 'SHARE: '.$user_id.':'.$share['uid_owner'].
+								'-->'.$_GET['itemSource'].
+								'-->'.$share['path'].
+								'-->'.$share['share_with'].' : '.serialize($share), \OCP\Util::WARN);
+						$myshares[] = $share;
 					}
 				}
 				OC_JSON::success(array('data' => array('reshare' => $reshare, 'shares' => $myshares)));

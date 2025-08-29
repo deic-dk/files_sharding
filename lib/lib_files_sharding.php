@@ -3618,4 +3618,60 @@ class Lib {
 		fclose($fp);
 	}
 	
+	/**
+	 * Calling this function MUST be accompanied by \OC_Util::tearDownFS().
+	 */
+	public static function setupFSFromToken($token, $group=null){
+		if(\OCA\FilesSharding\Lib::isMaster()){
+			$linkItem = OCP\Share::getShareByToken($token, 0);
+		}
+		else{
+			$linkItem = \OCA\FilesSharding\Lib::ws('getShareByToken', array('t'=>$token, 'g'=>$group, 'checkPasswordProtection'=>0));
+		}
+		$path = null;
+		\OCP\Util::writeLog('files_sharing', 'TOKEN: '.$token, \OC_Log::WARN);
+		if (is_array($linkItem) && isset($linkItem['uid_owner'])) {
+			// seems to be a valid share
+			//$type = $linkItem['item_type'];
+			//$fileSource = $linkItem['file_source'];
+			$shareOwner = $linkItem['uid_owner'];
+			// Redirect if we're on wrong host
+			if(!self::onServerForUser($shareOwner)){
+				$dataServer = self::getServerForUser($shareOwner, false,
+						self::$USER_SERVER_PRIORITY_PRIMARY, true);
+				\OCP\Util::writeLog('files_sharding', 'Share served by: '.$shareOwner.':'.$dataServer, \OC_Log::WARN);
+				\OC_Response::redirect(rtrim($dataServer, '/').'/'.ltrim($_SERVER['REQUEST_URI'], '/'));
+				exit();
+			}
+			// Otherwise, proceed and serve share
+			if(self::isMaster()){
+				$rootLinkItem = self::resolveReShare($linkItem);
+			}
+			else{
+				$rootLinkItem = self::ws('resolveReShare', array('linkItem' => \OCP\JSON::encode($linkItem)), true, true);
+			}
+			$user = \OC_User::getUser();
+			if(isset($rootLinkItem['uid_owner']) && $rootLinkItem['uid_owner']!=$user ){
+				\OCP\JSON::checkUserExists($rootLinkItem['uid_owner']);
+				\OC_Util::tearDownFS();
+				$user = $rootLinkItem['uid_owner'];
+				\OC_User::setUserId($user);
+				\OC_Util::setupFS($user);
+			}
+			elseif(!empty($user)){
+				\OC_Util::setupFS($user);
+			}
+			$path = \OC\Files\Filesystem::getPath($rootLinkItem['item_source']);
+			\OCP\Util::writeLog('files_sharding', 'Link item: '.$rootLinkItem['uid_owner'].':'.\OC_User::getUser().' : '.$path.'-->'.serialize($rootLinkItem), \OC_Log::WARN);
+			if(!empty($group)){
+				\OCP\Util::writeLog('files_sharding', 'group: '.$group.'-->'.serialize($linkItem), \OC_Log::WARN);
+				\OC\Files\Filesystem::tearDown();
+				$groupDir = '/'.$rootLinkItem['uid_owner'].'/user_group_admin/'.$group;
+				\OC\Files\Filesystem::init($rootLinkItem['uid_owner'], $groupDir);
+				$path = \OC\Files\Filesystem::getPath($rootLinkItem['item_source']);
+			}
+		}
+		return $path;
+	}
+	
 }
