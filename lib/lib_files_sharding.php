@@ -3623,7 +3623,7 @@ class Lib {
 	 */
 	public static function setupFSFromToken($token, $group=null){
 		if(\OCA\FilesSharding\Lib::isMaster()){
-			$linkItem = OCP\Share::getShareByToken($token, 0);
+			$linkItem = \OCP\Share::getShareByToken($token, 0);
 		}
 		else{
 			$linkItem = \OCA\FilesSharding\Lib::ws('getShareByToken', array('t'=>$token, 'g'=>$group, 'checkPasswordProtection'=>0));
