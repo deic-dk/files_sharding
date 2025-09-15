@@ -74,9 +74,11 @@ class Api {
 		}
 		else{
 			$itemPath = \OC\Files\Filesystem::getpath($itemSource);
+			$itemSourceName = basename($itemPath);
 			return \OCA\FilesSharding\Lib::ws('share_action',
 					array('user_id' => \OC_User::getUser(), 'action' => 'share', 'itemType' => $itemType,
-							'itemSource' => $itemSource, 'itemPath' => urlencode($itemPath), 'shareType' => $shareType,
+							'itemSource' => $itemSource, 'itemPath' => urlencode($itemPath),
+							itemSourceName => urlencode($itemSourceName), 'shareType' => $shareType,
 							'shareWith' => $shareWith, 'permissions' => $permissions), true, true);
 		}
 	}
@@ -410,6 +412,7 @@ class Api {
 	
 	public static function lookupShare($itemType, $itemSource, $shareType, $shareWith=null, $token=null){
 		$shares = self::getItemShared($itemType, $itemSource);
+		\OCP\Util::writeLog('files_sharding', 'Checking shares: '.serialize($shares), \OC_Log::WARN);
 		if(is_string($token)) { //public link share
 			foreach ($shares as $share) {
 				if ($share['token']==$token) {
@@ -419,6 +422,7 @@ class Api {
 		}
 		else{
 			foreach ($shares as $share) {
+				\OCP\Util::writeLog('files_sharding', 'Checking share: '.$itemSource.':'.$shareType.'-->'.serialize($share), \OC_Log::WARN);
 				if((empty($shareWith) || $share['share_with']==$shareWith) &&
 						$share['share_type']==$shareType && $share['item_source']==$itemSource) {
 					return $share;
@@ -546,9 +550,10 @@ class Api {
 			\OCP\Util::writeLog('files_sharing', 'SUCCESS, '.
 					$newShare['id'].'-->'.(empty($newShare['token'])?'':$newShare['token']), \OCP\Util::WARN);
 			if(!empty($_REQUEST['format'])&&$_REQUEST['format']=='json'){
+				$masterURL = \OCA\FilesSharding\Lib::getMasterURL();
 				header("Content-Type: application/json; charset=utf-8");
 				echo '{"ocs":{"meta":{"status":"ok","statuscode":200,"message":"OK"}, "data":{"id":"'.
-						$newShare['id'].'"'.(empty($newShare['token'])?'':', "token":"'.$newShare['token'].'"').'}}}';
+						$newShare['id'].'"'.(empty($newShare['token'])?'':', "url":"'.$masterURL.'shared/'.$newShare['token'].'", "token":"'.$newShare['token'].'"').'}}}';
 			}
 			else{
 				header("Content-Type: application/xml; charset=utf-8");
