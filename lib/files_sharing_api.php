@@ -178,6 +178,7 @@ class Api {
 					$share['mimetype'] = \OC_Helper::getFileNameMimeType($share['path']);
 					if (\OC::$server->getPreviewManager()->isMimeSupported($share['mimetype'])) {
 						$share['isPreviewAvailable'] = true;
+						$share['has_preview'] = 1;
 					}
 				}
 				elseif($share['item_type'] === 'folder') {
@@ -190,6 +191,11 @@ class Api {
 				else{
 					unset($share['token']);
 				}
+				// NC iOS client stuff
+				if($share['share_type']==\OCP\Share::SHARE_TYPE_USER){
+					$share['share_with_displayname_unique'] = \OCP\Config::getUserValue($share['share_with'], 'settings', 'email');
+				}
+				$share['attributes'] = '';
 				// Set group if in a group folder
 				\OCP\Util::writeLog('files_sharding', 'Got item shared '.
 						$localfileid.'-->'.$share['path'].'-->'.$fileInfo['path'], \OC_Log::WARN);
@@ -385,6 +391,7 @@ class Api {
 					$share['mimetype'] = \OC_Helper::getFileNameMimeType($share['file_target']);
 					if (\OC::$server->getPreviewManager()->isMimeSupported($share['mimetype'])) {
 						$share['isPreviewAvailable'] = true;
+						$share['has_preview'] = 1;
 					}
 				}
 				elseif($share['item_type'] === 'folder') {
@@ -562,7 +569,7 @@ class Api {
  <meta>
   <status>ok</status>
   <statuscode>200</statuscode>
-  <message/>
+  <message>OK</message>
  </meta>
  <data>
   <id>'.$newShare['id'].'</id>'.
