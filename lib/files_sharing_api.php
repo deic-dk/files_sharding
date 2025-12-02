@@ -75,11 +75,15 @@ class Api {
 		else{
 			$itemPath = \OC\Files\Filesystem::getpath($itemSource);
 			$itemSourceName = basename($itemPath);
-			return \OCA\FilesSharding\Lib::ws('share_action',
+			$ret = \OCA\FilesSharding\Lib::ws('share_action',
 					array('user_id' => \OC_User::getUser(), 'action' => 'share', 'itemType' => $itemType,
 							'itemSource' => $itemSource, 'itemPath' => urlencode($itemPath),
 							itemSourceName => urlencode($itemSourceName), 'shareType' => $shareType,
 							'shareWith' => $shareWith, 'permissions' => $permissions), true, true);
+			foreach(['getItemSharedWithBySource', 'getItemShared', 'getItemsSharedWith', 'share_fetch', 'getItemsSharedWithUser'] as $script){
+				\OCA\FilesSharding\Lib::clearWsCache($script);
+			}
+			return $ret;
 		}
 	}
 	
@@ -88,10 +92,14 @@ class Api {
 			return \OCP\Share::setPermissions($itemType, $itemSource, $shareType, $shareWith, $permissions);
 		}
 		else{
-			return \OCA\FilesSharding\Lib::ws('share_action',
+			$ret = \OCA\FilesSharding\Lib::ws('share_action',
 					array('user_id' => \OC_User::getUser(), 'action' => 'setPermissions',
 							'itemType' => $itemType, 'itemSource' => $itemSource, 'myItemSource' => $itemSource,
 								'shareType' => $shareType, 'shareWith' => $shareWith, 'permissions' => $permissions), true, true);
+			foreach(['getItemSharedWithBySource', 'getItemShared', 'getItemsSharedWith', 'share_fetch', 'getItemsSharedWithUser'] as $script){
+				\OCA\FilesSharding\Lib::clearWsCache($script);
+			}
+			return $ret;
 		}
 	}
 	
@@ -100,9 +108,12 @@ class Api {
 			return \OCP\Share::setExpirationDate($itemType, $itemSource, $date, $shareTime);
 		}
 		else{
-			return \OCA\FilesSharding\Lib::ws('share_action',
-					array('user_id' => \OC_User::getUser(), 'action' => 'setExpirationDate', 'itemType' => $itemType,'itemSource' => $itemSource,
-								'date' => $date, 'shareTime' => $shareTime), true, true);
+			$ret = \OCA\FilesSharding\Lib::ws('share_action',
+					array('user_id' => \OC_User::getUser(), 'action' => 'setExpirationDate', 'itemType' => $itemType,'itemSource' => $itemSource, 'date' => $date, 'shareTime' => $shareTime), true, true);
+			foreach(['getItemSharedWithBySource', 'getItemShared', 'getItemsSharedWith', 'share_fetch', 'getItemsSharedWithUser'] as $script){
+				\OCA\FilesSharding\Lib::clearWsCache($script);
+			}
+			return $ret;
 		}
 	}
 	
@@ -111,10 +122,14 @@ class Api {
 			return \OCP\Share::unShare($itemType, $itemSource, $shareType, $shareWith);
 		}
 		else{
-			return \OCA\FilesSharding\Lib::ws('share_action',
+			$ret = \OCA\FilesSharding\Lib::ws('share_action',
 					array('user_id' => \OC_User::getUser(), 'action' => 'unshare',
 							'itemType' => $itemType,'itemSource' => $itemSource, 'myItemSource' => $itemSource,
 							'shareType' => $shareType, 'shareWith' => $shareWith), true, true);
+			foreach(['getItemSharedWithBySource', 'getItemShared', 'getItemsSharedWith', 'share_fetch', 'getItemsSharedWithUser'] as $script){
+				\OCA\FilesSharding\Lib::clearWsCache($script);
+			}
+			return $ret;
 		}
 	}
 
@@ -126,7 +141,7 @@ class Api {
 	 */
 	public static function getAllShares($params) {
 		// if a file is specified, get the share for this file
-		if (isset($_GET['path'])) {
+		if (!empty($_GET['path'])) {
 			$params['itemSource'] = self::getFileId($_GET['path']);
 			$params['path'] = $_GET['path'];
 			$params['itemType'] = self::getItemType($_GET['path']);
@@ -450,6 +465,12 @@ class Api {
 				'-->'.serialize($_GET).'-->'.serialize($_POST).'-->'.\OC\Files\Filesystem::getRoot(),
 				\OCP\Util::WARN);
 		$path = isset($_POST['path']) ? $_POST['path'] : null;
+		
+		// Not sure why, but the iOS client sets permissions to 0...
+		if(isset($_POST['permissions']) && $_POST['permissions']==='0'){
+			\OCP\Util::writeLog('files_sharing', 'Fixing wrong permissions for share', \OCP\Util::WARN);
+			$_POST['permissions'] = '1';
+		}
 
 		if($path === null) {
 			return new \OC_OCS_Result(null, 400, "please specify a file or folder path");
@@ -556,7 +577,8 @@ class Api {
 			// Yes, shareItem modifies the ID for links. Go figure...
 			\OCP\Util::writeLog('files_sharing', 'SUCCESS, '.
 					$newShare['id'].'-->'.(empty($newShare['token'])?'':$newShare['token']), \OCP\Util::WARN);
-			if(!empty($_REQUEST['format'])&&$_REQUEST['format']=='json'){
+			if(!empty($_REQUEST['format']) && $_REQUEST['format']=='json' ||
+				!empty($_SERVER['HTTP_ACCEPT']) && $_SERVER['HTTP_ACCEPT']=='application/json'){
 				$masterURL = \OCA\FilesSharding\Lib::getMasterURL();
 				header("Content-Type: application/json; charset=utf-8");
 				echo '{"ocs":{"meta":{"status":"ok","statuscode":200,"message":"OK"}, "data":{"id":"'.
@@ -595,20 +617,20 @@ class Api {
 	public static function updateShare($params) {
 
 		$share = self::getShareFromId($params['id']);
-		\OCP\Util::writeLog('files_sharing', 'Updating share '.$params['id'].'-->'.serialize($share), \OCP\Util::WARN);
+		\OCP\Util::writeLog('files_sharing', 'Updating share '.$params['id'].'-->'.serialize($share).'-->'.serialize($params), \OCP\Util::WARN);
 		if(!isset($share['file_source'])) {
 			return new \OC_OCS_Result(null, 404, "wrong share Id, share doesn't exist. ".$params['id']);
 		}
 		
 		try {
-			if(isset($params['_put']['permissions'])) {
-				return self::updatePermissions($share, $params);
-			} elseif (isset($params['_put']['password'])) {
+			if (!empty($params['_put']['password'])) {
 				return self::updatePassword($share, $params);
-			} elseif (isset($params['_put']['publicUpload'])) {
+			} elseif (!empty($params['_put']['publicUpload'])) {
 				return self::updatePublicUpload($share, $params);
-			} elseif (isset($params['_put']['expireDate'])) {
+			} elseif (!empty($params['_put']['expireDate'])) {
 				return self::updateExpireDate($share, $params);
+			} elseif(isset($params['_put']['permissions'])) {
+				return self::updatePermissions($share, $params);
 			}
 		} catch (\Exception $e) {
 
@@ -641,6 +663,7 @@ class Api {
 		// and we want to set permissions to 1 (read only) or 7 (allow upload)
 		if ( (int)$shareType === \OCP\Share::SHARE_TYPE_LINK ) {
 			if ($publicUploadEnabled === false || ($permissions !== 7 && $permissions !== 1)) {
+				\OCP\Util::writeLog('files_sharing', 'ERROR: Trying to change permissions on public link.', \OCP\Util::ERROR);
 				return new \OC_OCS_Result(null, 400, "can't change permission for public link share");
 			}
 		}
@@ -771,7 +794,8 @@ class Api {
 		
 		if($result) {
 			\OCP\Util::writeLog('files_sharing', 'SUCCESS', \OCP\Util::WARN);
-			if(!empty($_REQUEST['format'])&&$_REQUEST['format']=='json'){
+			if(!empty($_REQUEST['format'])&&$_REQUEST['format']=='json' ||
+				!empty($_SERVER['HTTP_ACCEPT']) && $_SERVER['HTTP_ACCEPT']=='application/json'){
 				header("Content-Type: application/json; charset=utf-8");
 				echo '{"ocs":{"meta":{"status":"ok","statuscode":200,"message":"OK"}}}';
 			}

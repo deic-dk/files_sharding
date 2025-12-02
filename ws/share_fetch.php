@@ -44,6 +44,10 @@ if(OCP\App::isEnabled('user_group_admin')){
 }
 
 switch ($_REQUEST['fetch']) {
+	case 'getItemsSharedStatusesRaw':
+		$return = \OCP\Share::getItemsShared($_REQUEST['itemType'], \OCP\Share::FORMAT_NONE);
+		is_array($return) ? \OC_JSON::success(array('data' => $return)) : \OC_JSON::error();
+		break;
 	case 'getItemsSharedStatuses':
 		if(empty($_REQUEST['itemType'])) {
 			break;
@@ -61,7 +65,9 @@ switch ($_REQUEST['fetch']) {
 			\OCA\FilesSharding\Lib::switchUser($user_id);
 		}
 		\OCP\Util::writeLog('sharing', "Shares: ".OC_User::getUser()."-->".
-				serialize(array_map(function($el){return (int)$el['item_source'];}, $return)), \OC_Log::WARN);
+				serialize(array_map(function($el){return (int)$el['item_source'];}, $return)),
+				//serialize($return),
+				\OC_Log::WARN);
 		if(!empty($orig_user_id)){
 			\OCA\FilesSharding\Lib::switchUser($orig_user_id);
 		}

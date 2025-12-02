@@ -493,7 +493,8 @@ class Lib {
 			'get_server_id'=>60, 'get_servers'=>20, 'getTaggedFiles'=>30, 'get_user_server_access'=>30,
 			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, 'getCharge'=>30,
 			'accountedYears'=>60, 'getUserGroups'=>10, 'lookupServerId'=>60, 'getServePublicUrl'=>60,
-			'searchKeyByID'=>30, 'get_public_shares'=>30, 'lookupSiteInfo'=>30
+			'searchKeyByID'=>30, 'get_public_shares'=>30, 'lookupSiteInfo'=>30,
+			'getItemSharedWithBySource'=>10, 'getItemShared'=>10
 	);
 	
 	public static function getWSCert(){
@@ -526,6 +527,20 @@ class Lib {
 				'subject'=>self::$wsCertSubject, 'ca_file'=>self::$wsCACert);
 	}
 	
+	public static function clearWsCache($script, $baseUrl=null, $appNamel=null){
+		$ret = true;
+		if($baseUrl==null){
+			$baseUrl = self::getMasterInternalURL();
+		}
+		$urlRoot = $baseUrl . "/apps/".(empty($appName)?"files_sharding":$appName)."/ws/".$script.".php";
+		if(isset(self::$WS_CACHE_CALLS[$script])){
+			$toDelete = new \APCIterator('user', '|^'.$urlRoot.'.*|', \APC_ITER_VALUE);
+			$ret = apc_delete($toDelete);
+			\OCP\Util::writeLog('files_sharding', 'Cleared cache '.$ret.' for '.$urlRoot, \OC_Log::WARN);
+		}
+		return $ret;
+	}
+	
 	public static function ws($script, $data, $post=false, $array=true, $baseUrl=null,
 			$appName=null, $urlencode=false, $timeoutMs=0, $async=false){
 		$content = "";
@@ -533,9 +548,7 @@ class Lib {
 		if($baseUrl==null){
 			$baseUrl = self::getMasterInternalURL();
 		}
-		if(empty($url)){
-			$url = $baseUrl . "/apps/".(empty($appName)?"files_sharding":$appName)."/ws/".$script.".php";
-		}
+		$url = $baseUrl . "/apps/".(empty($appName)?"files_sharding":$appName)."/ws/".$script.".php";
 		if(!$post){
 			$url .= "?".$content;
 			$cache_key = $url;
@@ -1039,7 +1052,7 @@ class Lib {
 			$fileId = $fileInfo['fileid'];
 		}
 		else{
-			\OCP\Util::writeLog('files_sharding', 'Could not find ID for for '.$user_id.' : '.$path.' --> '.serialize($fileInfo), \OC_Log::ERROR);
+			\OCP\Util::writeLog('files_sharding', 'Could not find ID for '.$user_id.' : '.$path.' --> '.serialize($fileInfo), \OC_Log::ERROR);
 		}
 		\OCP\Util::writeLog('files_sharding', 'Got ID '.$fileId.' for path '.$path, \OC_Log::INFO);
 		return $fileId;
