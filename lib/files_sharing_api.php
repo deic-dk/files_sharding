@@ -663,7 +663,8 @@ class Api {
 		// and we want to set permissions to 1 (read only) or 7 (allow upload)
 		if ( (int)$shareType === \OCP\Share::SHARE_TYPE_LINK ) {
 			if ($publicUploadEnabled === false || ($permissions !== 7 && $permissions !== 1)) {
-				\OCP\Util::writeLog('files_sharing', 'ERROR: Trying to change permissions on public link.', \OCP\Util::ERROR);
+				\OCP\Util::writeLog('files_sharing', 'ERROR: Trying to change permissions on public link. '.
+						$permissions.':'.$publicUploadEnabled, \OCP\Util::ERROR);
 				return new \OC_OCS_Result(null, 400, "can't change permission for public link share");
 			}
 		}
