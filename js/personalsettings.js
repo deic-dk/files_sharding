@@ -239,6 +239,24 @@ function stripTrailingSlash(str) {
 	return str;
 }
 
+function setOnlyFrom(folder, group, only_from, el){
+	$.ajax(OC.linkTo('files_sharding','ajax/set_data_folder_only_from.php'), {
+		 type:'POST',
+		  data:{
+			  folder: folder,
+			  group: group,
+			  only_from: only_from
+		 },
+		 dataType:'json',
+		 success: function(s){
+			 OC.msg.finishedSaving(el, {status: 'success', data: {message: "IP restriction saved"}});
+		 },
+		error:function(s){
+			alert("Unexpected error!");
+		}
+	});
+}
+
 $(document).ready(function(){
 	
 	previous_home_site = $('#filesShardingPersonalSettings div select.home_site').val();
@@ -321,11 +339,21 @@ $(document).ready(function(){
 		remove_dialogs[path].dialog('open');
 	});
 	
+	$('#filesShardingDataFolders div#filesShardingDataFoldersList div.dataFolder').on('keypress', '.only_from', function(e) {
+		if(e.which == 13) {
+			var group = $('#group_folder').val();
+			var only_from = $(this).val();
+			var path = $(this).parent().find('.data_folder_path').text();
+			var el = $(this).parent().find('.dialog');
+			setOnlyFrom(path, group, only_from, el);
+		}
+	});
+	
 	$('#filesShardingDataFolders div.addDataFolder .add_data_folder').live('click', function(){
 	  choose_data_folder_dialog.dialog('open');
 	  //choose_data_folder_dialog.load("/apps/chooser/");
 	  choose_data_folder_dialog.show();
-		group = $('#group_folder').val();
+		var group = $('#group_folder').val();
 		$('#loadDataFolderTree').fileTree({
 			//root: '/',
 			script: '../../apps/chooser/jqueryFileTree.php',
@@ -403,8 +431,19 @@ $(document).ready(function(){
 				//$('.modalOverlay').remove();
 			}
 		});
-		
 	}); 
+	
+	$('.button.add_current_ip').live('click', function(){
+		var ip = $('#filesShardingDataFoldersList').attr('client_ip');
+		var currentIPs = $(this).parent().find('input').val().replace(' ', '');
+		var regex = new RegExp('(^|,)'+ip+'(,|$)', 'g' );
+		console.log('Got IP '+ip+':'+currentIPs);
+		if(!currentIPs.match(regex)){
+			currentIPs = currentIPs+(currentIPs!=''?',':'')+ip;
+			console.log('Setting IP '+ip+':'+currentIPs);
+			$(this).parent().find('input').val(currentIPs)
+		}
+	});
 	
 	if(!$('.backup_server').text().trim().length){
 		$('.backup_server').parent().hide();

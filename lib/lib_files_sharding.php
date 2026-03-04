@@ -41,6 +41,7 @@ class Lib {
 	public static $NOT_IN_DATA_FOLDER = 0;
 	public static $IN_DATA_FOLDER = 1;
 	public static $IS_DATA_FOLDER = 2;
+	public static $IN_DATA_FOLDER_BLOCKED = 3;
 	
 	const TYPE_SERVER_SYNC = 'server_sync';
 	
@@ -921,7 +922,7 @@ class Lib {
 			if(empty($user_server_id)){
 				$user_server_id = self::getMasterID();
 			}
-			self::dbAddDataFolder($folder, $group, $user_server_id, $user_id, self::$USER_SERVER_PRIORITY_PRIMARY);
+			return self::dbAddDataFolder($folder, $group, $user_server_id, $user_id, self::$USER_SERVER_PRIORITY_PRIMARY);
 		}
 		else{
 			$_SESSION['oc_data_folders'][] = array('folder'=>$folder, 'gid'=>$group,
@@ -944,6 +945,35 @@ class Lib {
 		$_SESSION['oc_data_folders'] = self::dbGetDataFoldersList($user_id);
 		return true;
 	}
+	
+	public static function updateDataFolder($folder, $group, $user_id, $only_from){
+		if(self::isMaster()){
+			return self::dbUpdateDataFolder($folder, $group, $user_id, $only_from);
+		}
+		else{
+			foreach($_SESSION['oc_data_folders'] as &$p){
+				if($p['folder']==$folder && $p['gid']==$group){
+					$p['only_from'] = $only_from;
+				}
+			}
+			return self::ws('update_data_folder',
+					Array('user_id' => $user_id, 'folder' => $folder, 'group' => $group,
+							'only_from'=>$only_from), true, true);
+		}
+	}
+	
+	private static function dbUpdateDataFolder($folder, $group, $user_id, $only_from){
+		$query = \OC_DB::prepare(
+				'UPDATE `*PREFIX*files_sharding_folder_servers` SET `only_from` = ? WHERE `folder` = ? AND `gid` = ? AND `user_id` = ?');
+		\OCP\Util::writeLog('files_sharding', 'Restricting access with '.$folder.' to '.$only_from, \OC_Log::WARN);
+		$result = $query->execute(Array($only_from, $folder, $group, $user_id));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not update data folder '.$folder.', '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+			return false;
+		}
+		$_SESSION['oc_data_folders'] = self::dbGetDataFoldersList($user_id);
+		return true;
+	}
 
 	public static function inDataFolder($path, $user_id=null, $group=null){
 		$user_id = (empty($user_id)?\OCP\USER::getUser():$user_id);
@@ -957,13 +987,29 @@ class Lib {
 			$dataFolderPath = $p['folder'];
 			$dataFolderLen = strlen($dataFolderPath);
 			\OCP\Util::writeLog('files_sharding', 'Checking path: '.$user_id.'-->'.$checkPath.'-->'.$dataFolderPath, \OC_Log::DEBUG);
-			if(substr($checkPath, 0, $dataFolderLen+1)===$dataFolderPath.'/'){
+			if(substr($checkPath, 0, $dataFolderLen+1)===$dataFolderPath.'/' || $checkPath===$dataFolderPath){
 				\OCP\Util::writeLog('files_sharding', 'Excluding '.$dataFolderPath, \OC_Log::INFO);
+				$onlyFromStr = $p['only_from'];
+				$onlyFrom = explode(',', $onlyFromStr);
+				$onlyFromOk = false;
+				if(!empty(onlyFrom)){
+					foreach($onlyFrom as $net){
+						$net = trim($net);
+						if(strpos($_SERVER['REMOTE_ADDR'], $net)===0){
+							\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' OK', \OC_Log::DEBUG);
+							$onlyFromOk = true;
+							break;
+						}
+					}
+					if(!$onlyFromOk){
+						return self::$IN_DATA_FOLDER_BLOCKED;
+					}
+				}
+				if($checkPath===$dataFolderPath){
+					\OCP\Util::writeLog('files_sharding', 'Excluding '.$dataFolderPath, \OC_Log::INFO);
+					return self::$IS_DATA_FOLDER;
+				}
 				return self::$IN_DATA_FOLDER;
-			}
-			elseif($checkPath===$dataFolderPath){
-				\OCP\Util::writeLog('files_sharding', 'Excluding '.$dataFolderPath, \OC_Log::INFO);
-				return self::$IS_DATA_FOLDER;
 			}
 		}
 		return self::$NOT_IN_DATA_FOLDER;
@@ -2473,10 +2519,10 @@ class Lib {
 		}
 		return $ret;
 	}
-	
+
 	/**
-	 * Check that the requesting IP address is allowed to get confidential
-	 * information.
+	 * Check that the requesting IP address is allowed admin rights - e.g. to access
+	 * all user data.
 	 * UPDATE: now alternatively checks client certificate instead.
 	 */
 	public static function checkIP(){

@@ -84,5 +84,21 @@ div.remove_element label {
   margin-bottom: 2px;
 }
 
+.button.add_current_ip {
+  height: 24px;
+  font-size: 10px;
+  padding-top: 5px;
+  margin-left: 3px;
+}
+
+input.only_from {
+	margin-left: 10%;
+	height
+}
+
+.dataFolder .dialog {
+	display; inline;
+}
+
 /**/
 
