@@ -239,7 +239,10 @@ function stripTrailingSlash(str) {
 	return str;
 }
 
+setAllowedIPsSemaphore = true;
+
 function setOnlyFrom(folder, group, only_from, el){
+	setAllowedIPsSemaphore = false;
 	$.ajax(OC.linkTo('files_sharding','ajax/set_data_folder_only_from.php'), {
 		 type:'POST',
 		  data:{
@@ -248,6 +251,9 @@ function setOnlyFrom(folder, group, only_from, el){
 			  only_from: only_from
 		 },
 		 dataType:'json',
+		 complete: function(xhr){
+			 setAllowedIPsSemaphore = true;
+		 },
 		 success: function(s){
 			 OC.msg.finishedSaving(el, {status: 'success', data: {message: "IP restriction saved"}});
 		 },
@@ -340,7 +346,7 @@ $(document).ready(function(){
 	});
 	
 	$('#filesShardingDataFolders div#filesShardingDataFoldersList div.dataFolder').on('keypress', '.only_from', function(e) {
-		if(e.which == 13) {
+		if(e.which==13 && setAllowedIPsSemaphore) {
 			var group = $('#group_folder').val();
 			var only_from = $(this).val();
 			var path = $(this).parent().find('.data_folder_path').text();
