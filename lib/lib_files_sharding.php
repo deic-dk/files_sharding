@@ -988,21 +988,25 @@ class Lib {
 			$dataFolderLen = strlen($dataFolderPath);
 			\OCP\Util::writeLog('files_sharding', 'Checking path: '.$user_id.'-->'.$checkPath.'-->'.$dataFolderPath, \OC_Log::DEBUG);
 			if(substr($checkPath, 0, $dataFolderLen+1)===$dataFolderPath.'/' || $checkPath===$dataFolderPath){
-				\OCP\Util::writeLog('files_sharding', 'Excluding '.$dataFolderPath, \OC_Log::INFO);
-				$onlyFromStr = $p['only_from'];
+				$onlyFromOk = true;
+				$onlyFromStr = trim($p['only_from']);
 				$onlyFrom = explode(',', $onlyFromStr);
-				$onlyFromOk = false;
-				if(!empty(onlyFrom)){
+				\OCP\Util::writeLog('files_sharding', 'Excluding '.$dataFolderPath.'-->'.$onlyFromStr, \OC_Log::WARN);
+				if(!empty($onlyFromStr) && !empty($onlyFrom)){
+					$onlyFromOk = false;
 					foreach($onlyFrom as $net){
 						$net = trim($net);
-						if(strpos($_SERVER['REMOTE_ADDR'], $net)===0){
-							\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' OK', \OC_Log::DEBUG);
+						if(!empty($net) && strpos($_SERVER['REMOTE_ADDR'], $net)===0){
 							$onlyFromOk = true;
 							break;
 						}
 					}
 					if(!$onlyFromOk){
+						\OCP\Util::writeLog('files_sharding', 'Blocking '.$dataFolderPath.', '.$onlyFromStr, \OC_Log::WARN);
 						return self::$IN_DATA_FOLDER_BLOCKED;
+					}
+					else{
+						\OC_Log::write('files_sharding', 'Remote IP '.$_SERVER['REMOTE_ADDR'].' OK '.$onlyFromStr, \OC_Log::WARN);
 					}
 				}
 				if($checkPath===$dataFolderPath){
