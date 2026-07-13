@@ -155,8 +155,8 @@ function create_r_dialog(path){
 	}
 	msg = t("chooser", "Are you sure you want to sync the folder %s again?");
 	msg = msg.replace(/%s/, path)
-	$("#filesShardingDataFolders #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] div.dialog").text(msg);
-	remove_dialogs[path] =  $("#filesShardingDataFolders  #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] div.dialog").dialog({
+	$("#filesShardingDataFolders #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] label.dialog").text(msg);
+	remove_dialogs[path] =  $("#filesShardingDataFolders  #filesShardingDataFoldersList div.dataFolder[path='"+path+"'] label.dialog").dialog({
 		title: "Confirm sync",
 		autoOpen: false,
 		resizable: true,
