@@ -37,7 +37,12 @@ $priority = isset($_GET['priority'])?$_GET['priority']:0;
 
 // Temporary hack to support development of Nextcloud apps
 if($user_id=="alice"){
-	$ret = Array('url' => 'https://kube.sciencedata.dk:2005/', 'id' => 'silo2', 'status' => 'success');
+	if(empty($internal) || $internal!=="false" && $internal!=="no"){
+		$ret = Array('url' => 'https://kube.sciencedata.dk:2005/'/*'https://10.2.164.64/'*/, 'id' => 'silo2', 'status' => 'success');
+	}
+	else{
+		$ret = Array('url' => 'https://kube.sciencedata.dk:2005/', 'id' => 'silo2', 'status' => 'success');
+	}
 	OCP\JSON::encodedPrint($ret);
 	exit;
 }
