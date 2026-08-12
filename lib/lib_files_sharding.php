@@ -48,6 +48,10 @@ class Lib {
 	public static $USER_SYNC_INTERVAL_SECONDS = 86400; // 24 hours
 	private static $MAX_SYNC_ATTEMPTS = 1;
 	
+	public static $FILE_RW_ERROR = 0;
+	public static $FILE_WRITTEN = 1;
+	public static $FILE_EXISTS = 2;
+	
 	// To use X.509 authentification for trusted WS calls, set the following paths
 	// in the config file: wscertificate, wsprivatekey, wscacertificate
 	// NOTICE that Apache must also use the file wscacertificate.
@@ -376,16 +380,20 @@ class Lib {
 	}
 	
 	/**
-	 * @param unknown $user
-	 * @param unknown $url
-	 * @param unknown $destBaseDir
-	 * @param unknown $target
-	 * @param unknown $username optional remote login username
-	 * @param unknown $password optional remote login password
-	 * @return NULL|unknown
+	 * Fetch a file from a URL and write it to a local destination.
+	 * 
+	 * @param $user
+	 * @param $url
+	 * @param $destBaseDir
+	 * @param $target
+	 * @param $username optional remote login username
+	 * @param $password optional remote login password
+	 * @param $overwrite
+	 * @return $FILE_WRITTEN | $FILE_RW_ERROR | $FILE_EXISTS
 	 */
+	
 	public static function getFile($user, $url, $destBaseDir, $target,
-			$username='', $password=''){
+			$username='', $password='', $overwrite=false){
 
 		\OC_Util::teardownFS();
 		\OC\Files\Filesystem::init($user, $destBaseDir);
@@ -417,13 +425,16 @@ class Lib {
 		curl_close($curl);
 		if($status===0 || $status>=300 || $data===null || $data===false){
 			\OCP\Util::writeLog('files_sharding', 'ERROR: bad ws response from '.$url.' : '.$status.' : '.$data, \OC_Log::ERROR);
-			return null;
+			return self::$FILE_RW_ERROR;
 		}
 		
 		\OCP\Util::writeLog('files_sharding', 'Writing data to '.$destBaseDir.':'.$target, \OC_Log::WARN);
+		if(!$overwrite && \OC\Files\Filesystem::file_exists($target)){
+			return self::$FILE_EXISTS;
+		}
 		$success = \OC\Files\Filesystem::file_put_contents($target, $data);
 		
-		return $success;
+		return $success?self::$FILE_WRITTEN:self::$FILE_RW_ERROR;
 	}
 	
 	public static function propfind($url, $prop='', $username='', $password='', $tryCertAuth=false){
