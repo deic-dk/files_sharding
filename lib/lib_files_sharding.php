@@ -175,12 +175,51 @@ class Lib {
 			isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME']===$hostname;
 	}
 	
-	public static function isServerMe($server){
-		if(empty($server)){
+	public static function isServerMe($url){
+		if(empty($url)){
 			return false;
 		}
-		$parse = parse_url($server);
-		return self::isHostMe($parse['host']);
+		$url = rtrim($url, "/");
+		$parse = parse_url($url);
+		$host = $parse['host'];
+		if(preg_match('|^https*://[0-9\.]+/*|', $url)){
+			$internalUrl = self::privateToInternal($url);
+			$publicUrl = self::internalToPublicServerUrl($internalUrl);
+			\OCP\Util::writeLog('files_sharding', 'dataserver: '.$internalUrl.' --> '.$publicUrl, \OC_Log::ERROR);
+			return self::isServerMe($publicUrl);
+		}
+		return self::isHostMe($host);
+	}
+	
+	public static function internalToPublicServerUrl($internal_url){
+		if(self::isMaster()){
+			return self::dbInternalToPublicServerUrl($internal_url);
+		}
+		else{
+			$ret = self::ws('internal_to_public', Array('url' => $internal_url));
+			return $ret['public_url'];
+		}
+		
+	}
+	
+	public static function dbInternalToPublicServerUrl($internal_url){
+		$sql = 'SELECT `url` FROM `*PREFIX*files_sharding_servers` WHERE `internal_url` = ?';
+		$query = \OC_DB::prepare($sql);
+		$result = $query->execute(Array($internal_url));
+		if(\OCP\DB::isError($result)){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: could not get url, '.\OC_DB::getErrorMessage($result), \OC_Log::ERROR);
+		}
+		$results = $result->fetchAll();
+		if(count($results)>1){
+			\OCP\Util::writeLog('files_sharding', 'ERROR: Duplicate entries found for internal_url '.$internal_url, \OCP\Util::ERROR);
+		}
+		foreach($results as $row){
+			if(!preg_match('|^https*://[0-9\.]+/*$|', $row['url'])){
+				return $row['url'];
+			}
+		}
+		\OCP\Util::writeLog('files_sharding', 'No server found for query '.$sql."-->".$internal_url, \OC_Log::ERROR);
+		return null;
 	}
 	
 	public static function onServerForUser($user_id=null){
@@ -340,6 +379,38 @@ class Lib {
 			++$netpos;
 		}
 		return $privateUrl;
+	}
+	
+	public static function privateToInternal($privateUrl){
+		// User VLANs allowing private data transfers to/from Kube containers
+		$vnet = \OCP\Config::getSystemValue('uservlannet', '');
+		$vnet = trim($vnet);
+		$vnets = explode(' ', $vnet);
+		$uservlannets = array_map('trim', $vnets);
+		if(count($uservlannets)==1 && substr($uservlannets[0], 0, 10)==='USER_VLAN_'){
+			$uservlannets = [];
+		}
+		// Trusted internal networks
+		$tnet = \OCP\Config::getSystemValue('trustednet', '');
+		$tnet = trim($tnet);
+		$tnets = explode(' ', $tnet);
+		$trustednets = array_map('trim', $tnets);
+		if(count($trustednets)==1 && substr($trustednets[0], 0, 8)==='TRUSTED_'){
+			$trustednets = [];
+		}
+		$internalUrl = $privateUrl;
+		// We're assuming the number private and internal networks are the same and that silos
+		// are on the same number in the list and have the same trailing number on each.
+		// E.g. silo2: 10.0.0.15 -> 10.2.0.15
+		$netpos = 0;
+		foreach($uservlannets as $net){
+			if(preg_match('|^https*://'.$net.'.*|', $privateUrl)){
+				$internalUrl = preg_replace('|^(https*://)'.$net.'|', '${1}'.$trustednets[$netpos], $privateUrl);
+				break;
+			}
+			++$netpos;
+		}
+		return $internalUrl;
 	}
 	
 	public static function getAllowLocalLogin($node){
@@ -506,7 +577,7 @@ class Lib {
 			'read'=>30, 'get_allow_local_login'=>60, 'userExists'=>60, 'personalStorage'=>20, 'getCharge'=>30,
 			'accountedYears'=>60, 'getUserGroups'=>10, 'lookupServerId'=>60, 'getServePublicUrl'=>60,
 			'searchKeyByID'=>30, 'get_public_shares'=>30, 'lookupSiteInfo'=>30,
-			'getItemSharedWithBySource'=>10, 'getItemShared'=>10
+			'getItemSharedWithBySource'=>10, 'getItemShared'=>10, 'internal_to_public'=>60
 	);
 	
 	public static function getWSCert(){
